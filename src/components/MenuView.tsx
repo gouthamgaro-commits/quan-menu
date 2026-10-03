@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ALLERGENS, LANGS, foreign, guessLang, vnd } from "@/lib/i18n";
-import { LANG_KEYS, isTranslated, type Dish, type Lang } from "@/lib/types";
+import { LANG_KEYS, isTranslated, type Dish, type Lang, type Media } from "@/lib/types";
 
 interface Props {
   name: string;
@@ -27,6 +27,7 @@ export default function MenuView({ name, area, dishes, full }: Props) {
   const [lang, setLang] = useState<Lang>("en");
   const [cart, setCart] = useState<Record<number, number>>({});
   const [showOrder, setShowOrder] = useState(false);
+  const [viewer, setViewer] = useState<{ items: Media[]; at: number; title: string } | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const voice = useViVoice();
   const L = LANGS[lang];
@@ -43,6 +44,17 @@ export default function MenuView({ name, area, dishes, full }: Props) {
   useEffect(() => {
     if (showOrder) closeRef.current?.focus();
   }, [showOrder]);
+
+  useEffect(() => {
+    if (!viewer) return;
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setViewer(null);
+      if (e.key === "ArrowRight") setViewer((v) => v && { ...v, at: (v.at + 1) % v.items.length });
+      if (e.key === "ArrowLeft") setViewer((v) => v && { ...v, at: (v.at - 1 + v.items.length) % v.items.length });
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [viewer]);
 
   const count = useMemo(() => Object.values(cart).reduce((a, b) => a + b, 0), [cart]);
   const total = useMemo(
@@ -114,6 +126,22 @@ export default function MenuView({ name, area, dishes, full }: Props) {
                 </button>
               </div>
               {desc && <p>{desc}</p>}
+              {!!d.media?.length && (
+                <div className="m-media">
+                  {d.media.map((m, k) => (
+                    <button key={m.url} className="m-thumb" onClick={() => setViewer({ items: d.media!, at: k, title })}
+                      aria-label={`${title}: ${m.type === "video" ? "video" : "photo"} ${k + 1} of ${d.media!.length}`}>
+                      {m.type === "video" ? (
+                        <video src={m.url + "#t=0.1"} muted playsInline preload="metadata" tabIndex={-1} />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={m.url} alt="" loading="lazy" />
+                      )}
+                      {m.type === "video" && <span className="media-play" aria-hidden>▶</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="dish-top">
                 <div className="tags">
                   {d.spice > 0 && (
@@ -148,6 +176,29 @@ export default function MenuView({ name, area, dishes, full }: Props) {
         </button>
         <small>{L.note}</small>
       </div>
+
+      {viewer && (
+        <div className="viewer" role="dialog" aria-modal="true" aria-label={viewer.title} onClick={() => setViewer(null)}>
+          <div className="viewer-bar" onClick={(e) => e.stopPropagation()}>
+            <span>{viewer.title}{viewer.items.length > 1 && ` · ${viewer.at + 1}/${viewer.items.length}`}</span>
+            <button className="btn" onClick={() => setViewer(null)} autoFocus>{L.close}</button>
+          </div>
+          <div className="viewer-stage" onClick={(e) => e.stopPropagation()}>
+            {viewer.items[viewer.at].type === "video" ? (
+              <video key={viewer.items[viewer.at].url} src={viewer.items[viewer.at].url} controls autoPlay muted playsInline />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={viewer.items[viewer.at].url} alt={viewer.title} />
+            )}
+          </div>
+          {viewer.items.length > 1 && (
+            <div className="viewer-nav" onClick={(e) => e.stopPropagation()}>
+              <button className="btn" aria-label="Previous" onClick={() => setViewer({ ...viewer, at: (viewer.at - 1 + viewer.items.length) % viewer.items.length })}>‹</button>
+              <button className="btn" aria-label="Next" onClick={() => setViewer({ ...viewer, at: (viewer.at + 1) % viewer.items.length })}>›</button>
+            </div>
+          )}
+        </div>
+      )}
 
       {showOrder && (
         <div className="order" role="dialog" aria-modal="true" aria-label={L.head} lang="vi">

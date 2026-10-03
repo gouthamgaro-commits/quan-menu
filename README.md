@@ -24,7 +24,7 @@ Open http://localhost:3000. With no Supabase keys the app runs in **demo mode**:
 
 ## Full setup
 
-1. **Supabase.** Create a free project at supabase.com. Open **SQL Editor**, paste in `supabase/schema.sql` and run it. Under **Project Settings → API**, copy the Project URL and the `anon` public key.
+1. **Supabase.** Create a free project at supabase.com. Open **SQL Editor**, paste in `supabase/schema.sql` and run it. It also creates the `dish-media` storage bucket for dish photos and videos. The file is safe to re-run: do that after pulling changes to it. Under **Project Settings → API**, copy the Project URL and the `anon` public key.
 2. **Login emails.** Under **Authentication → URL Configuration**, set Site URL to your site's address and add `https://YOUR-SITE/auth/callback` to Redirect URLs. (Add `http://localhost:3000/auth/callback` too for local development.)
 3. **Claude API (optional).** Create a key at console.anthropic.com. Without one, the app hides photo reading, and vendors type their dishes; the 156 dishes on the built-in list (`src/lib/dishes.ts`) fill in their translations by themselves.
 4. **Fill `.env.local`:**
@@ -57,6 +57,7 @@ Set `NEXT_PUBLIC_SITE_URL` **before** printing stickers. The QR code contains th
 | `src/app/api/extract` | Photo → dishes, using Claude vision. Signed-in vendors only. |
 | `src/app/api/translate` | Names of new dishes → translations, allergens, pronunciation (the editor sends 15 at a time) |
 | `src/app/api/health` | Deployment check: which settings are missing |
+| `src/components/DishMedia.tsx` | Per-dish photos and videos in the editor: photos are shrunk to 1280 px in the browser, videos must be MP4/MOV/WebM under 25 MB, up to 6 per dish. Files go straight to Supabase Storage. |
 | `src/components/MenuView.tsx` | Customer menu, also used as the live phone preview |
 | `src/lib/dishes.ts` | Built-in translations for 156 common Saigon dishes and drinks. Used before any AI call, so known dishes cost nothing; matching ignores tone marks, portion notes and prices. |
 | `src/lib/ai.ts` | Claude API calls: prompts, JSON-schema structured output, time budget, error messages |
@@ -64,7 +65,7 @@ Set `NEXT_PUBLIC_SITE_URL` **before** printing stickers. The QR code contains th
 
 **Security model:** anyone can read a stall marked live. Only its owner can read a draft or change anything; this is enforced by Postgres row-level security, not just the app. The AI routes refuse anyone who isn't signed in, and each vendor gets 40 AI calls per day (the `take_ai_call` function in `supabase/schema.sql`; change the number there). In demo mode the AI routes only work during local development, so a deploy missing its Supabase settings can't be used to spend your API credit.
 
-**Photos** are shrunk in the browser to 1600 px and sent straight to Claude. They are not stored. Reading a second photo adds its dishes to the list, so a long menu can be read in parts.
+**Menu photos** (for AI reading) are shrunk in the browser to 1600 px and sent straight to Claude. They are not stored. **Dish photos and videos** are stored in the public `dish-media` bucket, inside a folder named after the vendor's user id; storage policies only let vendors add or delete files in their own folder, and the app only displays URLs from this bucket. Files a vendor removes are deleted when they next save; files uploaded but never saved stay in storage until cleaned up by hand. Reading a second photo adds its dishes to the list, so a long menu can be read in parts.
 
 **Time limit:** each AI call must finish within 60 seconds (the route's `maxDuration`). Calls use `low` effort to stay fast; set `ANTHROPIC_EFFORT=medium` if menus are misread.
 

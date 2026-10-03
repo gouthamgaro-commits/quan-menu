@@ -21,8 +21,10 @@ create table if not exists public.dishes (
   allergens  text[] not null default '{}',
   pron       text not null default '',
   name       jsonb,          -- {"en","ko","zh","ja"}
-  descr      jsonb           -- {"en","ko","zh","ja"}
+  descr      jsonb,          -- {"en","ko","zh","ja"}
+  media      jsonb not null default '[]'  -- [{"type":"image"|"video","url"}]
 );
+alter table public.dishes add column if not exists media jsonb not null default '[]';
 create index if not exists dishes_stall_idx on public.dishes(stall_id, position);
 
 alter table public.stalls enable row level security;
@@ -62,7 +64,7 @@ begin
 
   delete from public.dishes where stall_id = s.id;
 
-  insert into public.dishes (stall_id, position, vi, price, spice, allergens, pron, name, descr)
+  insert into public.dishes (stall_id, position, vi, price, spice, allergens, pron, name, descr, media)
   select s.id, (d.ord - 1)::int,
          d.v->>'vi',
          greatest(0, coalesce((d.v->>'price')::int, 0)),
@@ -70,7 +72,8 @@ begin
          coalesce(array(select jsonb_array_elements_text(coalesce(d.v->'alg', '[]'::jsonb))), '{}'),
          coalesce(d.v->>'pron', ''),
          d.v->'name',
-         d.v->'desc'
+         d.v->'desc',
+         case when jsonb_typeof(d.v->'media') = 'array' then d.v->'media' else '[]'::jsonb end
   from jsonb_array_elements(p_dishes) with ordinality as d(v, ord)
   where coalesce(trim(d.v->>'vi'), '') <> '';
 
@@ -104,3 +107,23 @@ begin
 end $$;
 revoke all on function public.take_ai_call() from public, anon;
 grant execute on function public.take_ai_call() to authenticated;
+
+-- Dish photos and videos. Public bucket: anyone can view files, but each vendor can
+-- only add or delete files inside their own folder (named after their user id).
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('dish-media', 'dish-media', true, 26214400,
+        array['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm', 'video/quicktime'])
+on conflict (id) do update
+  set public = excluded.public,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists dish_media_owner_read on storage.objects;
+create policy dish_media_owner_read on storage.objects for select to authenticated
+  using (bucket_id = 'dish-media' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists dish_media_owner_insert on storage.objects;
+create policy dish_media_owner_insert on storage.objects for insert to authenticated
+  with check (bucket_id = 'dish-media' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists dish_media_owner_delete on storage.objects;
+create policy dish_media_owner_delete on storage.objects for delete to authenticated
+  using (bucket_id = 'dish-media' and (storage.foldername(name))[1] = auth.uid()::text);

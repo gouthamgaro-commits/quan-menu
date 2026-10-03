@@ -1,9 +1,22 @@
+import { SUPABASE_URL } from "./config";
+
 export const LANG_KEYS = ["en", "ko", "zh", "ja"] as const;
 export type Lang = (typeof LANG_KEYS)[number];
 export type ML = Record<Lang, string>;
 
 export const ALLERGEN_KEYS = ["peanut", "shellfish", "fish", "egg", "dairy", "gluten", "soy", "pork", "beef"] as const;
 export type Allergen = (typeof ALLERGEN_KEYS)[number];
+
+/** A photo or short video of a dish, stored in the project's "dish-media" storage bucket. */
+export interface Media {
+  type: "image" | "video";
+  url: string;
+}
+
+export const MEDIA_BUCKET = "dish-media";
+export const MAX_MEDIA = 6;
+/** Only files from this project's own storage are shown, so a crafted save can't embed outside content. */
+export const MEDIA_PREFIX = SUPABASE_URL ? `${SUPABASE_URL}/storage/v1/object/public/${MEDIA_BUCKET}/` : "";
 
 export interface Dish {
   vi: string;
@@ -13,6 +26,7 @@ export interface Dish {
   pron: string;
   name: ML | null;
   desc: ML | null;
+  media?: Media[];
 }
 
 export interface Stall {
@@ -27,6 +41,19 @@ export interface MenuData extends Stall {
 }
 
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+
+function media(v: unknown): Media[] {
+  if (!MEDIA_PREFIX || !Array.isArray(v)) return [];
+  const out: Media[] = [];
+  for (const m of v) {
+    if (!m || typeof m !== "object") continue;
+    const { type, url } = m as Record<string, unknown>;
+    if ((type === "image" || type === "video") && typeof url === "string" && url.startsWith(MEDIA_PREFIX) && !url.includes("..")) {
+      out.push({ type, url });
+    }
+  }
+  return out.slice(0, MAX_MEDIA);
+}
 
 function ml(v: unknown): ML | null {
   if (!v || typeof v !== "object") return null;
@@ -50,6 +77,7 @@ export function cleanDish(d: unknown): Dish | null {
     pron: str(o.pron).slice(0, 120),
     name: ml(o.name),
     desc: ml(o.desc ?? o.descr),
+    media: media(o.media),
   };
 }
 

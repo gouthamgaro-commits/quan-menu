@@ -6,6 +6,9 @@ import { DEMO_KEY, slugify } from "@/lib/config";
 import { EXAMPLE_MENU } from "@/lib/demo";
 import { ALLERGENS } from "@/lib/i18n";
 import { ALLERGEN_KEYS, isTranslated, type Dish, type MenuData } from "@/lib/types";
+import { supabaseBrowser } from "@/lib/supabase/client";
+import { MEDIA_BUCKET, MEDIA_PREFIX, type Media } from "@/lib/types";
+import DishMedia from "./DishMedia";
 import MenuView from "./MenuView";
 import Sticker from "./Sticker";
 
@@ -68,6 +71,8 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
   const [s4, setS4] = useState<Status>({ msg: "" });
   const fileRef = useRef<HTMLInputElement>(null);
   const [listSize, setListSize] = useState(0);
+  // Media URLs in the last saved menu: files dropped from it are deleted from storage after the next save.
+  const savedMedia = useRef(new Set(start.dishes.flatMap((d) => d.media ?? []).map((m) => m.url)));
 
   useEffect(() => {
     loadList().then((m) => setListSize(m.DISH_COUNT)).catch(() => {});
@@ -111,6 +116,15 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
     // Common dishes translate instantly from the built-in list, with no AI call.
     const { fillFromList } = await loadList().catch(() => ({ fillFromList: () => null }));
     setDishes((ds) => ds.map((x, k) => (k === i && x.vi === name && !isTranslated(x) ? fillFromList(x) ?? x : x)));
+  };
+
+  const addMedia = (i: number, added: Media[]) => {
+    setDishes((ds) => ds.map((d, k) => (k === i ? { ...d, media: [...(d.media ?? []), ...added] } : d)));
+    touch();
+  };
+  const removeMedia = (i: number, url: string) => {
+    setDishes((ds) => ds.map((d, k) => (k === i ? { ...d, media: (d.media ?? []).filter((m) => m.url !== url) } : d)));
+    touch();
   };
 
   const base = siteUrl || (typeof window !== "undefined" ? window.location.origin : "");
@@ -184,7 +198,7 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
         const byName = new Map(names.map((n, k) => [n, out.dishes[k]]));
         setDishes((ds) => ds.map((d) => {
           const t = byName.get(d.vi);
-          return t && !isTranslated(d) ? { ...t, vi: d.vi, price: d.price } : d;
+          return t && !isTranslated(d) ? { ...t, vi: d.vi, price: d.price, media: d.media } : d;
         }));
         done += part.length;
         touch();
@@ -216,6 +230,10 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
         setSavedSlug(r.slug!);
         setSlug(r.slug!);
         setDirty(false);
+        const now = new Set(clean.flatMap((d) => d.media ?? []).map((m) => m.url));
+        const gone = [...savedMedia.current].filter((u) => !now.has(u) && u.startsWith(MEDIA_PREFIX)).map((u) => u.slice(MEDIA_PREFIX.length));
+        savedMedia.current = now;
+        if (gone.length) supabaseBrowser().storage.from(MEDIA_BUCKET).remove(gone).catch(() => {});
         setS4({ msg: published ? "Saved. Your menu is live." : "Saved as a draft. Turn on “Menu is live” when you're ready.", kind: "good" });
         router.refresh();
       }
@@ -252,7 +270,7 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
         <div className="grid">
           <div className="steps">
             <section className="step" aria-labelledby="s1">
-              <div className="step-h"><div className="num">1</div><div><h2 id="s1">{ai ? "Your stall and menu photo" : "Your stall"}</h2><small>{ai ? "The board on the wall, a printed sheet, or handwriting all work." : "Your stall's name and where to find it."}</small></div></div>
+              <div className="step-h"><div className="num">1</div><div><h2 id="s1">Your stall and menu photo</h2><small>The board on the wall, a printed sheet, or handwriting all work.</small></div></div>
               <div className="two">
                 <label className="f" htmlFor="name">Stall name
                   <input id="name" type="text" value={name} placeholder="Cơm Tấm Cô Ba" onChange={(e) => { setName(e.target.value); touch(); }} />
@@ -261,7 +279,6 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
                   <input id="area" type="text" value={area} placeholder="Nguyễn Trãi, Quận 1" onChange={(e) => { setArea(e.target.value); touch(); }} />
                 </label>
               </div>
-              {ai ? (<>
               <button className="drop" type="button" onClick={() => fileRef.current?.click()}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) { setPhoto(f); setThumb(URL.createObjectURL(f)); } }}>
@@ -272,15 +289,15 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
               <input ref={fileRef} type="file" accept="image/*" capture="environment" hidden
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) { setPhoto(f); setThumb(URL.createObjectURL(f)); } }} />
               <div className="row">
-                <button className="btn primary" disabled={!photo || !!busy} onClick={readPhoto}>{busy === "read" ? "Reading…" : "Read menu with AI"}</button>
-                {dishes.length > 0 && photo && <small className="status">New dishes are added to your list in step 2.</small>}
+                <button className="btn primary" disabled={!ai || !photo || !!busy} onClick={readPhoto}>{busy === "read" ? "Reading…" : "Read menu with AI"}</button>
+                {ai && dishes.length > 0 && photo && <small className="status">New dishes are added to your list in step 2.</small>}
               </div>
-              <p className={"status " + (s1.kind ?? "")} aria-live="polite">{s1.msg}</p>
-              </>) : (
+              {!ai && (
                 <p className="status">
-                  Type your dishes in step 2. {listSize ? `${listSize} common dishes` : "Common dishes"} fill in their English, Korean, Chinese and Japanese names by themselves.
+                  Reading menu photos switches on once a Claude API key is added to the server. For now, type your dishes in step 2: {listSize ? `${listSize} common dishes` : "common dishes"} fill in their English, Korean, Chinese and Japanese names by themselves.
                 </p>
               )}
+              <p className={"status " + (s1.kind ?? "")} aria-live="polite">{s1.msg}</p>
             </section>
 
             <section className="step" aria-labelledby="s2">
@@ -294,7 +311,7 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
                       onBlur={(e) => renameVi(i, e.target.value)} />
                     <input className="price" type="number" min={0} step={1000} aria-label="Price in đồng" value={d.price || ""}
                       onChange={(e) => update(i, { price: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
-                    <span className="encol">{isTranslated(d) ? <span className="en">{d.name!.en}</span> : <span className="pending">Needs translation</span>}</span>
+                    <span className="encol">{isTranslated(d) ? <span className="en">{d.name!.en}</span> : <span className="pending">Needs translation</span>}{!!d.media?.length && <span className="mcount" title="Photos and videos"> · 📷 {d.media.length}</span>}</span>
                     <button className="icon" aria-expanded={open === i} onClick={() => setOpen(open === i ? null : i)}>{open === i ? "Close" : "Edit"}</button>
                     <button className="icon del" aria-label={`Remove ${d.vi || "dish"}`} onClick={() => { setDishes((ds) => ds.filter((_, k) => k !== i)); setOpen(null); touch(); }}>✕</button>
                     {open === i && (
@@ -326,6 +343,10 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
                               );
                             })}
                           </div>
+                        </div>
+                        <div className="f" style={{ display: "grid", gap: 6 }}>
+                          <span className="f">Photos and videos</span>
+                          <DishMedia media={d.media ?? []} demo={demo} onAdd={(m) => addMedia(i, m)} onRemove={(u) => removeMedia(i, u)} />
                         </div>
                       </div>
                     )}
