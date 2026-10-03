@@ -8,7 +8,9 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Your menu — Quán" };
 
 export default async function Dashboard() {
-  if (DEMO) return <Editor initial={null} demo siteUrl={SITE_URL} />;
+  // Mirrors requireVendor(): without logins, AI only runs in local development.
+  const ai = !!process.env.ANTHROPIC_API_KEY && (!DEMO || process.env.NODE_ENV !== "production");
+  if (DEMO) return <Editor initial={null} demo ai={ai} siteUrl={SITE_URL} />;
 
   const supabase = await supabaseServer();
   const { data: auth } = await supabase.auth.getUser();
@@ -32,5 +34,5 @@ export default async function Dashboard() {
     };
   }
 
-  return <Editor initial={initial} demo={false} siteUrl={SITE_URL} email={auth.user.email ?? ""} />;
+  return <Editor initial={initial} demo={false} ai={ai} siteUrl={SITE_URL} email={auth.user.email ?? ""} />;
 }

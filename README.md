@@ -20,13 +20,13 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3000. With no Supabase keys the app runs in **demo mode**: no login, and the vendor's menu is saved in the browser. Everything works except photo reading and translation, which need `ANTHROPIC_API_KEY`.
+Open http://localhost:3000. With no Supabase keys the app runs in **demo mode**: no login, and the vendor's menu is saved in the browser. Everything works except photo reading and AI translation, which need `ANTHROPIC_API_KEY`. Common dishes still translate from the built-in list.
 
 ## Full setup
 
 1. **Supabase.** Create a free project at supabase.com. Open **SQL Editor**, paste in `supabase/schema.sql` and run it. Under **Project Settings → API**, copy the Project URL and the `anon` public key.
 2. **Login emails.** Under **Authentication → URL Configuration**, set Site URL to your site's address and add `https://YOUR-SITE/auth/callback` to Redirect URLs. (Add `http://localhost:3000/auth/callback` too for local development.)
-3. **Claude API.** Create a key at console.anthropic.com.
+3. **Claude API (optional).** Create a key at console.anthropic.com. Without one, the app hides photo reading, and vendors type their dishes; the 156 dishes on the built-in list (`src/lib/dishes.ts`) fill in their translations by themselves.
 4. **Fill `.env.local`:**
 
    ```
@@ -42,7 +42,7 @@ Open http://localhost:3000. With no Supabase keys the app runs in **demo mode**:
 
 Push the repo to GitHub, import it at vercel.com/new, add the four variables above (with `NEXT_PUBLIC_SITE_URL` set to your Vercel address), and deploy. Then update the Supabase redirect URL from step 2 to the Vercel address.
 
-Open `https://YOUR-SITE/api/health` after deploying. It lists any missing setting (yes/no only, never the values) and shows `"ok": true` when everything is in place.
+Open `https://YOUR-SITE/api/health` after deploying. It lists any missing setting (yes/no only, never the values) and shows `"ok": true` when the required ones are in place. `ANTHROPIC_API_KEY` is listed under `optional`.
 
 Set `NEXT_PUBLIC_SITE_URL` **before** printing stickers. The QR code contains this address.
 
@@ -58,6 +58,7 @@ Set `NEXT_PUBLIC_SITE_URL` **before** printing stickers. The QR code contains th
 | `src/app/api/translate` | Names of new dishes → translations, allergens, pronunciation (the editor sends 15 at a time) |
 | `src/app/api/health` | Deployment check: which settings are missing |
 | `src/components/MenuView.tsx` | Customer menu, also used as the live phone preview |
+| `src/lib/dishes.ts` | Built-in translations for 156 common Saigon dishes and drinks. Used before any AI call, so known dishes cost nothing; matching ignores tone marks, portion notes and prices. |
 | `src/lib/ai.ts` | Claude API calls: prompts, JSON-schema structured output, time budget, error messages |
 | `supabase/schema.sql` | Tables, row-level security, the atomic `save_menu` function, and the daily AI allowance |
 

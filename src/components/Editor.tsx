@@ -12,9 +12,15 @@ import Sticker from "./Sticker";
 interface Props {
   initial: MenuData | null;
   demo: boolean;
+  /** Whether the server can read photos and translate with AI (needs ANTHROPIC_API_KEY). */
+  ai: boolean;
   siteUrl: string;
   email?: string;
 }
+
+/** The built-in dish list is ~100 KB, so it loads on first use instead of with the page. */
+let listPromise: Promise<typeof import("@/lib/dishes")> | null = null;
+const loadList = () => (listPromise ??= import("@/lib/dishes"));
 
 const blank = (): Dish => ({ vi: "", price: 0, spice: 0, alg: [], pron: "", name: null, desc: null });
 
@@ -42,7 +48,7 @@ type Status = { msg: string; kind?: "err" | "good" };
 const BATCH = 15;
 const key = (vi: string) => vi.trim().toLowerCase();
 
-export default function Editor({ initial, demo, siteUrl, email }: Props) {
+export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
   const router = useRouter();
   const start = initial ?? { name: "", area: "", slug: "", published: false, dishes: [] };
   const [name, setName] = useState(start.name);
@@ -61,6 +67,11 @@ export default function Editor({ initial, demo, siteUrl, email }: Props) {
   const [s2, setS2] = useState<Status>({ msg: "" });
   const [s4, setS4] = useState<Status>({ msg: "" });
   const fileRef = useRef<HTMLInputElement>(null);
+  const [listSize, setListSize] = useState(0);
+
+  useEffect(() => {
+    loadList().then((m) => setListSize(m.DISH_COUNT)).catch(() => {});
+  }, []);
 
   // Demo mode: the menu lives in this browser.
   useEffect(() => {
@@ -90,11 +101,16 @@ export default function Editor({ initial, demo, siteUrl, email }: Props) {
     setDishes((ds) => ds.map((d, k) => (k === i ? { ...d, ...patch } : d)));
     touch();
   };
-  const renameVi = (i: number, vi: string) => {
+  const renameVi = async (i: number, vi: string) => {
     const d = dishes[i];
-    if (vi.trim() === d.vi) return;
+    const name = vi.trim();
+    if (name === d.vi) return;
     // A new Vietnamese name means the old translation is wrong.
-    update(i, { vi: vi.trim(), name: null, desc: null, pron: "", alg: [], spice: 0 });
+    update(i, { vi: name, name: null, desc: null, pron: "", alg: [], spice: 0 });
+    if (!name) return;
+    // Common dishes translate instantly from the built-in list, with no AI call.
+    const { fillFromList } = await loadList().catch(() => ({ fillFromList: () => null }));
+    setDishes((ds) => ds.map((x, k) => (k === i && x.vi === name && !isTranslated(x) ? fillFromList(x) ?? x : x)));
   };
 
   const base = siteUrl || (typeof window !== "undefined" ? window.location.origin : "");
@@ -133,15 +149,36 @@ export default function Editor({ initial, demo, siteUrl, email }: Props) {
   }
 
   async function translate() {
-    const idx = dishes.map((d, i) => (d.vi && !isTranslated(d) ? i : -1)).filter((i) => i >= 0);
-    if (!idx.length) return;
     setBusy("translate");
+    // Built-in list first: free and instant. Only dishes it doesn't know go to the AI.
+    let fromList = 0;
+    let rest = dishes;
+    try {
+      const { fillFromList } = await loadList();
+      rest = dishes.map((d) => {
+        if (!d.vi || isTranslated(d)) return d;
+        const hit = fillFromList(d);
+        if (hit) fromList++;
+        return hit ?? d;
+      });
+      if (fromList) { setDishes(rest); touch(); }
+    } catch {}
+    const listNote = fromList ? `${fromList} filled in from the built-in list. ` : "";
+    const idx = rest.map((d, i) => (d.vi && !isTranslated(d) ? i : -1)).filter((i) => i >= 0);
+    if (!idx.length) {
+      setS2({ msg: listNote + "Check the allergens are right for your recipe.", kind: "good" });
+      return setBusy("");
+    }
+    if (!ai) {
+      setS2({ msg: `${listNote}${idx.length} dish${idx.length > 1 ? "es aren't" : " isn't"} on the list: open ${idx.length > 1 ? "each one" : "it"} with Edit and type the English name.`, kind: fromList ? "good" : undefined });
+      return setBusy("");
+    }
     let done = 0;
     try {
       for (let start = 0; start < idx.length; start += BATCH) {
         const part = idx.slice(start, start + BATCH);
         setS2({ msg: idx.length > BATCH ? `Translating ${start + 1}–${start + part.length} of ${idx.length}…` : `Translating ${idx.length} dish${idx.length > 1 ? "es" : ""}…` });
-        const names = part.map((i) => dishes[i].vi);
+        const names = part.map((i) => rest[i].vi);
         const out = await post<{ dishes: (Dish | null)[] }>("/api/translate", { names });
         // Match by name, not position, in case the vendor edited the list while this ran.
         const byName = new Map(names.map((n, k) => [n, out.dishes[k]]));
@@ -152,10 +189,10 @@ export default function Editor({ initial, demo, siteUrl, email }: Props) {
         done += part.length;
         touch();
       }
-      setS2({ msg: "Done. Check the allergens are right for your recipe.", kind: "good" });
+      setS2({ msg: listNote + "Done. Check the allergens are right for your recipe.", kind: "good" });
     } catch (e) {
       const kept = done ? ` ${done} of ${idx.length} were translated and kept; press Translate again for the rest.` : "";
-      setS2({ msg: (e as Error).message + kept, kind: "err" });
+      setS2({ msg: listNote + (e as Error).message + kept, kind: "err" });
     } finally {
       setBusy("");
     }
@@ -215,7 +252,7 @@ export default function Editor({ initial, demo, siteUrl, email }: Props) {
         <div className="grid">
           <div className="steps">
             <section className="step" aria-labelledby="s1">
-              <div className="step-h"><div className="num">1</div><div><h2 id="s1">Your stall and menu photo</h2><small>The board on the wall, a printed sheet, or handwriting all work.</small></div></div>
+              <div className="step-h"><div className="num">1</div><div><h2 id="s1">{ai ? "Your stall and menu photo" : "Your stall"}</h2><small>{ai ? "The board on the wall, a printed sheet, or handwriting all work." : "Your stall's name and where to find it."}</small></div></div>
               <div className="two">
                 <label className="f" htmlFor="name">Stall name
                   <input id="name" type="text" value={name} placeholder="Cơm Tấm Cô Ba" onChange={(e) => { setName(e.target.value); touch(); }} />
@@ -224,6 +261,7 @@ export default function Editor({ initial, demo, siteUrl, email }: Props) {
                   <input id="area" type="text" value={area} placeholder="Nguyễn Trãi, Quận 1" onChange={(e) => { setArea(e.target.value); touch(); }} />
                 </label>
               </div>
+              {ai ? (<>
               <button className="drop" type="button" onClick={() => fileRef.current?.click()}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) { setPhoto(f); setThumb(URL.createObjectURL(f)); } }}>
@@ -238,13 +276,18 @@ export default function Editor({ initial, demo, siteUrl, email }: Props) {
                 {dishes.length > 0 && photo && <small className="status">New dishes are added to your list in step 2.</small>}
               </div>
               <p className={"status " + (s1.kind ?? "")} aria-live="polite">{s1.msg}</p>
+              </>) : (
+                <p className="status">
+                  Type your dishes in step 2. {listSize ? `${listSize} common dishes` : "Common dishes"} fill in their English, Korean, Chinese and Japanese names by themselves.
+                </p>
+              )}
             </section>
 
             <section className="step" aria-labelledby="s2">
-              <div className="step-h"><div className="num">2</div><div><h2 id="s2">Check dishes and prices</h2><small>Fix anything the photo got wrong. Open a dish to correct allergens.</small></div></div>
+              <div className="step-h"><div className="num">2</div><div><h2 id="s2">Check dishes and prices</h2><small>{ai ? "Fix anything the photo got wrong. Open a dish to correct allergens." : "Type each dish's Vietnamese name and price. Open a dish to correct allergens."}</small></div></div>
               <div className="dlist">
                 <div className="drow dhead"><span>Dish (Vietnamese)</span><span style={{ textAlign: "right" }}>Price ₫</span><span className="encol">English</span><span /><span /></div>
-                {!dishes.length && <div className="empty">No dishes yet. Read a photo in step 1, add one by hand, or <button className="icon" onClick={loadExample} style={{ color: "var(--stool)", textDecoration: "underline" }}>load the example menu</button>.</div>}
+                {!dishes.length && <div className="empty">No dishes yet. {ai ? "Read a photo in step 1, add one by hand, or" : "Press Add a dish, or"} <button className="icon" onClick={loadExample} style={{ color: "var(--stool)", textDecoration: "underline" }}>load the example menu</button>.</div>}
                 {dishes.map((d, i) => (
                   <div className="drow" key={i}>
                     <input type="text" aria-label="Vietnamese name" defaultValue={d.vi} key={"vi" + i + d.vi} id={"vi" + i}
@@ -258,7 +301,7 @@ export default function Editor({ initial, demo, siteUrl, email }: Props) {
                       <div className="details">
                         <div className="two">
                           <label className="f">English name
-                            <input type="text" value={d.name?.en ?? ""} placeholder="Translate first, or type it"
+                            <input type="text" value={d.name?.en ?? ""} placeholder={ai ? "Translate first, or type it" : "Type the English name"}
                               onChange={(e) => update(i, { name: { en: e.target.value, ko: d.name?.ko ?? "", zh: d.name?.zh ?? "", ja: d.name?.ja ?? "" } })} />
                           </label>
                           <label className="f">Spice level
@@ -291,7 +334,7 @@ export default function Editor({ initial, demo, siteUrl, email }: Props) {
               </div>
               <div className="row">
                 <button className="btn" onClick={() => { setDishes((ds) => [...ds, blank()]); touch(); setTimeout(() => document.getElementById("vi" + dishes.length)?.focus(), 0); }}>Add a dish</button>
-                {needTranslate > 0 && <button className="btn primary" disabled={!!busy} onClick={translate}>{busy === "translate" ? "Translating…" : `Translate ${needTranslate} new dish${needTranslate > 1 ? "es" : ""}`}</button>}
+                {needTranslate > 0 && <button className={"btn" + (ai ? " primary" : "")} disabled={!!busy} onClick={translate}>{busy === "translate" ? "Translating…" : ai ? `Translate ${needTranslate} new dish${needTranslate > 1 ? "es" : ""}` : `Check ${needTranslate} dish${needTranslate > 1 ? "es" : ""} against the list`}</button>}
               </div>
               <p className={"status " + (s2.kind ?? "")} aria-live="polite">{s2.msg}</p>
             </section>

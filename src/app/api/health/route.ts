@@ -11,8 +11,11 @@ export const dynamic = "force-dynamic";
 export function GET() {
   const missing = [
     DEMO && "NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY (running in demo mode)",
-    !process.env.ANTHROPIC_API_KEY && "ANTHROPIC_API_KEY (photo reading and translation are off)",
     !SITE_URL && "NEXT_PUBLIC_SITE_URL (QR codes fall back to the address in the browser)",
+  ].filter(Boolean);
+  // Optional: without it, common dishes still translate from the built-in list.
+  const optional = [
+    !process.env.ANTHROPIC_API_KEY && "ANTHROPIC_API_KEY (photo reading and AI translation are off)",
   ].filter(Boolean);
   return NextResponse.json({
     ok: missing.length === 0,
@@ -21,5 +24,6 @@ export function GET() {
     model: MODEL,
     siteUrl: SITE_URL || null,
     missing,
+    optional,
   });
 }
