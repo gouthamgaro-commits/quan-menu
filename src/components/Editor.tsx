@@ -38,6 +38,10 @@ async function post<T>(url: string, body: unknown): Promise<T> {
 
 type Status = { msg: string; kind?: "err" | "good" };
 
+/** Dishes per translation request: small batches keep each call well inside the server's time limit. */
+const BATCH = 15;
+const key = (vi: string) => vi.trim().toLowerCase();
+
 export default function Editor({ initial, demo, siteUrl, email }: Props) {
   const router = useRouter();
   const start = initial ?? { name: "", area: "", slug: "", published: false, dishes: [] };
@@ -101,14 +105,26 @@ export default function Editor({ initial, demo, siteUrl, email }: Props) {
   async function readPhoto() {
     if (!photo) return;
     setBusy("read");
-    setS1({ msg: "Reading the menu… this usually takes 20–60 seconds." });
+    setS1({ msg: "Reading the menu… this usually takes 20–50 seconds." });
     try {
-      const img = await shrink(photo);
+      let img: Awaited<ReturnType<typeof shrink>>;
+      try {
+        img = await shrink(photo);
+      } catch {
+        throw new Error("Couldn't open that photo. Try a JPG or PNG, or take a screenshot of it.");
+      }
       const out = await post<{ stall: string; dishes: Dish[] }>("/api/extract", { image: img.data, type: img.type });
-      setDishes(out.dishes);
+      // Add to the list rather than replace it, so a long menu can be read in several photos.
+      const have = new Set(dishes.map((d) => key(d.vi)));
+      const fresh = out.dishes.filter((d) => !have.has(key(d.vi)));
+      setDishes((ds) => [...ds.filter((d) => d.vi.trim()), ...fresh]);
       if (out.stall && !name) setName(out.stall);
       touch();
-      setS1({ msg: `Found ${out.dishes.length} dishes. Check them in step 2.`, kind: "good" });
+      const skipped = out.dishes.length - fresh.length;
+      setS1({
+        msg: `Found ${out.dishes.length} dishes${skipped ? ` (${skipped} already on your list)` : ""}. Check them in step 2.`,
+        kind: "good",
+      });
     } catch (e) {
       setS1({ msg: (e as Error).message, kind: "err" });
     } finally {
@@ -120,20 +136,26 @@ export default function Editor({ initial, demo, siteUrl, email }: Props) {
     const idx = dishes.map((d, i) => (d.vi && !isTranslated(d) ? i : -1)).filter((i) => i >= 0);
     if (!idx.length) return;
     setBusy("translate");
-    setS2({ msg: `Translating ${idx.length} dish${idx.length > 1 ? "es" : ""}…` });
+    let done = 0;
     try {
-      const out = await post<{ dishes: (Dish | null)[] }>("/api/translate", { names: idx.map((i) => dishes[i].vi) });
-      setDishes((ds) =>
-        ds.map((d, i) => {
-          const k = idx.indexOf(i);
-          const t = k >= 0 ? out.dishes[k] : null;
-          return t ? { ...t, vi: d.vi, price: d.price } : d;
-        }),
-      );
-      touch();
+      for (let start = 0; start < idx.length; start += BATCH) {
+        const part = idx.slice(start, start + BATCH);
+        setS2({ msg: idx.length > BATCH ? `Translating ${start + 1}–${start + part.length} of ${idx.length}…` : `Translating ${idx.length} dish${idx.length > 1 ? "es" : ""}…` });
+        const names = part.map((i) => dishes[i].vi);
+        const out = await post<{ dishes: (Dish | null)[] }>("/api/translate", { names });
+        // Match by name, not position, in case the vendor edited the list while this ran.
+        const byName = new Map(names.map((n, k) => [n, out.dishes[k]]));
+        setDishes((ds) => ds.map((d) => {
+          const t = byName.get(d.vi);
+          return t && !isTranslated(d) ? { ...t, vi: d.vi, price: d.price } : d;
+        }));
+        done += part.length;
+        touch();
+      }
       setS2({ msg: "Done. Check the allergens are right for your recipe.", kind: "good" });
     } catch (e) {
-      setS2({ msg: (e as Error).message, kind: "err" });
+      const kept = done ? ` ${done} of ${idx.length} were translated and kept; press Translate again for the rest.` : "";
+      setS2({ msg: (e as Error).message + kept, kind: "err" });
     } finally {
       setBusy("");
     }
@@ -213,7 +235,7 @@ export default function Editor({ initial, demo, siteUrl, email }: Props) {
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) { setPhoto(f); setThumb(URL.createObjectURL(f)); } }} />
               <div className="row">
                 <button className="btn primary" disabled={!photo || !!busy} onClick={readPhoto}>{busy === "read" ? "Reading…" : "Read menu with AI"}</button>
-                {dishes.length > 0 && photo && <small className="status">This replaces the dishes in step 2.</small>}
+                {dishes.length > 0 && photo && <small className="status">New dishes are added to your list in step 2.</small>}
               </div>
               <p className={"status " + (s1.kind ?? "")} aria-live="polite">{s1.msg}</p>
             </section>

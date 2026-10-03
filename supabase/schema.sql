@@ -76,3 +76,31 @@ begin
 
   return s;
 end $$;
+
+-- AI usage cap: each signed-in vendor gets a fixed number of AI calls (photo reading
+-- and translation) per UTC day, so one account can't run up the Anthropic bill.
+-- Change the number below and re-run this file to adjust it.
+create table if not exists public.ai_usage (
+  user_id  uuid not null references auth.users(id) on delete cascade,
+  day      date not null,
+  calls    int  not null default 0,
+  primary key (user_id, day)
+);
+alter table public.ai_usage enable row level security;
+-- No policies on purpose: the table is only reachable through take_ai_call().
+
+create or replace function public.take_ai_call() returns boolean
+language plpgsql security definer set search_path = public as $$
+declare
+  daily_limit constant int := 40;
+  n int;
+begin
+  if auth.uid() is null then return false; end if;
+  insert into public.ai_usage (user_id, day, calls)
+  values (auth.uid(), (now() at time zone 'utc')::date, 1)
+  on conflict (user_id, day) do update set calls = public.ai_usage.calls + 1
+  returning calls into n;
+  return n <= daily_limit;
+end $$;
+revoke all on function public.take_ai_call() from public, anon;
+grant execute on function public.take_ai_call() to authenticated;

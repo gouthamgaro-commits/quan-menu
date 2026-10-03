@@ -40,6 +40,8 @@ Open http://localhost:3000. With no Supabase keys the app runs in **demo mode**:
 
 Push the repo to GitHub, import it at vercel.com/new, add the four variables above (with `NEXT_PUBLIC_SITE_URL` set to your Vercel address), and deploy. Then update the Supabase redirect URL from step 2 to the Vercel address.
 
+Open `https://YOUR-SITE/api/health` after deploying. It lists any missing setting (yes/no only, never the values) and shows `"ok": true` when everything is in place.
+
 Set `NEXT_PUBLIC_SITE_URL` **before** printing stickers. The QR code contains this address.
 
 ## How it's built
@@ -49,16 +51,19 @@ Set `NEXT_PUBLIC_SITE_URL` **before** printing stickers. The QR code contains th
 | `src/app/page.tsx` | Landing page |
 | `src/app/login`, `src/app/auth/callback` | Email magic-link sign-in |
 | `src/app/dashboard` | Vendor editor: photo → AI → edit dishes and allergens → publish → QR sticker. `actions.ts` saves through the `save_menu` database function. |
-| `src/app/m/[slug]` | Public customer menu (what the QR code opens). Cached for 60 s and refreshed on save. |
+| `src/app/m/[slug]` | Public customer menu (what the QR code opens). Cached and served to every scanner, rebuilt at most once a minute, and refreshed immediately when the vendor saves. |
 | `src/app/api/extract` | Photo → dishes, using Claude vision. Signed-in vendors only. |
-| `src/app/api/translate` | Names of new dishes → translations, allergens, pronunciation |
+| `src/app/api/translate` | Names of new dishes → translations, allergens, pronunciation (the editor sends 15 at a time) |
+| `src/app/api/health` | Deployment check: which settings are missing |
 | `src/components/MenuView.tsx` | Customer menu, also used as the live phone preview |
-| `src/lib/ai.ts` | Prompts and JSON parsing for the Claude API |
-| `supabase/schema.sql` | Tables, row-level security, and the atomic `save_menu` function |
+| `src/lib/ai.ts` | Claude API calls: prompts, JSON-schema structured output, time budget, error messages |
+| `supabase/schema.sql` | Tables, row-level security, the atomic `save_menu` function, and the daily AI allowance |
 
-**Security model:** anyone can read a stall marked live. Only its owner can read a draft or change anything; this is enforced by Postgres row-level security, not just the app. The AI routes refuse anyone who isn't signed in, so strangers can't spend your API credit.
+**Security model:** anyone can read a stall marked live. Only its owner can read a draft or change anything; this is enforced by Postgres row-level security, not just the app. The AI routes refuse anyone who isn't signed in, and each vendor gets 40 AI calls per day (the `take_ai_call` function in `supabase/schema.sql`; change the number there). In demo mode the AI routes only work during local development, so a deploy missing its Supabase settings can't be used to spend your API credit.
 
-**Photos** are shrunk in the browser to 1600 px and sent straight to Claude. They are not stored.
+**Photos** are shrunk in the browser to 1600 px and sent straight to Claude. They are not stored. Reading a second photo adds its dishes to the list, so a long menu can be read in parts.
+
+**Time limit:** each AI call must finish within 60 seconds (the route's `maxDuration`). Calls use `low` effort to stay fast; set `ANTHROPIC_EFFORT=medium` if menus are misread.
 
 ## Known limits / next steps
 
