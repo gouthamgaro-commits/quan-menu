@@ -1,12 +1,28 @@
+import AccountMenu from "@/components/AccountMenu";
 import { DEMO } from "@/lib/config";
+import { supabaseServer } from "@/lib/supabase/server";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+/** The signed-in vendor (if any) and their live menu address, for the header. */
+async function currentVendor() {
+  if (DEMO) return null;
+  const supabase = await supabaseServer();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return null;
+  const { data: stall } = await supabase.from("stalls").select("slug, published").eq("owner_id", data.user.id).maybeSingle();
+  return { email: data.user.email ?? "", liveSlug: stall?.published ? stall.slug : undefined };
+}
+
+export default async function Home() {
+  const me = await currentVendor();
+  const start = DEMO || me ? "/dashboard" : "/login";
   return (
     <main className="page">
       <div className="wrap">
         <header className="top">
           <a className="logo" href="/">Quán<span>.</span></a>
-          <a className="btn" href={DEMO ? "/dashboard" : "/login"}>{DEMO ? "Open editor" : "Sign in"}</a>
+          {me ? <AccountMenu email={me.email} liveSlug={me.liveSlug} /> : <a className="btn" href={start}>{DEMO ? "Open editor" : "Sign in"}</a>}
         </header>
         <section className="hero">
           <h1>Your menu, readable by every customer who walks past.</h1>
@@ -15,7 +31,7 @@ export default function Home() {
             Chinese and Japanese, with what&apos;s in it, what it costs in their money, and how to say it.
           </p>
           <div className="row">
-            <a className="btn primary" href={DEMO ? "/dashboard" : "/login"}>Make my menu</a>
+            <a className="btn primary" href={start}>{me ? "Open my menu" : "Make my menu"}</a>
             <a className="btn" href="/m/demo">See an example menu</a>
           </div>
         </section>

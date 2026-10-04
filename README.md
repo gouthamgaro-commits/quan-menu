@@ -26,6 +26,7 @@ Open http://localhost:3000. With no Supabase keys the app runs in **demo mode**:
 
 1. **Supabase.** Create a free project at supabase.com. Open **SQL Editor**, paste in `supabase/schema.sql` and run it. It also creates the `dish-media` storage bucket for dish photos and videos. The file is safe to re-run: do that after pulling changes to it. Under **Project Settings → API**, copy the Project URL and the `anon` public key.
 2. **Login emails.** Under **Authentication → URL Configuration**, set Site URL to your site's address and add `https://YOUR-SITE/auth/callback` to Redirect URLs. (Add `http://localhost:3000/auth/callback` too for local development.)
+   Optional but recommended: under **Authentication → Emails**, add `Your code: {{ .Token }}` to the **Magic Link** and **Confirm signup** templates. Vendors can then type the code instead of clicking the link, which helps when a phone opens the link in a different browser. Either way, the login tab that's waiting notices the sign-in and opens the editor by itself.
 3. **Claude API (optional).** Create a key at console.anthropic.com. Without one, the app hides photo reading, and vendors type their dishes; the 156 dishes on the built-in list (`src/lib/dishes.ts`) fill in their translations by themselves.
 4. **Fill `.env.local`:**
 

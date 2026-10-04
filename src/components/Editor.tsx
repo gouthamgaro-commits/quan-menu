@@ -1,13 +1,14 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { saveMenu, signOut } from "@/app/dashboard/actions";
+import { saveMenu } from "@/app/dashboard/actions";
 import { DEMO_KEY, slugify } from "@/lib/config";
 import { EXAMPLE_MENU } from "@/lib/demo";
 import { ALLERGENS } from "@/lib/i18n";
 import { ALLERGEN_KEYS, isTranslated, type Dish, type MenuData } from "@/lib/types";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { MEDIA_BUCKET, MEDIA_PREFIX, type Media } from "@/lib/types";
+import AccountMenu from "./AccountMenu";
 import DishMedia from "./DishMedia";
 import MenuView from "./MenuView";
 import Sticker from "./Sticker";
@@ -259,11 +260,7 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
           <div className="row">
             {demo ? <span className="pill warn">Demo mode</span> : <span className={"pill " + (published ? "ok" : "")}>{published ? "Live" : "Draft"}</span>}
             {dirty && <span className="pill warn">Unsaved changes</span>}
-            {email && (
-              <form action={async () => { await signOut(); router.push("/"); }}>
-                <button className="btn" type="submit" title={email}>Sign out</button>
-              </form>
-            )}
+            {email && <AccountMenu email={email} liveSlug={published && savedSlug ? savedSlug : undefined} onDashboard />}
           </div>
         </header>
 
