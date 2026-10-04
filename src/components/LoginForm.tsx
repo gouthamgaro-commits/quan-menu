@@ -3,6 +3,12 @@ import { useEffect, useState } from "react";
 import { DEMO } from "@/lib/config";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
+/**
+ * The email only contains a code once its template includes {{ .Token }}, and Supabase only
+ * allows template edits with custom SMTP. Set NEXT_PUBLIC_LOGIN_CODE=1 after doing that.
+ */
+const CODE_LOGIN = process.env.NEXT_PUBLIC_LOGIN_CODE === "1";
+
 const goToEditor = () => window.location.assign("/dashboard");
 
 export default function LoginForm() {
@@ -86,13 +92,13 @@ export default function LoginForm() {
           <>
             <p>We sent an email to <b>{email}</b>.</p>
             <p><b>Click the link in it.</b> This page will open your menu by itself once you&apos;re signed in, so you can keep it open.</p>
-            <form className="code-form" onSubmit={verify}>
+            {CODE_LOGIN && <form className="code-form" onSubmit={verify}>
               <label className="f" htmlFor="code">Or type the code from the email
                 <input id="code" type="text" inputMode="numeric" autoComplete="one-time-code" placeholder="123456" maxLength={10}
                   value={code} onChange={(e) => setCode(e.target.value)} />
               </label>
               <button className="btn primary" disabled={state === "checking"}>{state === "checking" ? "Checking…" : "Sign in with code"}</button>
-            </form>
+            </form>}
             <div className="row">
               <button className="btn" type="button" onClick={() => send()}>Send again</button>
               <button className="btn" type="button" onClick={() => { setState("idle"); setCode(""); setMsg({ text: "" }); }}>Use a different email</button>
