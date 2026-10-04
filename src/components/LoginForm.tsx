@@ -14,6 +14,7 @@ const goToEditor = () => window.location.assign("/dashboard");
 export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "checking">("idle");
   const [msg, setMsg] = useState<{ text: string; err?: boolean }>({ text: "" });
 
@@ -57,8 +58,25 @@ export default function LoginForm() {
     );
   }
 
+  async function withPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!password) return send();
+    setState("sending");
+    setMsg({ text: "" });
+    const { error } = await supabaseBrowser().auth.signInWithPassword({ email: email.trim(), password });
+    if (!error) return goToEditor();
+    setState("idle");
+    setMsg({
+      text: /invalid login/i.test(error.message)
+        ? "Wrong email or password. No password yet, or forgot it? Use “Email me a sign-in link” below, then set one from the account menu."
+        : /rate|too many/i.test(error.message) ? "Too many tries. Wait a minute and try again." : "Couldn't sign in. Try again.",
+      err: true,
+    });
+  }
+
   async function send(e?: React.FormEvent) {
     e?.preventDefault();
+    if (!email.trim()) return setMsg({ text: "Enter your email first.", err: true });
     setState("sending");
     setMsg({ text: "" });
     const { error } = await supabaseBrowser().auth.signInWithOtp({
@@ -105,12 +123,17 @@ export default function LoginForm() {
             </div>
           </>
         ) : (
-          <form className="code-form" onSubmit={send}>
-            <p>We&apos;ll email you a sign-in link. No password needed.</p>
+          <form className="code-form" onSubmit={withPassword}>
             <label className="f" htmlFor="email">Email
               <input id="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </label>
-            <button className="btn primary" disabled={state === "sending"}>{state === "sending" ? "Sending…" : "Email me a sign-in link"}</button>
+            <label className="f" htmlFor="password">Password
+              <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </label>
+            <button className="btn primary" disabled={state === "sending" || !password}>{state === "sending" ? "Signing in…" : "Sign in"}</button>
+            <div className="or"><span>first time, or forgot your password?</span></div>
+            <button className="btn" type="button" disabled={state === "sending"} onClick={() => send()}>Email me a sign-in link</button>
+            <small className="status">After signing in with the link, set a password from the account menu (top right) to skip the email next time.</small>
           </form>
         )}
         {msg.text && <p className={"status" + (msg.err ? " err" : "")} aria-live="polite">{msg.text}</p>}
