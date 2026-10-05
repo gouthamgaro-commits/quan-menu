@@ -28,7 +28,7 @@ Open http://localhost:3000. With no Supabase keys the app runs in **demo mode**:
 2. **Login emails.** Under **Authentication → URL Configuration**, set Site URL to your site's address and add `https://YOUR-SITE/auth/callback` to Redirect URLs. (Add `http://localhost:3000/auth/callback` too for local development.)
    The login tab that's waiting notices when the email link signs the vendor in (in another tab) and opens the editor by itself.
    Optional: to let vendors type a code instead (useful when a phone opens the link in a different browser), set up custom SMTP in Supabase (required to edit email templates), add `Your code: {{ .Token }}` to the **Magic link or OTP** and **Confirm signup** templates, and set `NEXT_PUBLIC_LOGIN_CODE=1` in Vercel.
-3. **Claude API (optional).** Create a key at console.anthropic.com. Without one, the app hides photo reading, and vendors type their dishes; the 156 dishes on the built-in list (`src/lib/dishes.ts`) fill in their translations by themselves.
+3. **Claude API (optional).** Create a key at console.anthropic.com. Without one, the app hides photo reading, and vendors type their dishes; the 184 dishes and drinks on the built-in list (`src/lib/dishes.ts`) fill in their translations by themselves.
 4. **Fill `.env.local`:**
 
    ```
@@ -61,7 +61,9 @@ Set `NEXT_PUBLIC_SITE_URL` **before** printing stickers. The QR code contains th
 | `src/app/api/health` | Deployment check: which settings are missing |
 | `src/components/DishMedia.tsx` | Per-dish photos and videos in the editor: photos are shrunk to 1280 px in the browser, videos must be MP4/MOV/WebM under 25 MB, up to 6 per dish. Files go straight to Supabase Storage. |
 | `src/components/MenuView.tsx` | Customer menu, also used as the live phone preview |
-| `src/lib/dishes.ts` | Built-in translations for 156 common Saigon dishes and drinks. Used before any AI call, so known dishes cost nothing; matching ignores tone marks, portion notes and prices. |
+| `src/lib/dishes.ts` | Built-in translations for 184 common Saigon dishes and drinks, including café and milk-tea drinks. Used before any AI call, so known dishes cost nothing; matching ignores tone marks, portion notes and prices. |
+| `src/lib/drinks.ts` | Coffee and milk-tea shops: shop type, sizes with their own prices, sugar (0–100%), ice, and a shop-wide topping list. Customers choose in their language; the vendor's order screen shows e.g. “Trà sữa trân châu (L) · 50% đường · ít đá · + Trân châu đen”. Example shop at `/m/demo-cafe`. |
+| `src/lib/strings.ts` | Every vendor-facing text in Vietnamese (default) and English, switched with the VI/EN button and kept in the `quan_ui` cookie. Server messages use the same choice. |
 | `src/lib/ai.ts` | Claude API calls: prompts, JSON-schema structured output, time budget, error messages |
 | `supabase/schema.sql` | Tables, row-level security, the atomic `save_menu` function, and the daily AI allowance |
 

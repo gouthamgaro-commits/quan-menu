@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { DEMO, slugify } from "@/lib/config";
 import { serverT } from "@/lib/server-ui";
 import { supabaseServer } from "@/lib/supabase/server";
-import { cleanDish, type Dish } from "@/lib/types";
+import { cleanDish, cleanKind, cleanToppings, type Dish, type ShopKind, type Topping } from "@/lib/types";
 
 export interface SaveResult {
   ok: boolean;
@@ -17,6 +17,8 @@ export async function saveMenu(input: {
   slug: string;
   published: boolean;
   dishes: Dish[];
+  kind?: ShopKind;
+  toppings?: Topping[];
 }): Promise<SaveResult> {
   const t = await serverT();
   if (DEMO) return { ok: false, error: t.srvDemoSave };
@@ -25,6 +27,8 @@ export async function saveMenu(input: {
   if (!name) return { ok: false, error: t.srvNeedName };
   const slug = slugify(input.slug || name);
   if (slug.length < 3) return { ok: false, error: t.srvShortSlug };
+  // These addresses always show the sample menus, so a real stall can't use them.
+  if (slug === "demo" || slug === "demo-cafe") return { ok: false, error: t.srvSlugTaken(slug) };
   const dishes = (Array.isArray(input.dishes) ? input.dishes : [])
     .slice(0, 200)
     .map(cleanDish)
@@ -46,6 +50,12 @@ export async function saveMenu(input: {
     console.error(error);
     return { ok: false, error: t.saveFailed };
   }
+  // Shop type and toppings live on the stall row; owners may update it under row-level security.
+  const { error: extra } = await supabase
+    .from("stalls")
+    .update({ kind: cleanKind(input.kind), toppings: cleanToppings(input.toppings) })
+    .eq("owner_id", auth.user.id);
+  if (extra) console.error("[save] shop type/toppings not saved. Has the latest supabase/schema.sql been run?", extra.message);
   revalidatePath(`/m/${slug}`);
   return { ok: true, slug };
 }

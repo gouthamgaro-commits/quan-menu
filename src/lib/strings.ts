@@ -1,4 +1,4 @@
-import type { Allergen } from "./types";
+import type { Allergen, ShopKind } from "./types";
 
 /**
  * Text for the vendor-facing screens (home, login, editor), in Vietnamese and English.
@@ -190,6 +190,27 @@ const en = {
   mediaLimits: (n: number, max: number, mb: number) => `${n}/${max} · videos up to ${mb} MB`,
   removeMedia: "Remove",
 
+
+  // Drinks (shop type, options, toppings)
+  shopKind: "Shop type",
+  kinds: { food: "Food stall", cafe: "Coffee shop", tea: "Milk tea / tea" } as Record<ShopKind, string>,
+  kindHint: "Drinks you add get the options that suit your shop. You can change them per drink.",
+  applyDefaults: (n: number) => `Turn on options for ${n} ${plural(n, "drink", "drinks")}`,
+  appliedDefaults: (n: number) => `Options turned on for ${n} ${plural(n, "drink", "drinks")}. Check each one with Edit.`,
+  drinkOpts: "Drink options",
+  sizesOpt: "Sizes with different prices",
+  sugarOpt: "Customer picks sugar (0–100%)",
+  iceOpt: "Customer picks ice (none, less, normal, hot)",
+  topsOpt: "Customer can add toppings",
+  sizePrice: (k: string) => `Size ${k} price`,
+  optBadge: "options",
+  toppingsTitle: "Toppings",
+  toppingsHint: "Shared by every drink that allows toppings. Common toppings translate themselves.",
+  toppingName: "Topping (Vietnamese)",
+  toppingPrice: "Extra price ₫",
+  addTopping: "Add a topping",
+  starterToppings: "Use a starter list",
+  removeTopping: (n: string) => `Remove ${n || "topping"}`,
   // Server messages
   srvDemoSave: "Saving to the server needs Supabase. In demo mode your menu is kept in this browser.",
   srvNeedName: "Add your stall's name first.",
@@ -397,6 +418,25 @@ const vi: Strings = {
   mediaLimits: (n: number, max: number, mb: number) => `${n}/${max} · video tối đa ${mb} MB`,
   removeMedia: "Xoá",
 
+  shopKind: "Loại quán",
+  kinds: { food: "Quán ăn", cafe: "Quán cà phê", tea: "Trà sữa, trà trái cây" },
+  kindHint: "Đồ uống mới sẽ tự có các tuỳ chọn hợp với loại quán. Có thể sửa riêng từng món.",
+  applyDefaults: (n: number) => `Bật tuỳ chọn cho ${n} đồ uống`,
+  appliedDefaults: (n: number) => `Đã bật tuỳ chọn cho ${n} đồ uống. Bấm Sửa để kiểm tra từng món.`,
+  drinkOpts: "Tuỳ chọn đồ uống",
+  sizesOpt: "Có nhiều size, mỗi size một giá",
+  sugarOpt: "Khách chọn lượng đường (0–100%)",
+  iceOpt: "Khách chọn đá (không đá, ít đá, bình thường, nóng)",
+  topsOpt: "Khách được thêm topping",
+  sizePrice: (k: string) => `Giá size ${k}`,
+  optBadge: "tuỳ chọn",
+  toppingsTitle: "Topping của quán",
+  toppingsHint: "Dùng chung cho mọi đồ uống được thêm topping. Topping phổ biến tự dịch.",
+  toppingName: "Tên topping",
+  toppingPrice: "Giá thêm ₫",
+  addTopping: "Thêm topping",
+  starterToppings: "Dùng danh sách mẫu",
+  removeTopping: (n: string) => `Xoá ${n || "topping"}`,
   srvDemoSave: "Lưu lên máy chủ cần Supabase. Ở chế độ dùng thử, thực đơn được lưu trên trình duyệt này.",
   srvNeedName: "Hãy nhập tên quán trước.",
   srvShortSlug: "Địa chỉ web cần ít nhất 3 chữ cái hoặc số.",

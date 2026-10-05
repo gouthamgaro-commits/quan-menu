@@ -1,4 +1,5 @@
-import { ALLERGEN_KEYS, type Allergen, type Dish, type ML } from "./types";
+import { defaultOpts } from "./drinks";
+import { ALLERGEN_KEYS, type Allergen, type Dish, type ML, type ShopKind } from "./types";
 
 /**
  * Built-in translations for common Saigon street food, so menus can be translated
@@ -156,7 +157,7 @@ const ROWS: Row[] = [
   ["Trà tắc", "chah tuck", 0, "", ["Kumquat iced tea", "금귤 아이스티", "金桔冰茶", "キンカンアイスティー"], ["Iced tea with fresh kumquat juice and sugar.", "생 금귤즙과 설탕을 넣은 아이스티.", "冰茶加鲜榨金桔汁和糖。", "生のキンカン果汁と砂糖入りのアイスティー。"], "trà quất"],
   ["Trà chanh", "chah chahn", 0, "", ["Lime iced tea", "라임 아이스티", "柠檬冰茶", "ライムアイスティー"], ["Iced tea with fresh lime and sugar.", "생 라임과 설탕을 넣은 아이스티.", "冰茶加鲜青柠和糖。", "生ライムと砂糖入りのアイスティー。"]],
   ["Trà đào", "chah dow", 0, "", ["Peach iced tea", "복숭아 아이스티", "桃子冰茶", "ピーチアイスティー"], ["Iced tea with peach syrup and peach slices.", "복숭아 시럽과 복숭아 조각을 넣은 아이스티.", "冰茶加桃子糖浆和桃片。", "桃シロップと桃のスライス入りのアイスティー。"], "trà đào cam sả"],
-  ["Trà sữa", "chah sue-ah", 0, "dairy", ["Milk tea", "밀크티", "奶茶", "ミルクティー"], ["Sweet milk tea, often with tapioca pearls.", "타피오카 펄을 넣기도 하는 달콤한 밀크티.", "香甜奶茶，常加珍珠。", "甘いミルクティー。タピオカ入りのことも。"], "trà sữa trân châu"],
+  ["Trà sữa", "chah sue-ah", 0, "dairy", ["Milk tea", "밀크티", "奶茶", "ミルクティー"], ["Sweet milk tea, often with tapioca pearls.", "타피오카 펄을 넣기도 하는 달콤한 밀크티.", "香甜奶茶，常加珍珠。", "甘いミルクティー。タピオカ入りのことも。"]],
   ["Nước mía", "noo-uk mee-ah", 0, "", ["Fresh sugarcane juice", "사탕수수 주스", "甘蔗汁", "サトウキビジュース"], ["Freshly pressed sugarcane juice with a squeeze of kumquat, over ice.", "갓 짠 사탕수수즙에 금귤을 살짝, 얼음과 함께.", "现榨甘蔗汁加少许金桔和冰。", "搾りたてのサトウキビ果汁にキンカンを少し、氷入り。"]],
   ["Nước dừa", "noo-uk yoo-ah", 0, "", ["Fresh coconut water", "생 코코넛 워터", "鲜椰子水", "生ココナッツジュース"], ["A whole young coconut to drink from.", "어린 코코넛을 통째로 마시는 음료.", "整个嫩椰子直接饮用。", "若いココナッツを丸ごと一つ。"], "dừa tươi|dừa"],
   ["Nước cam", "noo-uk kahm", 0, "", ["Fresh orange juice", "생 오렌지 주스", "鲜橙汁", "生オレンジジュース"], ["Freshly squeezed orange juice.", "갓 짠 오렌지 주스.", "现榨橙汁。", "搾りたてのオレンジジュース。"], "nước cam vắt|cam vắt"],
@@ -170,6 +171,35 @@ const ROWS: Row[] = [
   ["Sinh tố mãng cầu", "sin toe mahng koh", 0, "dairy", ["Soursop smoothie", "사워솝 스무디", "红毛榴莲奶昔", "サワーソップスムージー"], ["Soursop blended with condensed milk and ice.", "사워솝을 연유, 얼음과 함께 간 음료.", "红毛榴莲加炼乳和冰打成。", "サワーソップを練乳と氷でブレンド。"]],
   ["Sữa chua đá", "sue-ah choo-ah dah", 0, "dairy", ["Iced yoghurt", "얼음 요거트", "冰酸奶", "アイスヨーグルト"], ["Vietnamese yoghurt over crushed ice.", "잘게 부순 얼음 위에 베트남식 요거트.", "越南酸奶配碎冰。", "クラッシュアイスにベトナムヨーグルト。"], "sữa chua"],
   ["Sâm bổ lượng", "sum baw loo-ung", 0, "", ["Herbal iced dessert drink", "삼보르엉 (한방 빙수 음료)", "清补凉", "サムボールオン（漢方かき氷ドリンク）"], ["Cooling drink of longan, lotus seeds, seaweed and jujube over ice.", "용안, 연밥, 해초, 대추를 얼음과 함께 담은 시원한 음료.", "龙眼、莲子、海带和红枣加冰的清凉饮品。", "竜眼、蓮の実、海藻、ナツメを氷と合わせた冷たい飲み物。"]],
+  // More café and milk-tea drinks
+  ["Trà sữa trân châu", "chah sue-ah chun chow", 0, "dairy", ["Bubble milk tea", "버블 밀크티", "珍珠奶茶", "タピオカミルクティー"], ["Sweet milk tea with chewy tapioca pearls.", "쫄깃한 타피오카 펄이 들어간 달콤한 밀크티.", "加Q弹珍珠的香甜奶茶。", "もちもちタピオカ入りの甘いミルクティー。"], "trà sữa trân châu đen"],
+  ["Trà sữa trân châu đường đen", "chah sue-ah chun chow doo-ung den", 0, "dairy", ["Brown sugar bubble milk tea", "흑당 버블 밀크티", "黑糖珍珠奶茶", "黒糖タピオカミルクティー"], ["Milk tea with brown sugar syrup and warm tapioca pearls.", "흑설탕 시럽과 따뜻한 타피오카 펄을 넣은 밀크티.", "黑糖糖浆配温热珍珠的奶茶。", "黒糖シロップと温かいタピオカ入りのミルクティー。"], "sữa tươi trân châu đường đen"],
+  ["Trà sữa matcha", "chah sue-ah mat-chah", 0, "dairy", ["Matcha milk tea", "말차 밀크티", "抹茶奶茶", "抹茶ミルクティー"], ["Green tea powder whisked with milk and sugar, over ice.", "말차 가루를 우유, 설탕과 섞어 얼음과 함께.", "抹茶粉调入牛奶和糖，加冰。", "抹茶を牛乳と砂糖で溶いて氷と一緒に。"], "matcha sữa"],
+  ["Trà sữa khoai môn", "chah sue-ah kwai mon", 0, "dairy", ["Taro milk tea", "타로 밀크티", "芋头奶茶", "タロイモミルクティー"], ["Creamy purple taro milk tea.", "부드러운 보라색 타로 밀크티.", "香浓紫色芋头奶茶。", "クリーミーな紫色のタロイモミルクティー。"]],
+  ["Trà sữa Thái xanh", "chah sue-ah tie sahn", 0, "dairy", ["Thai green milk tea", "태국식 그린 밀크티", "泰式绿奶茶", "タイ風グリーンミルクティー"], ["Fragrant Thai green tea with condensed milk.", "연유를 넣은 향긋한 태국식 녹차.", "加炼乳的泰式绿茶。", "練乳入りの香り高いタイ風グリーンティー。"], "trà thái xanh"],
+  ["Trà sữa Thái đỏ", "chah sue-ah tie daw", 0, "dairy", ["Thai red milk tea", "태국식 밀크티", "泰式红奶茶", "タイ風ミルクティー"], ["Orange Thai black tea with condensed milk.", "연유를 넣은 주황빛 태국식 홍차.", "加炼乳的泰式红茶。", "練乳入りのオレンジ色のタイ風紅茶。"], "trà thái đỏ|trà thái"],
+  ["Trà sữa ô long", "chah sue-ah oh long", 0, "dairy", ["Oolong milk tea", "우롱 밀크티", "乌龙奶茶", "烏龍ミルクティー"], ["Roasted oolong tea with milk.", "볶은 우롱차에 우유.", "焙火乌龙茶加牛奶。", "焙煎烏龍茶にミルク。"], "trà sữa oolong"],
+  ["Hồng trà sữa", "hong chah sue-ah", 0, "dairy", ["Black milk tea", "홍차 밀크티", "红茶奶茶", "紅茶ミルクティー"], ["Classic black tea with milk.", "클래식 홍차 밀크티.", "经典红茶奶茶。", "定番の紅茶ミルクティー。"]],
+  ["Trà ô long", "chah oh long", 0, "", ["Oolong tea", "우롱차", "乌龙茶", "烏龍茶"], ["Lightly roasted oolong tea, hot or iced.", "살짝 볶은 우롱차, 따뜻하게 또는 차갑게.", "轻焙乌龙茶，冷热皆可。", "軽く焙煎した烏龍茶。ホットかアイスで。"], "trà oolong"],
+  ["Trà vải", "chah vai", 0, "", ["Lychee tea", "리치 티", "荔枝茶", "ライチティー"], ["Iced tea with lychee syrup and whole lychees.", "리치 시럽과 리치 과육을 넣은 아이스티.", "荔枝糖浆加荔枝果肉的冰茶。", "ライチシロップと果肉入りのアイスティー。"]],
+  ["Trà dâu", "chah yow", 0, "", ["Strawberry tea", "딸기 티", "草莓茶", "いちごティー"], ["Iced fruit tea with strawberries.", "딸기를 넣은 아이스 과일차.", "草莓水果冰茶。", "いちご入りのアイスフルーツティー。"]],
+  ["Trà chanh dây", "chah chahn yay", 0, "", ["Passion fruit tea", "패션프루트 티", "百香果茶", "パッションフルーツティー"], ["Iced tea with fresh passion fruit.", "생 패션프루트를 넣은 아이스티.", "加新鲜百香果的冰茶。", "生パッションフルーツ入りのアイスティー。"]],
+  ["Trà xoài", "chah swy", 0, "", ["Mango tea", "망고 티", "芒果茶", "マンゴーティー"], ["Iced fruit tea with ripe mango.", "잘 익은 망고를 넣은 아이스 과일차.", "加熟芒果的水果冰茶。", "完熟マンゴー入りのアイスフルーツティー。"]],
+  ["Trà ổi hồng", "chah oy hong", 0, "", ["Pink guava tea", "핑크 구아바 티", "红心番石榴茶", "ピンクグァバティー"], ["Iced tea with pink guava.", "핑크 구아바를 넣은 아이스티.", "加红心番石榴的冰茶。", "ピンクグァバ入りのアイスティー。"]],
+  ["Matcha latte", "mat-chah lah-teh", 0, "dairy", ["Matcha latte", "말차 라떼", "抹茶拿铁", "抹茶ラテ"], ["Matcha green tea with milk, hot or iced.", "말차에 우유, 따뜻하게 또는 차갑게.", "抹茶加牛奶，冷热皆可。", "抹茶にミルク。ホットかアイスで。"]],
+  ["Cacao sữa", "kah-kow sue-ah", 0, "dairy", ["Cocoa with milk", "코코아 라떼", "可可牛奶", "ココアミルク"], ["Vietnamese cocoa with milk, hot or iced.", "베트남 코코아에 우유, 따뜻하게 또는 차갑게.", "越南可可加牛奶，冷热皆可。", "ベトナムカカオにミルク。ホットかアイスで。"], "ca cao sữa|cacao"],
+  ["Latte", "lah-teh", 0, "dairy", ["Café latte", "카페 라떼", "拿铁", "カフェラテ"], ["Espresso with steamed milk.", "에스프레소에 스팀 우유.", "浓缩咖啡加蒸奶。", "エスプレッソにスチームミルク。"], "cà phê latte|cafe latte"],
+  ["Cappuccino", "kah-poo-chee-noh", 0, "dairy", ["Cappuccino", "카푸치노", "卡布奇诺", "カプチーノ"], ["Espresso with steamed milk and thick foam.", "에스프레소에 스팀 우유와 풍성한 거품.", "浓缩咖啡加蒸奶和厚奶泡。", "エスプレッソにスチームミルクと厚い泡。"]],
+  ["Americano", "ah-meh-ree-kah-noh", 0, "", ["Americano", "아메리카노", "美式咖啡", "アメリカーノ"], ["Espresso topped up with water.", "에스프레소에 물을 더한 커피.", "浓缩咖啡加水。", "エスプレッソをお湯で割ったもの。"]],
+  ["Espresso", "es-pres-soh", 0, "", ["Espresso", "에스프레소", "浓缩咖啡", "エスプレッソ"], ["A short, strong shot of coffee.", "짧고 진한 커피 한 샷.", "一小杯浓烈的咖啡。", "短く濃いコーヒーのショット。"]],
+  ["Cold brew", "kohld broo", 0, "", ["Cold brew coffee", "콜드브루", "冷萃咖啡", "コールドブリュー"], ["Coffee steeped cold for hours, smooth and strong.", "몇 시간 동안 차갑게 우려 부드럽고 진한 커피.", "冷水长时间萃取，顺滑浓郁。", "数時間かけて水出しした、まろやかで濃いコーヒー。"]],
+  ["Cà phê phin", "kah feh fin", 0, "", ["Vietnamese drip coffee", "베트남 핀 커피", "越南滴漏咖啡", "ベトナム式ドリップコーヒー"], ["Strong coffee slowly dripped through a metal phin filter.", "금속 핀 필터로 천천히 내린 진한 커피.", "用金属滴漏壶慢慢滴出的浓咖啡。", "金属のフィンでゆっくり淹れた濃いコーヒー。"]],
+  ["Soda chanh", "soh-dah chahn", 0, "", ["Lime soda", "라임 소다", "青柠苏打", "ライムソーダ"], ["Fresh lime with soda water and sugar.", "생 라임에 탄산수와 설탕.", "鲜青柠加苏打水和糖。", "生ライムにソーダと砂糖。"], "soda"],
+  ["Nước ép dưa hấu", "noo-uk ep yoo-ah hoh", 0, "", ["Watermelon juice", "수박 주스", "西瓜汁", "スイカジュース"], ["Freshly pressed watermelon juice.", "갓 짠 수박 주스.", "现榨西瓜汁。", "搾りたてのスイカジュース。"], "ép dưa hấu|nước dưa hấu"],
+  ["Nước ép thơm", "noo-uk ep tum", 0, "", ["Pineapple juice", "파인애플 주스", "菠萝汁", "パイナップルジュース"], ["Freshly pressed pineapple juice.", "갓 짠 파인애플 주스.", "现榨菠萝汁。", "搾りたてのパイナップルジュース。"], "ép thơm|nước ép dứa"],
+  ["Nước ép cà rốt", "noo-uk ep kah rot", 0, "", ["Carrot juice", "당근 주스", "胡萝卜汁", "にんじんジュース"], ["Freshly pressed carrot juice.", "갓 짠 당근 주스.", "现榨胡萝卜汁。", "搾りたてのにんじんジュース。"], "ép cà rốt"],
+  ["Nước ép ổi", "noo-uk ep oy", 0, "", ["Guava juice", "구아바 주스", "番石榴汁", "グァバジュース"], ["Freshly pressed guava juice.", "갓 짠 구아바 주스.", "现榨番石榴汁。", "搾りたてのグァバジュース。"], "ép ổi"],
+  ["Nước ép táo", "noo-uk ep tow", 0, "", ["Apple juice", "사과 주스", "苹果汁", "りんごジュース"], ["Freshly pressed apple juice.", "갓 짠 사과 주스.", "现榨苹果汁。", "搾りたてのりんごジュース。"], "ép táo"],
   ["Bia Sài Gòn", "bee-ah sigh gone", 0, "gluten", ["Saigon beer", "사이공 맥주", "西贡啤酒", "サイゴンビール"], ["Local lager, served cold, often with ice.", "얼음과 함께 차갑게 마시는 현지 라거.", "本地拉格啤酒，冰镇，常加冰块。", "地元のラガー。冷やして、氷入りで飲むことも。"], "bia saigon"],
   ["Bia 333", "bee-ah bah bah bah", 0, "gluten", ["333 beer", "333 맥주", "333啤酒", "333ビール"], ["Light local lager, served cold.", "차갑게 마시는 가벼운 현지 라거.", "清爽本地拉格啤酒，冰镇。", "軽めの地元ラガー、冷やして。"]],
   ["Bia Tiger", "bee-ah tie-ger", 0, "gluten", ["Tiger beer", "타이거 맥주", "虎牌啤酒", "タイガービール"], ["Lager, served cold.", "차갑게 마시는 라거.", "拉格啤酒，冰镇。", "ラガービール、冷やして。"]],
@@ -180,6 +210,8 @@ const ROWS: Row[] = [
 
 export interface DishInfo {
   vi: string;
+  /** Drinks get size, sugar and ice options in café and milk-tea shops. */
+  drink: boolean;
   pron: string;
   spice: number;
   alg: Allergen[];
@@ -208,9 +240,12 @@ export function normalize(s: string): string {
 }
 
 const INDEX = new Map<string, DishInfo>();
-for (const [vi, pron, spice, alg, names, descs, other] of ROWS) {
+// Everything from "Cà phê sữa đá" down is a drink.
+const DRINKS_FROM = ROWS.findIndex((r) => r[0] === "Cà phê sữa đá");
+for (const [k, [vi, pron, spice, alg, names, descs, other]] of ROWS.entries()) {
   const info: DishInfo = {
     vi,
+    drink: DRINKS_FROM >= 0 && k >= DRINKS_FROM,
     pron,
     spice,
     alg: alg.split(" ").filter((a): a is Allergen => ALLERGEN_KEYS.includes(a as Allergen)),
@@ -231,9 +266,13 @@ export function lookupDish(vi: string): DishInfo | null {
   return INDEX.get(normalize(vi)) ?? null;
 }
 
-/** Fills in a dish's translations from the built-in list, keeping the vendor's own name and price. */
-export function fillFromList(d: Dish): Dish | null {
+/**
+ * Fills in a dish's translations from the built-in list, keeping the vendor's own name and price.
+ * In a café or milk-tea shop, a drink without options also gets the shop's default options.
+ */
+export function fillFromList(d: Dish, kind: ShopKind = "food"): Dish | null {
   const hit = lookupDish(d.vi);
   if (!hit) return null;
-  return { ...d, pron: hit.pron, spice: hit.spice, alg: [...hit.alg], name: { ...hit.name }, desc: { ...hit.desc } };
+  const opts = d.opts ?? (hit.drink ? defaultOpts(kind, d.price) : null);
+  return { ...d, pron: hit.pron, spice: hit.spice, alg: [...hit.alg], name: { ...hit.name }, desc: { ...hit.desc }, opts };
 }

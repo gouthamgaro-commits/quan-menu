@@ -5,19 +5,21 @@ import MenuView from "@/components/MenuView";
 import DemoMenu from "@/components/DemoMenu";
 import { DEMO } from "@/lib/config";
 import { EXAMPLE_MENU } from "@/lib/demo";
+import { EXAMPLE_CAFE } from "@/lib/demo-cafe";
 import { supabasePublic } from "@/lib/supabase/public";
-import { cleanDish, type Dish, type MenuData } from "@/lib/types";
+import { cleanDish, cleanKind, cleanToppings, type Dish, type MenuData } from "@/lib/types";
 
 type Params = { params: Promise<{ slug: string }> };
 
 /** Shared by the page and its metadata, so each render queries the database once. */
 const load = cache(async (slug: string): Promise<MenuData | null> => {
   if (slug === "demo") return EXAMPLE_MENU;
+  if (slug === "demo-cafe") return EXAMPLE_CAFE;
   if (DEMO) return null;
   const supabase = supabasePublic();
   const { data: stall } = await supabase
     .from("stalls")
-    .select("id, name, area, slug, published")
+    .select("*")
     .eq("slug", slug)
     .eq("published", true)
     .maybeSingle();
@@ -29,6 +31,8 @@ const load = cache(async (slug: string): Promise<MenuData | null> => {
     slug: stall.slug,
     published: true,
     dishes: (rows ?? []).map(cleanDish).filter((d): d is Dish => !!d),
+    kind: cleanKind(stall.kind),
+    toppings: cleanToppings(stall.toppings),
   };
 });
 
@@ -52,5 +56,5 @@ export default async function PublicMenu({ params }: Params) {
     if (DEMO) return <DemoMenu slug={slug} />;
     notFound();
   }
-  return <MenuView full name={menu.name} area={menu.area} dishes={menu.dishes} />;
+  return <MenuView full name={menu.name} area={menu.area} dishes={menu.dishes} toppings={menu.toppings} />;
 }

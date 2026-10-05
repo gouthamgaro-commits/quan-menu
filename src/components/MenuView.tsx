@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ALLERGENS, LANGS, foreign, guessLang, vnd } from "@/lib/i18n";
-import { LANG_KEYS, isTranslated, type Dish, type Lang, type Media } from "@/lib/types";
+import { ICE, OPT_UI, SUGAR, hasOpts, lineVi, sameLine, unitPrice, type Line } from "@/lib/drinks";
+import { LANG_KEYS, isTranslated, type Dish, type Lang, type Media, type Topping } from "@/lib/types";
 
 interface Props {
   name: string;
@@ -9,6 +10,8 @@ interface Props {
   dishes: Dish[];
   /** Full-page public menu (true) or the phone preview inside the dashboard (false). */
   full?: boolean;
+  /** The shop's topping list, for drinks that allow toppings. */
+  toppings?: Topping[];
 }
 
 function useViVoice() {
@@ -23,9 +26,11 @@ function useViVoice() {
   return voice;
 }
 
-export default function MenuView({ name, area, dishes, full }: Props) {
+export default function MenuView({ name, area, dishes, full, toppings = [] }: Props) {
   const [lang, setLang] = useState<Lang>("en");
-  const [cart, setCart] = useState<Record<number, number>>({});
+  const [cart, setCart] = useState<Line[]>([]);
+  // The drink whose options are being chosen, with the choices so far.
+  const [pick, setPick] = useState<Line | null>(null);
   const [showOrder, setShowOrder] = useState(false);
   const [viewer, setViewer] = useState<{ items: Media[]; at: number; title: string } | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -38,7 +43,8 @@ export default function MenuView({ name, area, dishes, full }: Props) {
 
   // Drop cart lines for dishes that no longer exist (the vendor edited the preview).
   useEffect(() => {
-    setCart((c) => Object.fromEntries(Object.entries(c).filter(([i]) => Number(i) < dishes.length)));
+    setCart((c) => c.filter((l) => l.i < dishes.length));
+    setPick(null);
   }, [dishes.length]);
 
   useEffect(() => {
@@ -56,19 +62,32 @@ export default function MenuView({ name, area, dishes, full }: Props) {
     return () => window.removeEventListener("keydown", key);
   }, [viewer]);
 
-  const count = useMemo(() => Object.values(cart).reduce((a, b) => a + b, 0), [cart]);
+  const O = OPT_UI[lang];
+  const count = useMemo(() => cart.reduce((a, l) => a + l.q, 0), [cart]);
   const total = useMemo(
-    () => Object.entries(cart).reduce((t, [i, q]) => t + (dishes[Number(i)]?.price ?? 0) * q, 0),
-    [cart, dishes],
+    () => cart.reduce((t, l) => t + (dishes[l.i] ? unitPrice(dishes[l.i], l, toppings) * l.q : 0), 0),
+    [cart, dishes, toppings],
   );
+  const qtyOf = (i: number) => cart.reduce((a, l) => a + (l.i === i ? l.q : 0), 0);
 
-  const bump = (i: number, by: number) =>
+  const addLine = (line: Line) =>
     setCart((c) => {
-      const q = Math.max(0, (c[i] ?? 0) + by);
-      const next = { ...c };
-      if (q) next[i] = q;
-      else delete next[i];
-      return next;
+      const k = c.findIndex((l) => sameLine(l, line));
+      return k >= 0 ? c.map((l, j) => (j === k ? { ...l, q: l.q + line.q } : l)) : [...c, line];
+    });
+
+  // "+" on a drink with options opens the chooser; on anything else it adds one straight away.
+  const plus = (i: number) => {
+    const d = dishes[i];
+    if (!hasOpts(d)) return addLine({ i, q: 1 });
+    setPick({ i, q: 1, size: d.opts?.sizes?.[0]?.k, sugar: d.opts?.sugar ? 100 : undefined, ice: d.opts?.ice ? "normal" : undefined, tops: [] });
+  };
+  // "−" takes one away from the most recently added line for that dish.
+  const minus = (i: number) =>
+    setCart((c) => {
+      const k = c.map((l) => l.i).lastIndexOf(i);
+      if (k < 0) return c;
+      return c[k].q > 1 ? c.map((l, j) => (j === k ? { ...l, q: l.q - 1 } : l)) : c.filter((_, j) => j !== k);
     });
 
   const speak = (text: string) => {
@@ -104,14 +123,18 @@ export default function MenuView({ name, area, dishes, full }: Props) {
           const done = isTranslated(d);
           const title = done ? d.name![lang] || d.name!.en : d.vi;
           const desc = d.desc ? d.desc[lang] || d.desc.en : "";
-          const q = cart[i] ?? 0;
+          const q = qtyOf(i);
           return (
             <div key={i} className={"dish" + (q ? " on" : "")}>
               <div className="dish-top">
                 <h2 className="tn">{title}</h2>
                 <div className="pr">
-                  <b>{vnd(d.price)}</b>
-                  <small>{foreign(d.price, lang)}</small>
+                  {d.opts?.sizes?.length ? (
+                    d.opts.sizes.map((z) => <b key={z.k} className="sz"><span>{z.k}</span> {vnd(z.price)}</b>)
+                  ) : (
+                    <b>{vnd(d.price)}</b>
+                  )}
+                  <small>{foreign(d.opts?.sizes?.[0]?.price || d.price, lang)}</small>
                 </div>
               </div>
               <div className="vn" lang="vi">
@@ -126,6 +149,11 @@ export default function MenuView({ name, area, dishes, full }: Props) {
                 </button>
               </div>
               {desc && <p>{desc}</p>}
+              {hasOpts(d) && (
+                <div className="opt-hint">
+                  {[d.opts?.sizes?.length && O.size, d.opts?.sugar && O.sugar, d.opts?.ice && O.ice, d.opts?.tops && toppings.length && O.toppings].filter(Boolean).join(" · ")}
+                </div>
+              )}
               {!!d.media?.length && (
                 <div className="m-media">
                   {d.media.map((m, k) => (
@@ -156,11 +184,11 @@ export default function MenuView({ name, area, dishes, full }: Props) {
                   ))}
                 </div>
                 <div className="qty">
-                  <button aria-label="Remove one" disabled={!q} onClick={() => bump(i, -1)}>
+                  <button aria-label="Remove one" disabled={!q} onClick={() => minus(i)}>
                     −
                   </button>
                   <span aria-live="polite">{q}</span>
-                  <button aria-label="Add one" onClick={() => bump(i, 1)}>
+                  <button aria-label={hasOpts(d) ? O.choose : "Add one"} onClick={() => plus(i)}>
                     +
                   </button>
                 </div>
@@ -200,19 +228,58 @@ export default function MenuView({ name, area, dishes, full }: Props) {
         </div>
       )}
 
+      {pick && dishes[pick.i] && (() => {
+        const d = dishes[pick.i];
+        const o = d.opts ?? {};
+        const title = isTranslated(d) ? d.name![lang] || d.name!.en : d.vi;
+        const set = (patch: Partial<Line>) => setPick({ ...pick, ...patch });
+        const tops = pick.tops ?? [];
+        return (
+          <div className="sheet" role="dialog" aria-modal="true" aria-label={O.options} onClick={() => setPick(null)}>
+            <div className="sheet-card" onClick={(e) => e.stopPropagation()}>
+              <div className="sheet-h"><h3>{title}</h3><button className="icon" aria-label={L.close} onClick={() => setPick(null)}>✕</button></div>
+              {!!o.sizes?.length && (
+                <fieldset><legend>{O.size}</legend><div className="pills">
+                  {o.sizes.map((z) => <button key={z.k} type="button" aria-pressed={pick.size === z.k} onClick={() => set({ size: z.k })}>{z.k} · {vnd(z.price)}</button>)}
+                </div></fieldset>
+              )}
+              {o.sugar && (
+                <fieldset><legend>{O.sugar}</legend><div className="pills">
+                  {SUGAR.map((v) => <button key={v} type="button" aria-pressed={pick.sugar === v} onClick={() => set({ sugar: v })}>{O.sugarLv(v)}</button>)}
+                </div></fieldset>
+              )}
+              {o.ice && (
+                <fieldset><legend>{O.ice}</legend><div className="pills">
+                  {ICE.map((v) => <button key={v} type="button" aria-pressed={pick.ice === v} onClick={() => set({ ice: v })}>{O.iceLv[v]}</button>)}
+                </div></fieldset>
+              )}
+              {o.tops && toppings.length > 0 && (
+                <fieldset><legend>{O.toppings}</legend><div className="pills">
+                  {toppings.map((tp, k) => {
+                    const on = tops.includes(k);
+                    return (
+                      <button key={k} type="button" aria-pressed={on} onClick={() => set({ tops: on ? tops.filter((x) => x !== k) : [...tops, k] })}>
+                        {(tp.name?.[lang] || tp.name?.en || tp.vi)} +{vnd(tp.price)}
+                      </button>
+                    );
+                  })}
+                </div></fieldset>
+              )}
+              <button className="btn primary" onClick={() => { addLine(pick); setPick(null); }}>{O.add(vnd(unitPrice(d, pick, toppings)))}</button>
+            </div>
+          </div>
+        );
+      })()}
+
       {showOrder && (
         <div className="order" role="dialog" aria-modal="true" aria-label={L.head} lang="vi">
           <h3 lang={lang}>{L.head}</h3>
           <div className="big">Cho tôi:</div>
           <ul>
-            {Object.entries(cart).map(([i, q]) => {
-              const d = dishes[Number(i)];
+            {cart.map((l, k) => {
+              const d = dishes[l.i];
               if (!d) return null;
-              return (
-                <li key={i}>
-                  {q} × {d.vi.replace(/\s*\(.*?\)\s*/g, " ").trim()}
-                </li>
-              );
+              return <li key={k}>{l.q} × {lineVi(d, l, toppings)}</li>;
             })}
           </ul>
           <div className="tot">Tổng: {vnd(total)}</div>

@@ -18,7 +18,7 @@ export default function DemoMenu({ slug }: { slug: string }) {
 
   if (menu === undefined) return null;
   if (!menu) return <NotFoundBody />;
-  return <MenuView full name={menu.name} area={menu.area} dishes={menu.dishes} />;
+  return <MenuView full name={menu.name} area={menu.area} dishes={menu.dishes} toppings={menu.toppings} />;
 }
 
 function NotFoundBody() {

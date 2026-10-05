@@ -4,7 +4,7 @@ import { UiProvider } from "@/components/Ui";
 import { uiLang } from "@/lib/server-ui";
 import { DEMO, SITE_URL } from "@/lib/config";
 import { supabaseServer } from "@/lib/supabase/server";
-import { cleanDish, type Dish, type MenuData } from "@/lib/types";
+import { cleanDish, cleanKind, cleanToppings, type Dish, type MenuData } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Thực đơn của bạn · Quán" };
@@ -21,7 +21,7 @@ export default async function Dashboard() {
 
   const { data: stall } = await supabase
     .from("stalls")
-    .select("id, name, area, slug, published")
+    .select("*")
     .eq("owner_id", auth.user.id)
     .maybeSingle();
 
@@ -34,6 +34,8 @@ export default async function Dashboard() {
       slug: stall.slug,
       published: stall.published,
       dishes: (rows ?? []).map(cleanDish).filter((d): d is Dish => !!d),
+      kind: cleanKind(stall.kind),
+      toppings: cleanToppings(stall.toppings),
     };
   }
 

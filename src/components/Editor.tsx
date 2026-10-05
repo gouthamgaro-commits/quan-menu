@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { saveMenu } from "@/app/dashboard/actions";
 import { DEMO_KEY, slugify } from "@/lib/config";
 import { EXAMPLE_MENU } from "@/lib/demo";
-import { ALLERGEN_KEYS, isTranslated, type Dish, type MenuData } from "@/lib/types";
+import { DEFAULT_TOPPINGS, defaultOpts, toppingName } from "@/lib/drinks";
+import { ALLERGEN_KEYS, SHOP_KINDS, SIZE_KEYS, isTranslated, type Dish, type DrinkOpts, type MenuData, type ShopKind, type SizeKey, type Topping } from "@/lib/types";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { MEDIA_BUCKET, MEDIA_PREFIX, type Media } from "@/lib/types";
 import AccountMenu from "./AccountMenu";
@@ -62,6 +63,9 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
   const [slugTouched, setSlugTouched] = useState(!!start.slug);
   const [published, setPublished] = useState(start.published);
   const [dishes, setDishes] = useState<Dish[]>(start.dishes);
+  const [kind, setKind] = useState<ShopKind>(start.kind ?? "food");
+  const [toppings, setToppings] = useState<Topping[]>(start.toppings ?? []);
+  const [list, setList] = useState<typeof import("@/lib/dishes") | null>(null);
   const [savedSlug, setSavedSlug] = useState(start.slug);
   const [dirty, setDirty] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
@@ -77,7 +81,7 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
   const savedMedia = useRef(new Set(start.dishes.flatMap((d) => d.media ?? []).map((m) => m.url)));
 
   useEffect(() => {
-    loadList().then((m) => setListSize(m.DISH_COUNT)).catch(() => {});
+    loadList().then((m) => { setListSize(m.DISH_COUNT); setList(m); }).catch(() => {});
   }, []);
 
   // Demo mode: the menu lives in this browser.
@@ -88,6 +92,7 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
       if (s?.dishes) {
         setName(s.name); setArea(s.area); setSlug(s.slug); setSlugTouched(true);
         setPublished(s.published); setDishes(s.dishes); setSavedSlug(s.slug);
+        setKind(s.kind ?? "food"); setToppings(s.toppings ?? []);
       }
     } catch {}
   }, [demo]);
@@ -117,8 +122,57 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
     if (!name) return;
     // Common dishes translate instantly from the built-in list, with no AI call.
     const { fillFromList } = await loadList().catch(() => ({ fillFromList: () => null }));
-    setDishes((ds) => ds.map((x, k) => (k === i && x.vi === name && !isTranslated(x) ? fillFromList(x) ?? x : x)));
+    setDishes((ds) => ds.map((x, k) => (k === i && x.vi === name && !isTranslated(x) ? fillFromList(x, kind) ?? x : x)));
   };
+
+  const setOpts = (i: number, patch: Partial<DrinkOpts>) => {
+    setDishes((ds) => ds.map((d, k) => {
+      if (k !== i) return d;
+      const opts = { ...(d.opts ?? {}), ...patch };
+      const any = opts.sizes?.length || opts.sugar || opts.ice || opts.tops;
+      // With sizes, the row's price is the smallest size, so lists and the preview stay in step.
+      return { ...d, opts: any ? opts : null, price: opts.sizes?.[0]?.price ?? d.price };
+    }));
+    touch();
+  };
+  const toggleSizes = (i: number, on: boolean) => {
+    const d = dishes[i];
+    const m = d.price || 30000;
+    setOpts(i, { sizes: on ? [{ k: "M", price: m }, { k: "L", price: m + 10000 }] : undefined });
+  };
+  const toggleSize = (i: number, k: SizeKey, on: boolean) => {
+    const cur = dishes[i].opts?.sizes ?? [];
+    const base = cur[cur.length - 1]?.price || dishes[i].price || 30000;
+    const next = on ? [...cur, { k, price: base }] : cur.filter((z) => z.k !== k);
+    next.sort((a, b) => SIZE_KEYS.indexOf(a.k) - SIZE_KEYS.indexOf(b.k));
+    setOpts(i, { sizes: next.length ? next : undefined });
+  };
+  const sizePrice = (i: number, k: SizeKey, price: number) =>
+    setOpts(i, { sizes: (dishes[i].opts?.sizes ?? []).map((z) => (z.k === k ? { ...z, price } : z)) });
+
+  // Drinks from the built-in list that have no options yet (offered when the shop is a café or tea shop).
+  const bareDrinks = list ? dishes.filter((d) => d.vi && !d.opts && list.lookupDish(d.vi)?.drink).length : 0;
+  const applyDefaults = () => {
+    if (!list) return;
+    const n = bareDrinks;
+    setDishes((ds) => ds.map((d) => {
+      if (!d.vi || d.opts || !list.lookupDish(d.vi)?.drink) return d;
+      const opts = defaultOpts(kind, d.price);
+      return { ...d, opts, price: opts?.sizes?.[0]?.price ?? d.price };
+    }));
+    touch();
+    setS2({ msg: t.appliedDefaults(n), kind: "good" });
+  };
+  const editTopping = (k: number, patch: Partial<Topping>) => {
+    setToppings((ts) => ts.map((tp, j) => {
+      if (j !== k) return tp;
+      const next = { ...tp, ...patch };
+      if (patch.vi !== undefined) next.name = toppingName(next.vi);
+      return next;
+    }));
+    touch();
+  };
+  const showToppings = kind !== "food" || toppings.length > 0 || dishes.some((d) => d.opts?.tops);
 
   const addMedia = (i: number, added: Media[]) => {
     setDishes((ds) => ds.map((d, k) => (k === i ? { ...d, media: [...(d.media ?? []), ...added] } : d)));
@@ -170,7 +224,7 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
       const { fillFromList } = await loadList();
       rest = dishes.map((d) => {
         if (!d.vi || isTranslated(d)) return d;
-        const hit = fillFromList(d);
+        const hit = fillFromList(d, kind);
         if (hit) fromList++;
         return hit ?? d;
       });
@@ -213,18 +267,19 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
 
   async function save() {
     const clean = dishes.filter((d) => d.vi.trim());
+    const cleanTops = toppings.filter((tp) => tp.vi.trim());
     if (!name.trim()) return setS4({ msg: t.needName, kind: "err" });
     setBusy("save");
     setS4({ msg: t.saving });
     try {
       if (demo) {
-        const data: MenuData = { name, area, slug: liveSlug, published, dishes: clean };
+        const data: MenuData = { name, area, slug: liveSlug, published, dishes: clean, kind, toppings: cleanTops };
         localStorage.setItem(DEMO_KEY, JSON.stringify(data));
         setSavedSlug(liveSlug);
         setDirty(false);
         setS4({ msg: t.savedDemo, kind: "good" });
       } else {
-        const r = await saveMenu({ name, area, slug: liveSlug, published, dishes: clean });
+        const r = await saveMenu({ name, area, slug: liveSlug, published, dishes: clean, kind, toppings: cleanTops });
         if (!r.ok) return setS4({ msg: r.error || t.couldntSave, kind: "err" });
         setSavedSlug(r.slug!);
         setSlug(r.slug!);
@@ -237,6 +292,7 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
         router.refresh();
       }
       setDishes(clean);
+      setToppings(cleanTops);
     } catch {
       setS4({ msg: t.saveFailed, kind: "err" });
     } finally {
@@ -244,9 +300,13 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
     }
   }
 
-  function loadExample() {
-    setName(EXAMPLE_MENU.name); setArea(EXAMPLE_MENU.area); setSlugTouched(false);
-    setDishes(structuredClone(EXAMPLE_MENU.dishes)); touch();
+  async function loadExample() {
+    // Café and tea shops get the drinks example; it is loaded on demand to keep the editor small.
+    const ex = kind === "food" ? EXAMPLE_MENU : (await import("@/lib/demo-cafe")).EXAMPLE_CAFE;
+    setName(ex.name); setArea(ex.area); setSlugTouched(false);
+    setDishes(structuredClone(ex.dishes));
+    if (ex.toppings?.length && !toppings.length) setToppings(structuredClone(ex.toppings));
+    touch();
     setS2({ msg: t.exampleLoaded });
   }
 
@@ -275,6 +335,15 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
                   <input id="area" type="text" value={area} placeholder="Nguyễn Trãi, Quận 1" onChange={(e) => { setArea(e.target.value); touch(); }} />
                 </label>
               </div>
+              <fieldset className="kinds">
+                <legend className="f">{t.shopKind}</legend>
+                <div className="pills">
+                  {SHOP_KINDS.map((k) => (
+                    <button key={k} type="button" aria-pressed={kind === k} onClick={() => { setKind(k); touch(); }}>{t.kinds[k]}</button>
+                  ))}
+                </div>
+                {kind !== "food" && <small className="status">{t.kindHint}</small>}
+              </fieldset>
               <button className="drop" type="button" onClick={() => fileRef.current?.click()}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) { setPhoto(f); setThumb(URL.createObjectURL(f)); } }}>
@@ -304,8 +373,14 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
                     <input type="text" aria-label={t.viName} defaultValue={d.vi} key={"vi" + i + d.vi} id={"vi" + i}
                       onBlur={(e) => renameVi(i, e.target.value)} />
                     <input className="price" type="number" min={0} step={1000} aria-label={t.priceLabel} value={d.price || ""}
-                      onChange={(e) => update(i, { price: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
-                    <span className="encol">{isTranslated(d) ? <span className="en">{d.name!.en}</span> : <span className="pending">{t.needsTranslation}</span>}{!!d.media?.length && <span className="mcount" title={t.mediaCount}> · 📷 {d.media.length}</span>}</span>
+                      onChange={(e) => {
+                        const p = Math.max(0, Math.round(Number(e.target.value) || 0));
+                        // With sizes, the row price is the smallest size: move every size by the same amount.
+                        const zs = d.opts?.sizes;
+                        if (zs?.length) setOpts(i, { sizes: zs.map((z) => ({ ...z, price: Math.max(0, z.price + p - zs[0].price) })) });
+                        else update(i, { price: p });
+                      }} />
+                    <span className="encol">{isTranslated(d) ? <span className="en">{d.name!.en}</span> : <span className="pending">{t.needsTranslation}</span>}{!!d.media?.length && <span className="mcount" title={t.mediaCount}> · 📷 {d.media.length}</span>}{!!d.opts && <span className="mcount"> · ☕ {t.optBadge}</span>}</span>
                     <button className="icon" aria-expanded={open === i} onClick={() => setOpen(open === i ? null : i)}>{open === i ? t.close : t.edit}</button>
                     <button className="icon del" aria-label={t.remove(d.vi)} onClick={() => { setDishes((ds) => ds.filter((_, k) => k !== i)); setOpen(null); touch(); }}>✕</button>
                     {open === i && (
@@ -338,6 +413,27 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
                             })}
                           </div>
                         </div>
+                        <fieldset className="drink-opts">
+                          <legend className="f">{t.drinkOpts}</legend>
+                          <label className="check"><input type="checkbox" checked={!!d.opts?.sizes?.length} onChange={(e) => toggleSizes(i, e.target.checked)} /> {t.sizesOpt}</label>
+                          {!!d.opts?.sizes?.length && (
+                            <div className="sizes">
+                              {SIZE_KEYS.map((k) => {
+                                const z = d.opts!.sizes!.find((x) => x.k === k);
+                                return (
+                                  <div key={k} className="size">
+                                    <label className="check"><input type="checkbox" checked={!!z} disabled={!!z && d.opts!.sizes!.length <= 2} onChange={(e) => toggleSize(i, k, e.target.checked)} /> {k}</label>
+                                    {z && <input className="price" type="number" min={0} step={1000} aria-label={t.sizePrice(k)} value={z.price || ""}
+                                      onChange={(e) => sizePrice(i, k, Math.max(0, Math.round(Number(e.target.value) || 0)))} />}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                          <label className="check"><input type="checkbox" checked={!!d.opts?.sugar} onChange={(e) => setOpts(i, { sugar: e.target.checked })} /> {t.sugarOpt}</label>
+                          <label className="check"><input type="checkbox" checked={!!d.opts?.ice} onChange={(e) => setOpts(i, { ice: e.target.checked })} /> {t.iceOpt}</label>
+                          <label className="check"><input type="checkbox" checked={!!d.opts?.tops} onChange={(e) => setOpts(i, { tops: e.target.checked })} /> {t.topsOpt}</label>
+                        </fieldset>
                         <div className="f" style={{ display: "grid", gap: 6 }}>
                           <span className="f">{t.media}</span>
                           <DishMedia media={d.media ?? []} demo={demo} onAdd={(m) => addMedia(i, m)} onRemove={(u) => removeMedia(i, u)} />
@@ -351,7 +447,28 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
                 <button className="btn" onClick={() => { setDishes((ds) => [...ds, blank()]); touch(); setTimeout(() => document.getElementById("vi" + dishes.length)?.focus(), 0); }}>{t.addDish}</button>
                 {needTranslate > 0 && <button className={"btn" + (ai ? " primary" : "")} disabled={!!busy} onClick={translate}>{busy === "translate" ? t.translating : ai ? t.translateN(needTranslate) : t.checkN(needTranslate)}</button>}
               </div>
+              {kind !== "food" && bareDrinks > 0 && (
+                <div className="row"><button className="btn" onClick={applyDefaults}>☕ {t.applyDefaults(bareDrinks)}</button></div>
+              )}
               <p className={"status " + (s2.kind ?? "")} aria-live="polite">{s2.msg}</p>
+              {showToppings && (
+                <div className="toppings">
+                  <div><b>{t.toppingsTitle}</b><small className="status">{t.toppingsHint}</small></div>
+                  {toppings.map((tp, k) => (
+                    <div className="trow" key={k}>
+                      <input type="text" aria-label={t.toppingName} placeholder={t.toppingName} value={tp.vi} onChange={(e) => editTopping(k, { vi: e.target.value })} />
+                      <input className="price" type="number" min={0} step={1000} aria-label={t.toppingPrice} placeholder={t.toppingPrice} value={tp.price || ""}
+                        onChange={(e) => editTopping(k, { price: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
+                      <span className="encol">{tp.name?.en ?? ""}</span>
+                      <button className="icon del" aria-label={t.removeTopping(tp.vi)} onClick={() => { setToppings((ts) => ts.filter((_, j) => j !== k)); touch(); }}>✕</button>
+                    </div>
+                  ))}
+                  <div className="row">
+                    <button className="btn" onClick={() => { setToppings((ts) => [...ts, { vi: "", price: 5000, name: null }]); touch(); }}>{t.addTopping}</button>
+                    {!toppings.length && <button className="btn" onClick={() => { setToppings(structuredClone(DEFAULT_TOPPINGS)); touch(); }}>{t.starterToppings}</button>}
+                  </div>
+                </div>
+              )}
             </section>
 
             <section className="step" aria-labelledby="s3">
@@ -385,7 +502,7 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
           <aside className="phone-col" aria-label={t.previewLabel}>
             <div className="phone-cap"><span>{t.customersSee}</span><span>{t.dishCount(dishes.length)}</span></div>
             <div className="phone">
-              <MenuView name={name} area={area} dishes={dishes.filter((d) => d.vi)} />
+              <MenuView name={name} area={area} dishes={dishes.filter((d) => d.vi)} toppings={toppings.filter((tp) => tp.vi.trim())} />
             </div>
           </aside>
         </div>

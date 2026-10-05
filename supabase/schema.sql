@@ -7,6 +7,8 @@ create table if not exists public.stalls (
   name        text not null check (length(name) between 1 and 120),
   area        text not null default '',
   published   boolean not null default false,
+  kind        text not null default 'food',   -- food | cafe | tea: sets default drink options
+  toppings    jsonb not null default '[]',    -- [{"vi","price","name"}], the shop's add-ons
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
@@ -22,9 +24,13 @@ create table if not exists public.dishes (
   pron       text not null default '',
   name       jsonb,          -- {"en","ko","zh","ja"}
   descr      jsonb,          -- {"en","ko","zh","ja"}
-  media      jsonb not null default '[]'  -- [{"type":"image"|"video","url"}]
+  media      jsonb not null default '[]', -- [{"type":"image"|"video","url"}]
+  opts       jsonb                        -- drink options: {"sizes":[{"k","price"}],"sugar","ice","tops"}
 );
 alter table public.dishes add column if not exists media jsonb not null default '[]';
+alter table public.dishes add column if not exists opts jsonb;
+alter table public.stalls add column if not exists kind text not null default 'food';
+alter table public.stalls add column if not exists toppings jsonb not null default '[]';
 create index if not exists dishes_stall_idx on public.dishes(stall_id, position);
 
 alter table public.stalls enable row level security;
@@ -64,7 +70,7 @@ begin
 
   delete from public.dishes where stall_id = s.id;
 
-  insert into public.dishes (stall_id, position, vi, price, spice, allergens, pron, name, descr, media)
+  insert into public.dishes (stall_id, position, vi, price, spice, allergens, pron, name, descr, media, opts)
   select s.id, (d.ord - 1)::int,
          d.v->>'vi',
          greatest(0, coalesce((d.v->>'price')::int, 0)),
@@ -73,7 +79,8 @@ begin
          coalesce(d.v->>'pron', ''),
          d.v->'name',
          d.v->'desc',
-         case when jsonb_typeof(d.v->'media') = 'array' then d.v->'media' else '[]'::jsonb end
+         case when jsonb_typeof(d.v->'media') = 'array' then d.v->'media' else '[]'::jsonb end,
+         case when jsonb_typeof(d.v->'opts') = 'object' then d.v->'opts' end
   from jsonb_array_elements(p_dishes) with ordinality as d(v, ord)
   where coalesce(trim(d.v->>'vi'), '') <> '';
 
