@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { DEMO, slugify } from "@/lib/config";
+import { serverT } from "@/lib/server-ui";
 import { supabaseServer } from "@/lib/supabase/server";
 import { cleanDish, type Dish } from "@/lib/types";
 
@@ -17,12 +18,13 @@ export async function saveMenu(input: {
   published: boolean;
   dishes: Dish[];
 }): Promise<SaveResult> {
-  if (DEMO) return { ok: false, error: "Saving to the server needs Supabase. In demo mode your menu is kept in this browser." };
+  const t = await serverT();
+  if (DEMO) return { ok: false, error: t.srvDemoSave };
 
   const name = String(input.name || "").trim().slice(0, 120);
-  if (!name) return { ok: false, error: "Add your stall's name first." };
+  if (!name) return { ok: false, error: t.srvNeedName };
   const slug = slugify(input.slug || name);
-  if (slug.length < 3) return { ok: false, error: "The web address needs at least 3 letters or numbers." };
+  if (slug.length < 3) return { ok: false, error: t.srvShortSlug };
   const dishes = (Array.isArray(input.dishes) ? input.dishes : [])
     .slice(0, 200)
     .map(cleanDish)
@@ -30,7 +32,7 @@ export async function saveMenu(input: {
 
   const supabase = await supabaseServer();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return { ok: false, error: "Your login expired. Sign in again." };
+  if (!auth.user) return { ok: false, error: t.loginExpired };
 
   const { error } = await supabase.rpc("save_menu", {
     p_name: name,
@@ -40,9 +42,9 @@ export async function saveMenu(input: {
     p_dishes: dishes,
   });
   if (error) {
-    if (error.code === "23505") return { ok: false, error: `The address “${slug}” is taken. Try adding your street, e.g. ${slug}-q1.` };
+    if (error.code === "23505") return { ok: false, error: t.srvSlugTaken(slug) };
     console.error(error);
-    return { ok: false, error: "Couldn't save. Check your connection and try again." };
+    return { ok: false, error: t.saveFailed };
   }
   revalidatePath(`/m/${slug}`);
   return { ok: true, slug };

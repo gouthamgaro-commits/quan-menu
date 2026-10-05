@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { DEMO } from "./config";
+import { serverT } from "./server-ui";
 import { supabaseServer } from "./supabase/server";
 
 /**
@@ -10,25 +11,26 @@ import { supabaseServer } from "./supabase/server";
  * must not hand the API key to the whole internet.
  */
 export async function requireVendor(): Promise<NextResponse | null> {
+  const t = await serverT();
   if (DEMO) {
     if (process.env.NODE_ENV !== "production") return null;
     return NextResponse.json(
-      { error: "Photo reading needs vendor logins, and logins need Supabase. Add the Supabase settings to the server." },
+      { error: t.srvNeedLoginsAi },
       { status: 503 },
     );
   }
 
   const supabase = await supabaseServer();
   const { data } = await supabase.auth.getUser();
-  if (!data.user) return NextResponse.json({ error: "Sign in to use this." }, { status: 401 });
+  if (!data.user) return NextResponse.json({ error: t.srvSignIn }, { status: 401 });
 
   const { data: allowed, error } = await supabase.rpc("take_ai_call");
   if (error) {
     console.error("[guard] take_ai_call failed. Has supabase/schema.sql been run?", error.message);
-    return NextResponse.json({ error: "Photo reading is temporarily unavailable. Try again later." }, { status: 503 });
+    return NextResponse.json({ error: t.srvAiUnavailable }, { status: 503 });
   }
   if (!allowed) {
-    return NextResponse.json({ error: "You've used today's AI allowance. It resets at 7 am Vietnam time." }, { status: 429 });
+    return NextResponse.json({ error: t.srvAllowance }, { status: 429 });
   }
   return null;
 }

@@ -24,9 +24,10 @@ export default function DemoMenu({ slug }: { slug: string }) {
 function NotFoundBody() {
   return (
     <main className="notfound">
-      <h1>Menu not found</h1>
-      <p className="status">In demo mode, menus only open in the browser that saved them.</p>
-      <a className="btn" href="/">Go to Quán</a>
+      <h1>Không tìm thấy thực đơn · Menu not found</h1>
+      <p className="status">Ở chế độ dùng thử, thực đơn chỉ mở được trên trình duyệt đã lưu nó.</p>
+      <p className="status" lang="en">In demo mode, menus only open in the browser that saved them.</p>
+      <a className="btn" href="/">Về trang Quán · Go to Quán</a>
     </main>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
+import { useUi } from "./Ui";
 
 interface Props {
   name: string;
@@ -13,6 +14,7 @@ const FONT = "'Be Vietnam Pro', system-ui, sans-serif";
 export default function Sticker({ name, url, slug }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const [copied, setCopied] = useState(false);
+  const { t } = useUi();
 
   useEffect(() => {
     if (ref.current) QRCode.toCanvas(ref.current, url, { width: 360, margin: 0, errorCorrectionLevel: "M" }).catch(() => {});
@@ -61,16 +63,16 @@ export default function Sticker({ name, url, slug }: Props) {
     <div className="sticker-wrap">
       <div className="sticker">
         <div className="scan">Quét để xem thực đơn</div>
-        <div className="sn">{name || "Your stall"}</div>
-        <canvas ref={ref} aria-label={`QR code for ${url}`} />
+        <div className="sn">{name || t.yourStall}</div>
+        <canvas ref={ref} aria-label={t.qrFor(url)} />
         <div className="langs">Menu · 메뉴 · 菜单 · メニュー</div>
       </div>
       <div className="side-note">
-        <span>The code opens:</span>
+        <span>{t.codeOpens}</span>
         <code>{url}</code>
         <div className="row">
-          <button className="btn" onClick={download}>Download sticker (PNG)</button>
-          <button className="btn" onClick={copy}>{copied ? "Copied" : "Copy link"}</button>
+          <button className="btn" onClick={download}>{t.downloadSticker}</button>
+          <button className="btn" onClick={copy}>{copied ? t.copied : t.copyLink}</button>
         </div>
       </div>
     </div>

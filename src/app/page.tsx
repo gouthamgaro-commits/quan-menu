@@ -1,4 +1,7 @@
 import AccountMenu from "@/components/AccountMenu";
+import { LangSwitch, UiProvider } from "@/components/Ui";
+import { uiLang } from "@/lib/server-ui";
+import { STRINGS } from "@/lib/strings";
 import { DEMO } from "@/lib/config";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -16,31 +19,33 @@ async function currentVendor() {
 
 export default async function Home() {
   const me = await currentVendor();
+  const lang = await uiLang();
+  const t = STRINGS[lang];
   const start = DEMO || me ? "/dashboard" : "/login";
   return (
+    <UiProvider lang={lang}>
     <main className="page">
       <div className="wrap">
         <header className="top">
           <a className="logo" href="/">Quán<span>.</span></a>
-          {me ? <AccountMenu email={me.email} liveSlug={me.liveSlug} /> : <a className="btn" href={start}>{DEMO ? "Open editor" : "Sign in"}</a>}
+          <div className="row">
+            <LangSwitch />
+            {me ? <AccountMenu email={me.email} liveSlug={me.liveSlug} /> : <a className="btn" href={start}>{DEMO ? t.homeOpenEditor : t.homeSignIn}</a>}
+          </div>
         </header>
         <section className="hero">
-          <h1>Your menu, readable by every customer who walks past.</h1>
-          <p>
-            Take one photo of your menu. Quán turns it into a QR sticker that shows each dish in English, Korean,
-            Chinese and Japanese, with what&apos;s in it, what it costs in their money, and how to say it.
-          </p>
+          <h1>{t.heroTitle}</h1>
+          <p>{t.heroText}</p>
           <div className="row">
-            <a className="btn primary" href={start}>{me ? "Open my menu" : "Make my menu"}</a>
-            <a className="btn" href="/m/demo">See an example menu</a>
+            <a className="btn primary" href={start}>{me ? t.heroMine : t.heroStart}</a>
+            <a className="btn" href="/m/demo">{t.heroExample}</a>
           </div>
         </section>
-        <section className="how" aria-label="How it works">
-          <div><b>1. Photograph</b><span>The board on the wall, a printed sheet, or handwriting. AI reads the dishes and prices.</span></div>
-          <div><b>2. Check</b><span>Fix prices and allergens. You decide what customers see.</span></div>
-          <div><b>3. Stick it up</b><span>Print the QR sticker. Change prices any time without reprinting.</span></div>
+        <section className="how" aria-label={t.howLabel}>
+          {t.how.map(([b, span]) => <div key={b}><b>{b}</b><span>{span}</span></div>)}
         </section>
       </div>
     </main>
+    </UiProvider>
   );
 }

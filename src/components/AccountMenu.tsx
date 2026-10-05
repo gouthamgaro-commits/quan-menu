@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/app/dashboard/actions";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { useUi } from "./Ui";
 
 interface Props {
   email: string;
@@ -15,6 +16,7 @@ interface Props {
 /** Signed-in badge with the vendor's email, quick links and sign-out. */
 export default function AccountMenu({ email, liveSlug, onDashboard }: Props) {
   const router = useRouter();
+  const { t } = useUi();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -34,19 +36,19 @@ export default function AccountMenu({ email, liveSlug, onDashboard }: Props) {
 
   async function savePassword(e: React.FormEvent) {
     e.preventDefault();
-    if (pw.a.length < 8) return setPwMsg({ text: "Use at least 8 characters.", err: true });
-    if (pw.a !== pw.b) return setPwMsg({ text: "The two passwords don't match.", err: true });
+    if (pw.a.length < 8) return setPwMsg({ text: t.pwShort, err: true });
+    if (pw.a !== pw.b) return setPwMsg({ text: t.pwMismatch, err: true });
     setBusy(true);
     const { error } = await supabaseBrowser().auth.updateUser({ password: pw.a });
     setBusy(false);
     if (error) {
       setPwMsg({
-        text: /same|different from the old/i.test(error.message) ? "That's already your password." : /weak|short|characters/i.test(error.message) ? error.message : "Couldn't save the password. Sign out, sign in with the email link, and try again.",
+        text: /same|different from the old/i.test(error.message) ? t.pwSame : /weak|short|characters/i.test(error.message) ? t.pwShort : t.pwFailed,
         err: true,
       });
     } else {
       setPw({ a: "", b: "" });
-      setPwMsg({ text: "Password saved. Next time, sign in with your email and password." });
+      setPwMsg({ text: t.pwSaved });
     }
   }
 
@@ -68,22 +70,22 @@ export default function AccountMenu({ email, liveSlug, onDashboard }: Props) {
       {open && (
         <div className="acct-pop" role="menu">
           <div className="acct-head">
-            <small>Signed in as</small>
+            <small>{t.signedInAs}</small>
             <b>{email}</b>
           </div>
-          {!onDashboard && <a role="menuitem" href="/dashboard">My menu editor</a>}
-          <button role="menuitem" aria-expanded={pwOpen} onClick={() => { setPwOpen(!pwOpen); setPwMsg({ text: "" }); }}>Set or change password</button>
+          {!onDashboard && <a role="menuitem" href="/dashboard">{t.myEditor}</a>}
+          <button role="menuitem" aria-expanded={pwOpen} onClick={() => { setPwOpen(!pwOpen); setPwMsg({ text: "" }); }}>{t.setPassword}</button>
           {pwOpen && (
             <form className="acct-pw" onSubmit={savePassword}>
               <input type="email" value={email} autoComplete="username" readOnly hidden />
-              <input type="password" placeholder="New password (8+ characters)" autoComplete="new-password" value={pw.a} onChange={(e) => setPw({ ...pw, a: e.target.value })} />
-              <input type="password" placeholder="Type it again" autoComplete="new-password" value={pw.b} onChange={(e) => setPw({ ...pw, b: e.target.value })} />
-              <button className="btn primary" disabled={busy}>{busy ? "Saving…" : "Save password"}</button>
+              <input type="password" placeholder={t.newPassword} autoComplete="new-password" value={pw.a} onChange={(e) => setPw({ ...pw, a: e.target.value })} />
+              <input type="password" placeholder={t.typeAgain} autoComplete="new-password" value={pw.b} onChange={(e) => setPw({ ...pw, b: e.target.value })} />
+              <button className="btn primary" disabled={busy}>{busy ? t.saving : t.savePassword}</button>
               {pwMsg.text && <small className={"status" + (pwMsg.err ? " err" : " good")}>{pwMsg.text}</small>}
             </form>
           )}
-          {liveSlug && <a role="menuitem" href={`/m/${liveSlug}`} target="_blank" rel="noreferrer">View public menu ↗</a>}
-          <button role="menuitem" onClick={out} disabled={leaving}>{leaving ? "Signing out…" : "Sign out"}</button>
+          {liveSlug && <a role="menuitem" href={`/m/${liveSlug}`} target="_blank" rel="noreferrer">{t.viewPublic}</a>}
+          <button role="menuitem" onClick={out} disabled={leaving}>{leaving ? t.signingOut : t.signOut}</button>
         </div>
       )}
     </div>

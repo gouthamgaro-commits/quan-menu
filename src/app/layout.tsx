@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Quán — menus street-food customers can read",
-  description: "Photograph your menu and get a QR sticker that shows it in English, Korean, Chinese and Japanese.",
+  title: "Quán · Thực đơn QR 4 thứ tiếng",
+  description: "Thực đơn QR cho quán ăn, quán cà phê, nhà hàng: khách nước ngoài xem món bằng tiếng Anh, Hàn, Trung, Nhật. Menus in English, Korean, Chinese and Japanese.",
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };

@@ -4,13 +4,13 @@ import { useRouter } from "next/navigation";
 import { saveMenu } from "@/app/dashboard/actions";
 import { DEMO_KEY, slugify } from "@/lib/config";
 import { EXAMPLE_MENU } from "@/lib/demo";
-import { ALLERGENS } from "@/lib/i18n";
 import { ALLERGEN_KEYS, isTranslated, type Dish, type MenuData } from "@/lib/types";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { MEDIA_BUCKET, MEDIA_PREFIX, type Media } from "@/lib/types";
 import AccountMenu from "./AccountMenu";
 import DishMedia from "./DishMedia";
 import MenuView from "./MenuView";
+import { LangSwitch, useUi } from "./Ui";
 import Sticker from "./Sticker";
 
 interface Props {
@@ -39,10 +39,10 @@ async function shrink(file: File): Promise<{ data: string; type: "image/jpeg" }>
   return { data: c.toDataURL("image/jpeg", 0.85).split(",")[1], type: "image/jpeg" };
 }
 
-async function post<T>(url: string, body: unknown): Promise<T> {
+async function post<T>(url: string, body: unknown, fallback: string): Promise<T> {
   const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error || "Something went wrong. Try again.");
+  if (!res.ok) throw new Error(json.error || fallback);
   return json as T;
 }
 
@@ -54,6 +54,7 @@ const key = (vi: string) => vi.trim().toLowerCase();
 
 export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
   const router = useRouter();
+  const { t } = useUi();
   const start = initial ?? { name: "", area: "", slug: "", published: false, dishes: [] };
   const [name, setName] = useState(start.name);
   const [area, setArea] = useState(start.area);
@@ -136,15 +137,15 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
   async function readPhoto() {
     if (!photo) return;
     setBusy("read");
-    setS1({ msg: "Reading the menu… this usually takes 20–50 seconds." });
+    setS1({ msg: t.readingWait });
     try {
       let img: Awaited<ReturnType<typeof shrink>>;
       try {
         img = await shrink(photo);
       } catch {
-        throw new Error("Couldn't open that photo. Try a JPG or PNG, or take a screenshot of it.");
+        throw new Error(t.photoOpenFail);
       }
-      const out = await post<{ stall: string; dishes: Dish[] }>("/api/extract", { image: img.data, type: img.type });
+      const out = await post<{ stall: string; dishes: Dish[] }>("/api/extract", { image: img.data, type: img.type }, t.ai.unknown);
       // Add to the list rather than replace it, so a long menu can be read in several photos.
       const have = new Set(dishes.map((d) => key(d.vi)));
       const fresh = out.dishes.filter((d) => !have.has(key(d.vi)));
@@ -152,10 +153,7 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
       if (out.stall && !name) setName(out.stall);
       touch();
       const skipped = out.dishes.length - fresh.length;
-      setS1({
-        msg: `Found ${out.dishes.length} dishes${skipped ? ` (${skipped} already on your list)` : ""}. Check them in step 2.`,
-        kind: "good",
-      });
+      setS1({ msg: t.found(out.dishes.length, skipped), kind: "good" });
     } catch (e) {
       setS1({ msg: (e as Error).message, kind: "err" });
     } finally {
@@ -178,23 +176,23 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
       });
       if (fromList) { setDishes(rest); touch(); }
     } catch {}
-    const listNote = fromList ? `${fromList} filled in from the built-in list. ` : "";
+    const listNote = fromList ? t.fromList(fromList) : "";
     const idx = rest.map((d, i) => (d.vi && !isTranslated(d) ? i : -1)).filter((i) => i >= 0);
     if (!idx.length) {
-      setS2({ msg: listNote + "Check the allergens are right for your recipe.", kind: "good" });
+      setS2({ msg: listNote + t.checkAllergens, kind: "good" });
       return setBusy("");
     }
     if (!ai) {
-      setS2({ msg: `${listNote}${idx.length} dish${idx.length > 1 ? "es aren't" : " isn't"} on the list: open ${idx.length > 1 ? "each one" : "it"} with Edit and type the English name.`, kind: fromList ? "good" : undefined });
+      setS2({ msg: listNote + t.notOnList(idx.length), kind: fromList ? "good" : undefined });
       return setBusy("");
     }
     let done = 0;
     try {
       for (let start = 0; start < idx.length; start += BATCH) {
         const part = idx.slice(start, start + BATCH);
-        setS2({ msg: idx.length > BATCH ? `Translating ${start + 1}–${start + part.length} of ${idx.length}…` : `Translating ${idx.length} dish${idx.length > 1 ? "es" : ""}…` });
+        setS2({ msg: idx.length > BATCH ? t.translatingRange(start + 1, start + part.length, idx.length) : t.translatingN(idx.length) });
         const names = part.map((i) => rest[i].vi);
-        const out = await post<{ dishes: (Dish | null)[] }>("/api/translate", { names });
+        const out = await post<{ dishes: (Dish | null)[] }>("/api/translate", { names }, t.ai.unknown);
         // Match by name, not position, in case the vendor edited the list while this ran.
         const byName = new Map(names.map((n, k) => [n, out.dishes[k]]));
         setDishes((ds) => ds.map((d) => {
@@ -204,9 +202,9 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
         done += part.length;
         touch();
       }
-      setS2({ msg: listNote + "Done. Check the allergens are right for your recipe.", kind: "good" });
+      setS2({ msg: listNote + t.doneCheck, kind: "good" });
     } catch (e) {
-      const kept = done ? ` ${done} of ${idx.length} were translated and kept; press Translate again for the rest.` : "";
+      const kept = done ? t.keptSome(done, idx.length) : "";
       setS2({ msg: listNote + (e as Error).message + kept, kind: "err" });
     } finally {
       setBusy("");
@@ -215,19 +213,19 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
 
   async function save() {
     const clean = dishes.filter((d) => d.vi.trim());
-    if (!name.trim()) return setS4({ msg: "Add your stall's name in step 1.", kind: "err" });
+    if (!name.trim()) return setS4({ msg: t.needName, kind: "err" });
     setBusy("save");
-    setS4({ msg: "Saving…" });
+    setS4({ msg: t.saving });
     try {
       if (demo) {
         const data: MenuData = { name, area, slug: liveSlug, published, dishes: clean };
         localStorage.setItem(DEMO_KEY, JSON.stringify(data));
         setSavedSlug(liveSlug);
         setDirty(false);
-        setS4({ msg: "Saved in this browser (demo mode).", kind: "good" });
+        setS4({ msg: t.savedDemo, kind: "good" });
       } else {
         const r = await saveMenu({ name, area, slug: liveSlug, published, dishes: clean });
-        if (!r.ok) return setS4({ msg: r.error || "Couldn't save.", kind: "err" });
+        if (!r.ok) return setS4({ msg: r.error || t.couldntSave, kind: "err" });
         setSavedSlug(r.slug!);
         setSlug(r.slug!);
         setDirty(false);
@@ -235,12 +233,12 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
         const gone = [...savedMedia.current].filter((u) => !now.has(u) && u.startsWith(MEDIA_PREFIX)).map((u) => u.slice(MEDIA_PREFIX.length));
         savedMedia.current = now;
         if (gone.length) supabaseBrowser().storage.from(MEDIA_BUCKET).remove(gone).catch(() => {});
-        setS4({ msg: published ? "Saved. Your menu is live." : "Saved as a draft. Turn on “Menu is live” when you're ready.", kind: "good" });
+        setS4({ msg: published ? t.savedLive : t.savedDraft, kind: "good" });
         router.refresh();
       }
       setDishes(clean);
     } catch {
-      setS4({ msg: "Couldn't save. Check your connection and try again.", kind: "err" });
+      setS4({ msg: t.saveFailed, kind: "err" });
     } finally {
       setBusy("");
     }
@@ -249,7 +247,7 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
   function loadExample() {
     setName(EXAMPLE_MENU.name); setArea(EXAMPLE_MENU.area); setSlugTouched(false);
     setDishes(structuredClone(EXAMPLE_MENU.dishes)); touch();
-    setS2({ msg: "Example menu loaded. Replace it with your own dishes." });
+    setS2({ msg: t.exampleLoaded });
   }
 
   return (
@@ -258,8 +256,9 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
         <header className="top">
           <a className="logo" href="/">Quán<span>.</span></a>
           <div className="row">
-            {demo ? <span className="pill warn">Demo mode</span> : <span className={"pill " + (published ? "ok" : "")}>{published ? "Live" : "Draft"}</span>}
-            {dirty && <span className="pill warn">Unsaved changes</span>}
+            {demo ? <span className="pill warn">{t.pillDemo}</span> : <span className={"pill " + (published ? "ok" : "")}>{published ? t.pillLive : t.pillDraft}</span>}
+            {dirty && <span className="pill warn">{t.pillUnsaved}</span>}
+            <LangSwitch />
             {email && <AccountMenu email={email} liveSlug={published && savedSlug ? savedSlug : undefined} onDashboard />}
           </div>
         </header>
@@ -267,12 +266,12 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
         <div className="grid">
           <div className="steps">
             <section className="step" aria-labelledby="s1">
-              <div className="step-h"><div className="num">1</div><div><h2 id="s1">Your stall and menu photo</h2><small>The board on the wall, a printed sheet, or handwriting all work.</small></div></div>
+              <div className="step-h"><div className="num">1</div><div><h2 id="s1">{t.s1Title}</h2><small>{t.s1Hint}</small></div></div>
               <div className="two">
-                <label className="f" htmlFor="name">Stall name
+                <label className="f" htmlFor="name">{t.stallName}
                   <input id="name" type="text" value={name} placeholder="Cơm Tấm Cô Ba" onChange={(e) => { setName(e.target.value); touch(); }} />
                 </label>
-                <label className="f" htmlFor="area">Street / district
+                <label className="f" htmlFor="area">{t.area}
                   <input id="area" type="text" value={area} placeholder="Nguyễn Trãi, Quận 1" onChange={(e) => { setArea(e.target.value); touch(); }} />
                 </label>
               </div>
@@ -281,68 +280,66 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
                 onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) { setPhoto(f); setThumb(URL.createObjectURL(f)); } }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 {thumb && <img src={thumb} alt="" />}
-                <div><b>{photo ? photo.name : "Choose a menu photo"}</b><span>{photo ? "Choose a different photo" : "Take a photo or pick one. JPG, PNG or WebP."}</span></div>
+                <div><b>{photo ? photo.name : t.choosePhoto}</b><span>{photo ? t.otherPhoto : t.choosePhotoHint}</span></div>
               </button>
               <input ref={fileRef} type="file" accept="image/*" capture="environment" hidden
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) { setPhoto(f); setThumb(URL.createObjectURL(f)); } }} />
               <div className="row">
-                <button className="btn primary" disabled={!ai || !photo || !!busy} onClick={readPhoto}>{busy === "read" ? "Reading…" : "Read menu with AI"}</button>
-                {ai && dishes.length > 0 && photo && <small className="status">New dishes are added to your list in step 2.</small>}
+                <button className="btn primary" disabled={!ai || !photo || !!busy} onClick={readPhoto}>{busy === "read" ? t.reading : t.readAi}</button>
+                {ai && dishes.length > 0 && photo && <small className="status">{t.readAdds}</small>}
               </div>
               {!ai && (
-                <p className="status">
-                  Reading menu photos switches on once a Claude API key is added to the server. For now, type your dishes in step 2: {listSize ? `${listSize} common dishes` : "common dishes"} fill in their English, Korean, Chinese and Japanese names by themselves.
-                </p>
+                <p className="status">{t.aiOff(listSize)}</p>
               )}
               <p className={"status " + (s1.kind ?? "")} aria-live="polite">{s1.msg}</p>
             </section>
 
             <section className="step" aria-labelledby="s2">
-              <div className="step-h"><div className="num">2</div><div><h2 id="s2">Check dishes and prices</h2><small>{ai ? "Fix anything the photo got wrong. Open a dish to correct allergens." : "Type each dish's Vietnamese name and price. Open a dish to correct allergens."}</small></div></div>
+              <div className="step-h"><div className="num">2</div><div><h2 id="s2">{t.s2Title}</h2><small>{ai ? t.s2HintAi : t.s2Hint}</small></div></div>
               <div className="dlist">
-                <div className="drow dhead"><span>Dish (Vietnamese)</span><span style={{ textAlign: "right" }}>Price ₫</span><span className="encol">English</span><span /><span /></div>
-                {!dishes.length && <div className="empty">No dishes yet. {ai ? "Read a photo in step 1, add one by hand, or" : "Press Add a dish, or"} <button className="icon" onClick={loadExample} style={{ color: "var(--stool)", textDecoration: "underline" }}>load the example menu</button>.</div>}
+                <div className="drow dhead"><span>{t.colDish}</span><span style={{ textAlign: "right" }}>{t.colPrice}</span><span className="encol">{t.colEnglish}</span><span /><span /></div>
+                {!dishes.length && <div className="empty">{ai ? t.emptyAi : t.empty} <button className="icon" onClick={loadExample} style={{ color: "var(--stool)", textDecoration: "underline" }}>{t.loadExample}</button>.</div>}
                 {dishes.map((d, i) => (
                   <div className="drow" key={i}>
-                    <input type="text" aria-label="Vietnamese name" defaultValue={d.vi} key={"vi" + i + d.vi} id={"vi" + i}
+                    <input type="text" aria-label={t.viName} defaultValue={d.vi} key={"vi" + i + d.vi} id={"vi" + i}
                       onBlur={(e) => renameVi(i, e.target.value)} />
-                    <input className="price" type="number" min={0} step={1000} aria-label="Price in đồng" value={d.price || ""}
+                    <input className="price" type="number" min={0} step={1000} aria-label={t.priceLabel} value={d.price || ""}
                       onChange={(e) => update(i, { price: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
-                    <span className="encol">{isTranslated(d) ? <span className="en">{d.name!.en}</span> : <span className="pending">Needs translation</span>}{!!d.media?.length && <span className="mcount" title="Photos and videos"> · 📷 {d.media.length}</span>}</span>
-                    <button className="icon" aria-expanded={open === i} onClick={() => setOpen(open === i ? null : i)}>{open === i ? "Close" : "Edit"}</button>
-                    <button className="icon del" aria-label={`Remove ${d.vi || "dish"}`} onClick={() => { setDishes((ds) => ds.filter((_, k) => k !== i)); setOpen(null); touch(); }}>✕</button>
+                    <span className="encol">{isTranslated(d) ? <span className="en">{d.name!.en}</span> : <span className="pending">{t.needsTranslation}</span>}{!!d.media?.length && <span className="mcount" title={t.mediaCount}> · 📷 {d.media.length}</span>}</span>
+                    <button className="icon" aria-expanded={open === i} onClick={() => setOpen(open === i ? null : i)}>{open === i ? t.close : t.edit}</button>
+                    <button className="icon del" aria-label={t.remove(d.vi)} onClick={() => { setDishes((ds) => ds.filter((_, k) => k !== i)); setOpen(null); touch(); }}>✕</button>
                     {open === i && (
                       <div className="details">
                         <div className="two">
-                          <label className="f">English name
-                            <input type="text" value={d.name?.en ?? ""} placeholder={ai ? "Translate first, or type it" : "Type the English name"}
+                          <label className="f">{t.englishName}
+                            <input type="text" value={d.name?.en ?? ""} placeholder={ai ? t.englishPhAi : t.englishPh}
                               onChange={(e) => update(i, { name: { en: e.target.value, ko: d.name?.ko ?? "", zh: d.name?.zh ?? "", ja: d.name?.ja ?? "" } })} />
                           </label>
-                          <label className="f">Spice level
+                          <label className="f">{t.spice}
                             <select value={d.spice} onChange={(e) => update(i, { spice: Number(e.target.value) })}>
-                              <option value={0}>Not spicy</option><option value={1}>A little</option><option value={2}>Medium</option><option value={3}>Very spicy</option>
+                              {t.spiceLevels.map((l, k) => <option key={k} value={k}>{l}</option>)}
                             </select>
                           </label>
                         </div>
-                        <label className="f">How to say it
-                          <input type="text" value={d.pron} placeholder="e.g. fuh baw tie" onChange={(e) => update(i, { pron: e.target.value })} />
+                        <label className="f">{t.sayIt}
+                          <input type="text" value={d.pron} placeholder={t.sayItPh} onChange={(e) => update(i, { pron: e.target.value })} />
                         </label>
                         <div className="f" style={{ display: "grid", gap: 6 }}>
-                          <span className="f">Contains</span>
+                          <span className="f">{t.contains}</span>
                           <div className="chips">
                             {ALLERGEN_KEYS.map((a) => {
                               const on = d.alg.includes(a);
                               return (
                                 <button key={a} className="chip" aria-pressed={on}
                                   onClick={() => update(i, { alg: on ? d.alg.filter((x) => x !== a) : [...d.alg, a] })}>
-                                  {ALLERGENS[a].en}
+                                  {t.allergens[a]}
                                 </button>
                               );
                             })}
                           </div>
                         </div>
                         <div className="f" style={{ display: "grid", gap: 6 }}>
-                          <span className="f">Photos and videos</span>
+                          <span className="f">{t.media}</span>
                           <DishMedia media={d.media ?? []} demo={demo} onAdd={(m) => addMedia(i, m)} onRemove={(u) => removeMedia(i, u)} />
                         </div>
                       </div>
@@ -351,42 +348,42 @@ export default function Editor({ initial, demo, ai, siteUrl, email }: Props) {
                 ))}
               </div>
               <div className="row">
-                <button className="btn" onClick={() => { setDishes((ds) => [...ds, blank()]); touch(); setTimeout(() => document.getElementById("vi" + dishes.length)?.focus(), 0); }}>Add a dish</button>
-                {needTranslate > 0 && <button className={"btn" + (ai ? " primary" : "")} disabled={!!busy} onClick={translate}>{busy === "translate" ? "Translating…" : ai ? `Translate ${needTranslate} new dish${needTranslate > 1 ? "es" : ""}` : `Check ${needTranslate} dish${needTranslate > 1 ? "es" : ""} against the list`}</button>}
+                <button className="btn" onClick={() => { setDishes((ds) => [...ds, blank()]); touch(); setTimeout(() => document.getElementById("vi" + dishes.length)?.focus(), 0); }}>{t.addDish}</button>
+                {needTranslate > 0 && <button className={"btn" + (ai ? " primary" : "")} disabled={!!busy} onClick={translate}>{busy === "translate" ? t.translating : ai ? t.translateN(needTranslate) : t.checkN(needTranslate)}</button>}
               </div>
               <p className={"status " + (s2.kind ?? "")} aria-live="polite">{s2.msg}</p>
             </section>
 
             <section className="step" aria-labelledby="s3">
-              <div className="step-h"><div className="num">3</div><div><h2 id="s3">Publish</h2><small>Customers only see the menu after you save with “Menu is live” on.</small></div></div>
-              <label className="f" htmlFor="slug">Web address
+              <div className="step-h"><div className="num">3</div><div><h2 id="s3">{t.s3Title}</h2><small>{t.s3Hint}</small></div></div>
+              <label className="f" htmlFor="slug">{t.webAddress}
                 <input id="slug" type="text" value={slug} onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); touch(); }}
                   onBlur={() => setSlug(slugify(slug || name))} />
               </label>
               <label className="row" style={{ gap: 8, cursor: "pointer" }}>
                 <input type="checkbox" checked={published} onChange={(e) => { setPublished(e.target.checked); touch(); }} />
-                <span><b>Menu is live</b> — anyone who scans the code can see it</span>
+                <span><b>{t.liveToggle}</b> · {t.liveToggleHint}</span>
               </label>
               <div className="row">
-                <button className="btn primary" disabled={!!busy || (!dirty && !!savedSlug)} onClick={save}>{busy === "save" ? "Saving…" : dirty || !savedSlug ? "Save menu" : "Saved"}</button>
-                {savedSlug && (published || demo) && <a className="btn" href={`/m/${savedSlug}`} target="_blank" rel="noreferrer">Open public menu ↗</a>}
+                <button className="btn primary" disabled={!!busy || (!dirty && !!savedSlug)} onClick={save}>{busy === "save" ? t.saving : dirty || !savedSlug ? t.saveMenu : t.saved}</button>
+                {savedSlug && (published || demo) && <a className="btn" href={`/m/${savedSlug}`} target="_blank" rel="noreferrer">{t.openPublic}</a>}
               </div>
               <p className={"status " + (s4.kind ?? "")} aria-live="polite">{s4.msg}</p>
             </section>
 
             <section className="step" aria-labelledby="s4">
-              <div className="step-h"><div className="num">4</div><div><h2 id="s4">Print the QR sticker</h2><small>Stick it on the table or the cart. Price changes show up without reprinting.</small></div></div>
+              <div className="step-h"><div className="num">4</div><div><h2 id="s4">{t.s4Title}</h2><small>{t.s4Hint}</small></div></div>
               {savedSlug ? (
                 <Sticker name={name} url={publicUrl} slug={savedSlug} />
               ) : (
-                <p className="status">Save your menu first to get its QR code.</p>
+                <p className="status">{t.saveFirst}</p>
               )}
-              {savedSlug && liveSlug !== savedSlug && !demo && <p className="status err">You changed the web address. Save first, or the printed code will point to the old one.</p>}
+              {savedSlug && liveSlug !== savedSlug && !demo && <p className="status err">{t.slugChanged}</p>}
             </section>
           </div>
 
-          <aside className="phone-col" aria-label="Customer view preview">
-            <div className="phone-cap"><span>What customers see</span><span>{dishes.length} dishes</span></div>
+          <aside className="phone-col" aria-label={t.previewLabel}>
+            <div className="phone-cap"><span>{t.customersSee}</span><span>{t.dishCount(dishes.length)}</span></div>
             <div className="phone">
               <MenuView name={name} area={area} dishes={dishes.filter((d) => d.vi)} />
             </div>

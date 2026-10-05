@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import type { AiCode } from "./strings";
 import { ALLERGEN_KEYS, LANG_KEYS, cleanDish, type Dish } from "./types";
 
 export const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
@@ -58,16 +59,17 @@ const TRANSLATE_SCHEMA = {
   additionalProperties: false,
 };
 
+/** A failure the vendor can act on. `code` picks the message in their screen language (strings.ts → ai). */
 export class AiError extends Error {
-  constructor(message: string, public status = 502) {
-    super(message);
+  constructor(public code: AiCode, public status = 502) {
+    super(code);
   }
 }
 
 let cached: Anthropic | null = null;
 function client() {
   if (!process.env.ANTHROPIC_API_KEY) {
-    throw new AiError("Photo reading isn't set up yet: add ANTHROPIC_API_KEY to the server environment.", 501);
+    throw new AiError("off", 501);
   }
   // Retries are handled in ask(), where the time budget is known.
   return (cached ??= new Anthropic({ maxRetries: 0 }));
@@ -86,34 +88,34 @@ export function parseJson(text: string): unknown {
       return JSON.parse(c.trim());
     } catch {}
   }
-  throw new AiError("The menu came back in a broken format. Try again.");
+  throw new AiError("format");
 }
 
 /** Turns SDK failures into messages a vendor can act on; logs the ones only the owner can fix. */
 function toAiError(e: unknown): AiError {
   if (e instanceof AiError) return e;
   if (e instanceof Anthropic.APIConnectionTimeoutError) {
-    return new AiError("That took too long. Try a photo of half the menu at a time.", 504);
+    return new AiError("timeout", 504);
   }
   if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) {
     console.error("[ai] Anthropic rejected the API key:", e.message);
-    return new AiError("Photo reading is misconfigured on the server (API key). The details are in the server logs.", 501);
+    return new AiError("key", 501);
   }
   if (e instanceof Anthropic.NotFoundError) {
     console.error(`[ai] Model "${MODEL}" not found. Check ANTHROPIC_MODEL:`, e.message);
-    return new AiError("Photo reading is misconfigured on the server (model). The details are in the server logs.", 501);
+    return new AiError("model", 501);
   }
   if (e instanceof Anthropic.RateLimitError) {
-    return new AiError("The AI is busy right now. Wait a minute and try again.", 503);
+    return new AiError("busy", 503);
   }
   if (e instanceof Anthropic.APIError && (e.status ?? 0) >= 500) {
-    return new AiError("The AI service is having trouble. Try again in a minute.", 503);
+    return new AiError("down", 503);
   }
   if (e instanceof Anthropic.APIConnectionError) {
-    return new AiError("Couldn't reach the AI service. Try again.", 503);
+    return new AiError("conn", 503);
   }
   console.error("[ai] unexpected error:", e);
-  return new AiError("Something went wrong. Try again.");
+  return new AiError("unknown");
 }
 
 const retryable = (e: unknown) =>
@@ -143,10 +145,10 @@ async function ask(content: Anthropic.MessageParam["content"], schema: Record<st
         { timeout: Math.max(5_000, remaining()) },
       );
       if (res.stop_reason === "refusal") {
-        throw new AiError("The AI couldn't process that. Make sure the photo shows a food menu and try again.", 422);
+        throw new AiError("refusal", 422);
       }
       if (res.stop_reason === "max_tokens") {
-        throw new AiError("That menu is too long to read in one go. Photograph half at a time; new dishes are added to your list.", 422);
+        throw new AiError("tooLong", 422);
       }
       const text = res.content.map((b) => (b.type === "text" ? b.text : "")).join("");
       return parseJson(text);
@@ -184,7 +186,7 @@ ${DISH_RULES}`,
     EXTRACT_SCHEMA,
   )) as { stall?: unknown; dishes?: unknown };
   const dishes = (Array.isArray(out?.dishes) ? out.dishes : []).map(cleanDish).filter((d): d is Dish => !!d);
-  if (!dishes.length) throw new AiError("No dishes found in that photo. Try a clearer, straighter shot.", 422);
+  if (!dishes.length) throw new AiError("noDishes", 422);
   return { stall: typeof out.stall === "string" ? out.stall.trim() : "", dishes };
 }
 
@@ -197,6 +199,6 @@ ${DISH_RULES}`,
   );
   // The schema asks for {"dishes": [...]}; a bare array is also accepted from the no-schema fallback.
   const arr = Array.isArray(out) ? out : (out as { dishes?: unknown } | null)?.dishes;
-  if (!Array.isArray(arr)) throw new AiError("The translation came back in a broken format. Try again.");
+  if (!Array.isArray(arr)) throw new AiError("format");
   return names.map((_, i) => cleanDish(arr[i]));
 }

@@ -190,3 +190,4 @@ input:focus-visible, button:focus-visible, a:focus-visible, select:focus-visible
 .or::before, .or::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
 .acct-pw { display: grid; gap: 8px; padding: 10px 12px; }
 .acct-pw input { font-size: 14px; }
+.lang-switch { padding: 6px 10px; font-size: 13px; letter-spacing: .04em; min-width: 44px; justify-content: center; }

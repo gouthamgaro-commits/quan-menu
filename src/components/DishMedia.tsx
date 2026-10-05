@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
+import { useUi } from "./Ui";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { MAX_MEDIA, MEDIA_BUCKET, type Media } from "@/lib/types";
 
@@ -31,38 +32,39 @@ interface Props {
  */
 export default function DishMedia({ media, demo, onAdd, onRemove }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useUi();
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState<{ text: string; err?: boolean }>({ text: "" });
 
   if (demo) {
-    return <p className="status">Dish photos and videos are saved to your account, so they work once logins (Supabase) are set up.</p>;
+    return <p className="status">{t.mediaDemo}</p>;
   }
 
   async function add(list: FileList | null) {
     const files = [...(list ?? [])];
     if (!files.length) return;
     const room = MAX_MEDIA - media.length;
-    if (room <= 0) return setMsg({ text: `Up to ${MAX_MEDIA} photos or videos per dish. Remove one first.`, err: true });
+    if (room <= 0) return setMsg({ text: t.mediaMax(MAX_MEDIA), err: true });
 
     const sb = supabaseBrowser();
     const { data } = await sb.auth.getUser();
-    if (!data.user) return setMsg({ text: "Your login expired. Sign in again.", err: true });
+    if (!data.user) return setMsg({ text: t.loginExpired, err: true });
 
     const added: Media[] = [];
     const problems: string[] = [];
     const todo = files.slice(0, room);
     for (let k = 0; k < todo.length; k++) {
       const f = todo[k];
-      setBusy(todo.length > 1 ? `Uploading ${k + 1} of ${todo.length}…` : "Uploading…");
+      setBusy(todo.length > 1 ? t.uploadingN(k + 1, todo.length) : t.uploading);
       try {
         let body: Blob, type: Media["type"], contentType: string, ext: string;
         if (f.type.startsWith("video/")) {
           ext = VIDEO_TYPES[f.type];
-          if (!ext) throw new Error(`${f.name}: use an MP4 or MOV video.`);
-          if (f.size > MAX_VIDEO_MB * 1024 * 1024) throw new Error(`${f.name}: videos must be under ${MAX_VIDEO_MB} MB (about 30 seconds).`);
+          if (!ext) throw new Error(t.badVideoType(f.name));
+          if (f.size > MAX_VIDEO_MB * 1024 * 1024) throw new Error(t.videoTooBig(f.name, MAX_VIDEO_MB));
           body = f; type = "video"; contentType = f.type;
         } else {
-          body = await shrinkPhoto(f).catch(() => { throw new Error(`${f.name}: couldn't open that photo. Try a JPG or PNG.`); });
+          body = await shrinkPhoto(f).catch(() => { throw new Error(t.badPhoto(f.name)); });
           type = "image"; contentType = "image/jpeg"; ext = "jpg";
         }
         const path = `${data.user.id}/${crypto.randomUUID()}.${ext}`;
@@ -70,8 +72,8 @@ export default function DishMedia({ media, demo, onAdd, onRemove }: Props) {
         if (error) {
           console.error("[media] upload failed:", error.message);
           throw new Error(/bucket not found/i.test(error.message)
-            ? "Photo storage isn't set up yet: run the latest supabase/schema.sql in Supabase."
-            : `${f.name}: upload failed. Check your connection and try again.`);
+            ? t.noBucket
+            : t.uploadFailed(f.name));
         }
         added.push({ type, url: sb.storage.from(MEDIA_BUCKET).getPublicUrl(path).data.publicUrl });
       } catch (e) {
@@ -82,9 +84,9 @@ export default function DishMedia({ media, demo, onAdd, onRemove }: Props) {
     if (added.length) onAdd(added);
     const skipped = files.length - todo.length;
     if (problems.length || skipped) {
-      setMsg({ text: [...problems, skipped ? `${skipped} not added: up to ${MAX_MEDIA} per dish.` : ""].filter(Boolean).join(" "), err: true });
+      setMsg({ text: [...problems, skipped ? t.skippedMax(skipped, MAX_MEDIA) : ""].filter(Boolean).join(" "), err: true });
     } else {
-      setMsg({ text: `Added ${added.length}. Save the menu to show ${added.length > 1 ? "them" : "it"} to customers.` });
+      setMsg({ text: t.added(added.length) });
     }
   }
 
@@ -101,16 +103,16 @@ export default function DishMedia({ media, demo, onAdd, onRemove }: Props) {
                 <img src={m.url} alt="" />
               )}
               {m.type === "video" && <span className="media-play" aria-hidden>▶</span>}
-              <button className="media-del" aria-label="Remove" onClick={() => { onRemove(m.url); setMsg({ text: "Removed. Save the menu to update it for customers." }); }}>✕</button>
+              <button className="media-del" aria-label={t.removeMedia} onClick={() => { onRemove(m.url); setMsg({ text: t.removed }); }}>✕</button>
             </div>
           ))}
         </div>
       )}
       <div className="row">
         <button className="btn" disabled={!!busy || media.length >= MAX_MEDIA} onClick={() => inputRef.current?.click()}>
-          {busy || "Add photo or video"}
+          {busy || t.addMedia}
         </button>
-        <small className="status">{media.length}/{MAX_MEDIA} · videos up to {MAX_VIDEO_MB} MB</small>
+        <small className="status">{t.mediaLimits(media.length, MAX_MEDIA, MAX_VIDEO_MB)}</small>
       </div>
       <input ref={inputRef} type="file" accept="image/*,video/mp4,video/quicktime,video/webm" multiple hidden
         onChange={(e) => { add(e.target.files); e.target.value = ""; }} />
