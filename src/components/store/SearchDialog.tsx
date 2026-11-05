@@ -9,7 +9,7 @@ import { Dialog } from "../ui/Dialog";
 import { ArrowRight, SearchIcon } from "../ui/icons";
 import Price from "./Price";
 
-const POPULAR = ["Linen", "Satin dress", "Knitwear", "Kurta", "Leather tote", "Trench coat"];
+const POPULAR = ["Baggy jeans", "Corset top", "Cargo pants", "Varsity jacket", "Satin dress", "Linen"];
 
 export default function SearchDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();

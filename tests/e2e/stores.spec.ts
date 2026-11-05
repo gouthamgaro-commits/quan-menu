@@ -182,7 +182,7 @@ test("a store can start with the sample catalog, ready to shop", async ({ browse
   const guest = await browser.newContext();
   const shop = await guest.newPage();
   await shop.goto(`http://${host}/`);
-  await expect(shop.getByRole("heading", { name: "The quiet season" })).toBeVisible();
+  await expect(shop.getByRole("heading", { name: "Y2K, but make it now" })).toBeVisible();
   await expect(shop.getByText("Opening soon")).toHaveCount(0);
   const product = await shop.goto(`http://${host}/products/bias-cut-satin-slip-dress`);
   expect(product?.status()).toBe(200);
