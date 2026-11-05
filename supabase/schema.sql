@@ -13,6 +13,7 @@ create table if not exists public.stalls (
   pay         jsonb,                          -- bank transfer details for VietQR: {"bank","acct","name"}
   maps        text not null default '',       -- the stall's Google Maps link, for reviews
   sold_out    jsonb not null default '{}',    -- {"day","names"}: dishes sold out today; clears itself the next day
+  closed_until date,                          -- closed through this day (Vietnam time); open again the day after
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
@@ -30,7 +31,8 @@ create table if not exists public.dishes (
   descr      jsonb,          -- {"en","ko","zh","ja"}
   media      jsonb not null default '[]', -- [{"type":"image"|"video","url"}]
   opts       jsonb,                       -- drink options: {"sizes":[{"k","price"}],"sugar","ice","tops"}
-  special    boolean not null default false  -- "must-try" badge on the customer menu
+  special    boolean not null default false, -- "must-try" badge on the customer menu
+  cat        text not null default '' check (length(cat) <= 60)  -- menu section, in Vietnamese ("Đồ uống")
 );
 alter table public.dishes add column if not exists media jsonb not null default '[]';
 alter table public.dishes add column if not exists opts jsonb;
@@ -40,6 +42,8 @@ alter table public.stalls add column if not exists pay jsonb;
 alter table public.stalls add column if not exists maps text not null default '';
 alter table public.stalls add column if not exists sold_out jsonb not null default '{}';
 alter table public.dishes add column if not exists special boolean not null default false;
+alter table public.stalls add column if not exists closed_until date;
+alter table public.dishes add column if not exists cat text not null default '' check (length(cat) <= 60);
 -- Earlier versions allowed one stall per account. Now a helper can set up menus for many vendors.
 alter table public.stalls drop constraint if exists stalls_owner_id_key;
 create index if not exists stalls_owner_idx on public.stalls(owner_id, updated_at desc);
@@ -48,21 +52,36 @@ create index if not exists dishes_stall_idx on public.dishes(stall_id, position)
 alter table public.stalls enable row level security;
 alter table public.dishes enable row level security;
 
--- Anyone can read a published stall; owners can always read their own.
+-- Anyone can read a published stall; owners can always read, add, change and delete their own.
+-- (select auth.uid()) is worked out once per query instead of once per row.
 drop policy if exists stalls_read on public.stalls;
 create policy stalls_read on public.stalls for select
-  using (published or owner_id = auth.uid());
+  using (published or owner_id = (select auth.uid()));
 drop policy if exists stalls_write on public.stalls;
-create policy stalls_write on public.stalls for all
-  using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+drop policy if exists stalls_insert on public.stalls;
+create policy stalls_insert on public.stalls for insert to authenticated
+  with check (owner_id = (select auth.uid()));
+drop policy if exists stalls_update on public.stalls;
+create policy stalls_update on public.stalls for update to authenticated
+  using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
+drop policy if exists stalls_delete on public.stalls;
+create policy stalls_delete on public.stalls for delete to authenticated
+  using (owner_id = (select auth.uid()));
 
 drop policy if exists dishes_read on public.dishes;
 create policy dishes_read on public.dishes for select
-  using (exists (select 1 from public.stalls s where s.id = stall_id and (s.published or s.owner_id = auth.uid())));
+  using (exists (select 1 from public.stalls s where s.id = stall_id and (s.published or s.owner_id = (select auth.uid()))));
 drop policy if exists dishes_write on public.dishes;
-create policy dishes_write on public.dishes for all
-  using (exists (select 1 from public.stalls s where s.id = stall_id and s.owner_id = auth.uid()))
-  with check (exists (select 1 from public.stalls s where s.id = stall_id and s.owner_id = auth.uid()));
+drop policy if exists dishes_insert on public.dishes;
+create policy dishes_insert on public.dishes for insert to authenticated
+  with check (exists (select 1 from public.stalls s where s.id = stall_id and s.owner_id = (select auth.uid())));
+drop policy if exists dishes_update on public.dishes;
+create policy dishes_update on public.dishes for update to authenticated
+  using (exists (select 1 from public.stalls s where s.id = stall_id and s.owner_id = (select auth.uid())))
+  with check (exists (select 1 from public.stalls s where s.id = stall_id and s.owner_id = (select auth.uid())));
+drop policy if exists dishes_delete on public.dishes;
+create policy dishes_delete on public.dishes for delete to authenticated
+  using (exists (select 1 from public.stalls s where s.id = stall_id and s.owner_id = (select auth.uid())));
 
 -- Saves a stall and replaces its dishes in one transaction. p_stall = null creates a new stall.
 -- p_expect is the stall's updated_at when the editor loaded it: if the menu changed since (for
@@ -74,7 +93,7 @@ create or replace function public.save_menu(
   p_kind text, p_toppings jsonb, p_pay jsonb, p_maps text,
   p_dishes jsonb
 ) returns public.stalls
-language plpgsql security invoker as $$
+language plpgsql security invoker set search_path = public as $$
 declare s public.stalls;
 begin
   if auth.uid() is null then raise exception 'not signed in'; end if;
@@ -100,7 +119,7 @@ begin
 
   delete from public.dishes where stall_id = s.id;
 
-  insert into public.dishes (stall_id, position, vi, price, spice, allergens, pron, name, descr, media, opts, special)
+  insert into public.dishes (stall_id, position, vi, price, spice, allergens, pron, name, descr, media, opts, special, cat)
   select s.id, (d.ord - 1)::int,
          d.v->>'vi',
          greatest(0, coalesce((d.v->>'price')::int, 0)),
@@ -111,7 +130,8 @@ begin
          d.v->'desc',
          case when jsonb_typeof(d.v->'media') = 'array' then d.v->'media' else '[]'::jsonb end,
          case when jsonb_typeof(d.v->'opts') = 'object' then d.v->'opts' end,
-         coalesce(d.v->'special' = 'true'::jsonb, false)
+         coalesce(d.v->'special' = 'true'::jsonb, false),
+         left(trim(coalesce(d.v->>'cat', '')), 40)
   from jsonb_array_elements(p_dishes) with ordinality as d(v, ord)
   where coalesce(trim(d.v->>'vi'), '') <> '';
 
@@ -158,26 +178,42 @@ on conflict (id) do update
 
 drop policy if exists dish_media_owner_read on storage.objects;
 create policy dish_media_owner_read on storage.objects for select to authenticated
-  using (bucket_id = 'dish-media' and (storage.foldername(name))[1] = auth.uid()::text);
+  using (bucket_id = 'dish-media' and (storage.foldername(name))[1] = (select auth.uid())::text);
 drop policy if exists dish_media_owner_insert on storage.objects;
 create policy dish_media_owner_insert on storage.objects for insert to authenticated
-  with check (bucket_id = 'dish-media' and (storage.foldername(name))[1] = auth.uid()::text);
+  with check (bucket_id = 'dish-media' and (storage.foldername(name))[1] = (select auth.uid())::text);
 drop policy if exists dish_media_owner_delete on storage.objects;
 create policy dish_media_owner_delete on storage.objects for delete to authenticated
-  using (bucket_id = 'dish-media' and (storage.foldername(name))[1] = auth.uid()::text);
+  using (bucket_id = 'dish-media' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
--- Menu views per day, for the vendor's "how many customers looked" counter. Anyone opening a
--- published menu adds one view through count_view(); only the stall's owner can read the counts.
+-- Menu views and orders per day, for the vendor's counters. Anyone opening a published menu adds
+-- one view through count_view(), and each order shown to the vendor adds one through count_order();
+-- only the stall's owner can read the counts.
 create table if not exists public.menu_views (
   stall_id  uuid not null references public.stalls(id) on delete cascade,
   day       date not null,
   views     int  not null default 0,
+  orders    int  not null default 0,
   primary key (stall_id, day)
 );
+alter table public.menu_views add column if not exists orders int not null default 0;
 alter table public.menu_views enable row level security;
 drop policy if exists menu_views_owner on public.menu_views;
-create policy menu_views_owner on public.menu_views for select
-  using (exists (select 1 from public.stalls s where s.id = stall_id and s.owner_id = auth.uid()));
+create policy menu_views_owner on public.menu_views for select to authenticated
+  using (exists (select 1 from public.stalls s where s.id = stall_id and s.owner_id = (select auth.uid())));
+
+-- How many of each dish customers ordered per day, for the vendor's "most ordered" list.
+create table if not exists public.dish_orders (
+  stall_id  uuid not null references public.stalls(id) on delete cascade,
+  day       date not null,
+  vi        text not null,
+  qty       int  not null default 0,
+  primary key (stall_id, day, vi)
+);
+alter table public.dish_orders enable row level security;
+drop policy if exists dish_orders_owner on public.dish_orders;
+create policy dish_orders_owner on public.dish_orders for select to authenticated
+  using (exists (select 1 from public.stalls s where s.id = stall_id and s.owner_id = (select auth.uid())));
 
 create or replace function public.count_view(p_slug text) returns void
 language plpgsql security definer set search_path = public as $$
@@ -191,6 +227,54 @@ begin
 end $$;
 revoke all on function public.count_view(text) from public;
 grant execute on function public.count_view(text) to anon, authenticated;
+
+-- p_items is {"<dish name in Vietnamese>": quantity}. p_new is false when the same customer adds
+-- to an order they already showed ("gọi thêm"): the dishes count, the order doesn't count twice.
+-- Only names on the stall's menu are kept, so the table can't fill up with made-up dishes.
+create or replace function public.count_order(p_slug text, p_items jsonb, p_new boolean default true) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  sid uuid;
+  vn date := (now() at time zone 'Asia/Ho_Chi_Minh')::date;
+begin
+  if jsonb_typeof(p_items) is distinct from 'object' then return; end if;
+  select id into sid from public.stalls where slug = p_slug and published;
+  if sid is null then return; end if;
+  if p_new then
+    insert into public.menu_views (stall_id, day, orders) values (sid, vn, 1)
+    on conflict (stall_id, day) do update set orders = public.menu_views.orders + 1;
+  end if;
+  insert into public.dish_orders (stall_id, day, vi, qty)
+  select sid, vn, i.key, least(50, i.value::int)
+    from jsonb_each_text(p_items) i
+   where i.value ~ '^[1-9][0-9]{0,2}$'
+     and exists (select 1 from public.dishes d where d.stall_id = sid and d.vi = i.key)
+  on conflict (stall_id, day, vi) do update set qty = public.dish_orders.qty + excluded.qty;
+end $$;
+revoke all on function public.count_order(text, jsonb, boolean) from public;
+grant execute on function public.count_order(text, jsonb, boolean) to anon, authenticated;
+
+-- "Closed today" (or through a later day, for holidays). p_until null opens the stall again.
+-- Owners use set_closed(); the owner link uses quick_closed(). Neither moves updated_at, so an
+-- editor that is open meanwhile can still save.
+create or replace function public._closed_day(p_until date) returns date
+language sql stable set search_path = public as $$
+  select case
+    when p_until is null or p_until < (now() at time zone 'Asia/Ho_Chi_Minh')::date then null
+    else least(p_until, (now() at time zone 'Asia/Ho_Chi_Minh')::date + 90)
+  end
+$$;
+
+create or replace function public.set_closed(p_stall uuid, p_until date) returns date
+language plpgsql security invoker set search_path = public as $$
+declare d date := public._closed_day(p_until);
+begin
+  update public.stalls set closed_until = d where id = p_stall and owner_id = auth.uid();
+  if not found then raise exception 'stall not found' using errcode = 'PT404'; end if;
+  return d;
+end $$;
+revoke all on function public.set_closed(uuid, date) from public, anon;
+grant execute on function public.set_closed(uuid, date) to authenticated;
 
 -- "Sold out today": kept on the stall by Vietnamese dish name, so saving the menu doesn't undo it,
 -- and it clears itself the next day (Vietnam time). Owners use set_sold_out(); the owner link
@@ -234,11 +318,11 @@ create table if not exists public.stall_keys (
 );
 alter table public.stall_keys enable row level security;
 drop policy if exists stall_keys_owner_read on public.stall_keys;
-create policy stall_keys_owner_read on public.stall_keys for select
-  using (exists (select 1 from public.stalls s where s.id = stall_id and s.owner_id = auth.uid()));
+create policy stall_keys_owner_read on public.stall_keys for select to authenticated
+  using (exists (select 1 from public.stalls s where s.id = stall_id and s.owner_id = (select auth.uid())));
 drop policy if exists stall_keys_owner_delete on public.stall_keys;
-create policy stall_keys_owner_delete on public.stall_keys for delete
-  using (exists (select 1 from public.stalls s where s.id = stall_id and s.owner_id = auth.uid()));
+create policy stall_keys_owner_delete on public.stall_keys for delete to authenticated
+  using (exists (select 1 from public.stalls s where s.id = stall_id and s.owner_id = (select auth.uid())));
 
 -- Makes a new owner link for a stall (the old one stops working) and returns its token.
 create or replace function public.new_owner_key(p_stall uuid) returns text
@@ -261,7 +345,8 @@ language sql security definer stable set search_path = public as $$
 $$;
 revoke all on function public._key_stall(text) from public, anon, authenticated;
 
--- Everything the owner page shows: the stall, its dishes, today's sold-out list and view counts.
+-- Everything the owner page shows: the stall, its dishes, today's sold-out list, whether it is
+-- closed, and the counts of views, orders and the most ordered dishes this week.
 create or replace function public.quick_menu(p_token text) returns jsonb
 language plpgsql security definer stable set search_path = public as $$
 declare
@@ -273,13 +358,21 @@ begin
   return jsonb_build_object(
     'stall', jsonb_build_object('id', s.id, 'name', s.name, 'slug', s.slug, 'published', s.published,
       'sold_out', case when s.sold_out->>'day' = vn::text and jsonb_typeof(s.sold_out->'names') = 'array'
-                       then s.sold_out->'names' else '[]'::jsonb end),
+                       then s.sold_out->'names' else '[]'::jsonb end,
+      'closed_until', case when s.closed_until >= vn then s.closed_until end),
     'dishes', coalesce((select jsonb_agg(jsonb_build_object('id', d.id, 'vi', d.vi, 'price', d.price, 'opts', d.opts)
                                          order by d.position)
                         from public.dishes d where d.stall_id = s.id), '[]'::jsonb),
     'views', jsonb_build_object(
       'today', coalesce((select views from public.menu_views where stall_id = s.id and day = vn), 0),
-      'week', coalesce((select sum(views) from public.menu_views where stall_id = s.id and day > vn - 7), 0)));
+      'week', coalesce((select sum(views) from public.menu_views where stall_id = s.id and day > vn - 7), 0)),
+    'orders', jsonb_build_object(
+      'today', coalesce((select orders from public.menu_views where stall_id = s.id and day = vn), 0),
+      'week', coalesce((select sum(orders) from public.menu_views where stall_id = s.id and day > vn - 7), 0)),
+    'top', coalesce((select jsonb_agg(jsonb_build_object('vi', t.vi, 'qty', t.qty) order by t.qty desc, t.vi)
+                       from (select o.vi, sum(o.qty)::int as qty from public.dish_orders o
+                              where o.stall_id = s.id and o.day > vn - 7
+                              group by o.vi order by sum(o.qty) desc, o.vi limit 5) t), '[]'::jsonb));
 end $$;
 
 create or replace function public.quick_sold_out(p_token text, p_vi text, p_on boolean) returns jsonb
@@ -318,15 +411,30 @@ begin
   return true;
 end $$;
 
+create or replace function public.quick_closed(p_token text, p_until date) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  sid uuid := public._key_stall(p_token);
+  d date := public._closed_day(p_until);
+begin
+  if sid is null then return null; end if;
+  update public.stalls set closed_until = d where id = sid;
+  return jsonb_build_object('closed_until', d);
+end $$;
+
 revoke all on function public.quick_menu(text) from public;
 revoke all on function public.quick_sold_out(text, text, boolean) from public;
 revoke all on function public.quick_price(text, uuid, int, jsonb) from public;
+revoke all on function public.quick_closed(text, date) from public;
 grant execute on function public.quick_menu(text) to anon, authenticated;
 grant execute on function public.quick_sold_out(text, text, boolean) to anon, authenticated;
 grant execute on function public.quick_price(text, uuid, int, jsonb) to anon, authenticated;
+grant execute on function public.quick_closed(text, date) to anon, authenticated;
 
 -- The app checks this to tell you when this file needs to be run again after an update.
-create or replace function public.schema_version() returns int language sql immutable as $$ select 2 $$;
+-- Version 3: dish sections, "closed today", order counts.
+create or replace function public.schema_version() returns int
+language sql immutable set search_path = '' as $$ select 3 $$;
 grant execute on function public.schema_version() to anon, authenticated;
 
 notify pgrst, 'reload schema';
