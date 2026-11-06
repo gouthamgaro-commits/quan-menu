@@ -1,7 +1,7 @@
-import type { Lang } from "./types";
+import { CURRENCY_CODES, type Currency } from "./i18n";
 
-/** VND per one unit of each customer's currency, by menu language. */
-export type Rates = Partial<Record<Lang, number>>;
+/** VND per one unit of each currency customers can pick. */
+export type Rates = Partial<Record<Currency, number>>;
 
 /**
  * Daily exchange rates from ExchangeRate-API's free open endpoint (no key; attribution shown under
@@ -18,10 +18,8 @@ export async function liveRates(): Promise<Rates> {
     const json = (await res.json()) as { result?: string; rates?: Record<string, number> };
     const r = json.rates ?? {};
     if (json.result !== "success" || !(r.VND > 1000)) return {};
-    const out: Rates = { en: r.VND };
-    if (r.KRW > 0) out.ko = r.VND / r.KRW;
-    if (r.CNY > 0) out.zh = r.VND / r.CNY;
-    if (r.JPY > 0) out.ja = r.VND / r.JPY;
+    const out: Rates = {};
+    for (const c of CURRENCY_CODES) if (r[c] > 0) out[c] = r.VND / r[c];
     return out;
   } catch {
     return {};

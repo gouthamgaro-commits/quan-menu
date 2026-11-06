@@ -19,11 +19,12 @@ const dishes: Dish[] = ITEMS.map(([vi, price]) =>
   fillFromList({ vi, price, spice: 0, alg: [], pron: "", name: null, desc: null }, "tea"),
 ).filter((d): d is Dish => !!d);
 
-// Coffee is sold in one size here, with sugar and ice choices only.
+// Coffee is sold in one size here, with sugar and ice choices only. Sections group the menu.
 for (const d of dishes) {
   if (d.vi === "Trà sữa trân châu đường đen") d.special = true;
   if (/^(Cà phê|Bạc xỉu)/.test(d.vi)) d.opts = { sugar: true, ice: true };
   if (d.vi.startsWith("Sinh tố")) d.opts = { sugar: true };
+  d.cat = d.vi.startsWith("Trà sữa") ? "Trà sữa" : d.vi.startsWith("Trà") ? "Trà" : d.vi.startsWith("Sinh tố") ? "Sinh tố & nước ép" : "Cà phê";
 }
 
 export const EXAMPLE_CAFE: MenuData = {

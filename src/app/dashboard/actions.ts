@@ -5,7 +5,7 @@ import { serverT } from "@/lib/server-ui";
 import type { Strings } from "@/lib/strings";
 import { supabaseServer } from "@/lib/supabase/server";
 import {
-  cleanDish, cleanKind, cleanMaps, cleanPay, cleanSoldOut, cleanToppings,
+  cleanDay, cleanDish, cleanKind, cleanMaps, cleanPay, cleanSoldOut, cleanToppings,
   type Dish, type Pay, type ShopKind, type SoldOut, type Topping,
 } from "@/lib/types";
 
@@ -98,6 +98,17 @@ export async function setSoldOut(stallId: string, slug: string, vi: string, on: 
   if (error) return { ok: false, error: dbError(t, error).error };
   revalidatePath(`/m/${slugify(slug)}`);
   return { ok: true, soldOut: cleanSoldOut(data) };
+}
+
+/** Closes the stall through `until` (a YYYY-MM-DD day, Vietnam time), or opens it again with null. */
+export async function setClosed(stallId: string, slug: string, until: string | null): Promise<{ ok: boolean; until?: string; error?: string }> {
+  const t = await serverT();
+  if (DEMO || !uuid(stallId)) return { ok: false, error: t.soldOutFailed };
+  const supabase = await supabaseServer();
+  const { data, error } = await supabase.rpc("set_closed", { p_stall: stallId, p_until: cleanDay(until) || null });
+  if (error) return { ok: false, error: dbError(t, error).error };
+  revalidatePath(`/m/${slugify(slug)}`);
+  return { ok: true, until: cleanDay(data) };
 }
 
 /** Makes a new owner link for a stall (replacing any old one) and returns its token. */

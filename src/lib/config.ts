@@ -22,4 +22,4 @@ export function slugify(s: string) {
 export const DEMO_KEY = "quan-demo-menu";
 
 /** Version of supabase/schema.sql this app needs (schema_version() there). Raise both together. */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;

@@ -1,7 +1,9 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { deleteStall, saveMenu, setSoldOut } from "@/app/dashboard/actions";
+import { deleteStall, saveMenu, setClosed, setSoldOut } from "@/app/dashboard/actions";
+import { SECTION_SUGGESTIONS, arrange, autoSections, sectionsOf, tidySection } from "@/lib/sections";
+import ClosedToggle from "./ClosedToggle";
 import { DEMO_KEY, slugify } from "@/lib/config";
 import { EXAMPLE_MENU } from "@/lib/demo";
 import { DEFAULT_TOPPINGS, defaultOpts, toppingName } from "@/lib/drinks";
@@ -30,14 +32,23 @@ interface Props {
   email?: string;
   /** Live exchange rates for the phone preview. */
   rates?: Rates;
-  /** Menu views today and in the last 7 days (missing until the schema with menu_views is run). */
-  views?: { today: number; week: number };
+  /** Menu views and orders today and in the last 7 days. */
+  views?: Counts;
+  /** The most ordered dishes in the last 7 days. */
+  top?: { vi: string; qty: number }[];
   /** Every stall on this account, for the stall switcher. */
   stalls?: StallRef[];
   /** This stall's owner link token, if one was made. */
   ownerKey?: string | null;
   /** The database is older than this version of the app: supabase/schema.sql needs running again. */
   schemaOld?: boolean;
+}
+
+export interface Counts {
+  today: number;
+  week: number;
+  ordersToday: number;
+  ordersWeek: number;
 }
 
 /** A message shown after the page reloads into a stall that was just created or deleted. */
@@ -74,7 +85,7 @@ type Status = { msg: string; kind?: "err" | "good" };
 const BATCH = 15;
 const key = (vi: string) => vi.trim().toLowerCase();
 
-export default function Editor({ initial, demo, ai, siteUrl, email, rates, views, stalls = [], ownerKey = null, schemaOld }: Props) {
+export default function Editor({ initial, demo, ai, siteUrl, email, rates, views, top = [], stalls = [], ownerKey = null, schemaOld }: Props) {
   const router = useRouter();
   const { t, lang: uiLang } = useUi();
   const start: MenuData = initial ?? { name: "", area: "", slug: "", published: false, dishes: [] };
@@ -83,7 +94,10 @@ export default function Editor({ initial, demo, ai, siteUrl, email, rates, views
   const [pay, setPay] = useState<Pay>(start.pay ?? noPay);
   const [maps, setMaps] = useState(start.maps ?? "");
   const [sold, setSold] = useState<string[]>(soldToday(start.soldOut));
+  const [closedUntil, setClosedUntil] = useState(start.closedUntil ?? "");
   const [todayMsg, setTodayMsg] = useState("");
+  // Where the editor was scrolled to before "Preview" jumped down to the phone (narrow screens).
+  const editScroll = useRef(0);
   const [stale, setStale] = useState(false);
   const soldReq = useRef(0);
   // What the saved menu offers customers, for the setup checklist (unsaved edits don't count yet).
@@ -219,6 +233,49 @@ export default function Editor({ initial, demo, ai, siteUrl, email, rates, views
     touch();
   };
 
+  // Menu sections: a section's dishes sit together in this list, in the order customers see them.
+  const sections = useMemo(() => sectionsOf(dishes), [dishes]);
+  const sectionChoices = useMemo(
+    () => [...new Set([...dishes.map((d) => d.cat ?? "").filter(Boolean), ...SECTION_SUGGESTIONS])],
+    [dishes],
+  );
+  const setSection = (i: number, value: string) => {
+    const cat = tidySection(value);
+    const d = dishes[i];
+    if (!d || (d.cat ?? "") === cat) return;
+    const moved = { ...d, cat };
+    const next = arrange(dishes.map((x, k) => (k === i ? moved : x)));
+    setDishes(next);
+    if (open === i) setOpen(next.indexOf(moved));
+    touch();
+  };
+  /** Swaps two dishes (the ↑↓ buttons), keeping the open one open. */
+  const swap = (a: number, b: number) => {
+    setDishes((ds) => ds.map((d, k) => (k === a ? ds[b] : k === b ? ds[a] : d)));
+    setOpen((o) => (o === a ? b : o === b ? a : o));
+    touch();
+  };
+  /** Moves a whole section up or down. Dishes without a section always stay last. */
+  const moveSection = (s: number, dir: -1 | 1) => {
+    if (!sections?.[s + dir]?.cat) return;
+    const order = sections.slice();
+    [order[s], order[s + dir]] = [order[s + dir], order[s]];
+    const opened = open !== null ? dishes[open] : null;
+    const next = order.flatMap((g) => g.idx.map((i) => dishes[i]));
+    setDishes(next);
+    if (opened) setOpen(next.indexOf(opened));
+    touch();
+  };
+  async function autoSort() {
+    const { lookupDish } = await loadList().catch(() => ({ lookupDish: (_vi: string) => null }));
+    const next = autoSections(dishes, (vi) => !!lookupDish(vi)?.drink);
+    if (next === dishes) return setS2({ msg: t.autoNone });
+    setDishes(next);
+    setOpen(null);
+    touch();
+    setS2({ msg: t.autoDone(new Set(next.map((d) => d.cat)).size), kind: "good" });
+  }
+
   const previewSold = useMemo(() => ({ day: vnToday(), names: sold }), [sold]);
   const base = siteUrl || (typeof window !== "undefined" ? window.location.origin : "");
   const liveSlug = slugify(slug || name);
@@ -342,7 +399,7 @@ export default function Editor({ initial, demo, ai, siteUrl, email, rates, views
         const byName = new Map(names.map((n, k) => [n, out.dishes[k]]));
         setDishes((ds) => ds.map((d) => {
           const t = byName.get(d.vi);
-          return t && !isTranslated(d) ? { ...t, vi: d.vi, price: d.price, media: d.media } : d;
+          return t && !isTranslated(d) ? { ...t, vi: d.vi, price: d.price, media: d.media, cat: d.cat, special: d.special, opts: d.opts ?? t.opts } : d;
         }));
         done += part.length;
         touch();
@@ -478,7 +535,18 @@ export default function Editor({ initial, demo, ai, siteUrl, email, rates, views
             {!demo && stallId && savedSlug && dishes.some((d) => d.vi.trim()) && (
               <section className="step today" aria-labelledby="s0">
                 <div className="step-h"><div className="num">☀</div><div><h2 id="s0">{t.todayTitle}</h2><small>{t.soldOutHint}</small></div></div>
-                {views && <p className="views">👀 {t.viewsLine(views.today, views.week)}</p>}
+                {views && (
+                  <div className="views">
+                    <span>👀 {t.viewsLine(views.today, views.week)}</span>
+                    <span>🧾 {t.ordersLine(views.ordersToday, views.ordersWeek)}</span>
+                    {top.length > 0 && <span>🔥 {t.topLine} {top.map((x) => `${x.vi} (${x.qty})`).join(", ")}</span>}
+                  </div>
+                )}
+                <ClosedToggle until={closedUntil} onSet={async (u) => {
+                  const r = await setClosed(stallId, savedSlug, u);
+                  if (r.ok) setClosedUntil(r.until ?? "");
+                  return r.ok;
+                }} />
                 <div className="f" style={{ display: "grid", gap: 6 }}>
                   <span className="f">{t.soldOutTitle} · {sold.length ? t.soldOutN(sold.filter((n) => dishes.some((d) => d.vi.trim() === n)).length) : t.soldOutNone}</span>
                   <div className="chips">
@@ -545,10 +613,33 @@ export default function Editor({ initial, demo, ai, siteUrl, email, rates, views
             <section className="step" aria-labelledby="s2">
               <div className="step-h"><div className="num">2</div><div><h2 id="s2">{t.s2Title}</h2><small>{ai ? t.s2HintAi : t.s2Hint}</small></div></div>
               <div className="dlist">
-                <div className="drow dhead"><span>{t.colDish}</span><span style={{ textAlign: "right" }}>{t.colPrice}</span><span className="encol">{t.colEnglish}</span><span /><span /></div>
+                <div className="drow dhead"><span /><span>{t.colDish}</span><span style={{ textAlign: "right" }}>{t.colPrice}</span><span className="encol">{t.colEnglish}</span><span /><span /></div>
                 {!dishes.length && <div className="empty">{ai ? t.emptyAi : t.empty} <button className="icon" onClick={loadExample} style={{ color: "var(--stool)", textDecoration: "underline" }}>{t.loadExample}</button>.</div>}
-                {dishes.map((d, i) => (
+                <datalist id="section-choices">{sectionChoices.map((c) => <option key={c} value={c} />)}</datalist>
+                {(sections ?? [{ cat: "", idx: dishes.map((_, i) => i) }]).map((g, s) => (
+                  <Fragment key={"sec" + s}>
+                    {sections && (
+                      <div className="dsec">
+                        <b>{g.cat || t.noSection}</b>
+                        <small>{t.dishCount(g.idx.length)}</small>
+                        {g.cat && (
+                          <span className="dsec-mv">
+                            <button className="icon" aria-label={t.secUp(g.cat)} disabled={s === 0} onClick={() => moveSection(s, -1)}>↑</button>
+                            <button className="icon" aria-label={t.secDown(g.cat)} disabled={!sections[s + 1]?.cat} onClick={() => moveSection(s, 1)}>↓</button>
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {g.idx.map((i, k) => {
+                  const d = dishes[i];
+                  const prev = k > 0 ? g.idx[k - 1] : null;
+                  const next = k < g.idx.length - 1 ? g.idx[k + 1] : null;
+                  return (
                   <div className="drow" key={i}>
+                    <span className="mv">
+                      <button className="icon" aria-label={t.moveUp(d.vi)} disabled={prev === null} onClick={() => prev !== null && swap(i, prev)}>↑</button>
+                      <button className="icon" aria-label={t.moveDown(d.vi)} disabled={next === null} onClick={() => next !== null && swap(i, next)}>↓</button>
+                    </span>
                     <input type="text" aria-label={t.viName} defaultValue={d.vi} key={"vi" + i + d.vi} id={"vi" + i}
                       onBlur={(e) => renameVi(i, e.target.value)} />
                     <input className="price" type="number" min={0} step={1000} aria-label={t.priceLabel} value={d.price || ""}
@@ -577,6 +668,12 @@ export default function Editor({ initial, demo, ai, siteUrl, email, rates, views
                         </div>
                         <label className="f">{t.sayIt}
                           <input type="text" value={d.pron} placeholder={t.sayItPh} onChange={(e) => update(i, { pron: e.target.value })} />
+                        </label>
+                        <label className="f">{t.sectionLabel}
+                          <input type="text" list="section-choices" defaultValue={d.cat ?? ""} key={"cat" + i + (d.cat ?? "")} placeholder={t.sectionPh}
+                            onBlur={(e) => setSection(i, e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} />
+                          <small className="status" style={{ textTransform: "none", letterSpacing: 0, fontWeight: 400 }}>{t.sectionHint}</small>
                         </label>
                         <label className="check"><input type="checkbox" checked={!!d.special} onChange={(e) => update(i, { special: e.target.checked })} /> {t.specialOpt}</label>
                         <div className="f" style={{ display: "grid", gap: 6 }}>
@@ -621,11 +718,15 @@ export default function Editor({ initial, demo, ai, siteUrl, email, rates, views
                       </div>
                     )}
                   </div>
+                  );
+                    })}
+                  </Fragment>
                 ))}
               </div>
               <div className="row">
                 <button className="btn" onClick={() => { setDishes((ds) => [...ds, blank()]); touch(); setTimeout(() => document.getElementById("vi" + dishes.length)?.focus(), 0); }}>{t.addDish}</button>
                 {needTranslate > 0 && <button className={"btn" + (ai ? " primary" : "")} disabled={!!busy} onClick={translate}>{busy === "translate" ? t.translating : ai ? t.translateN(needTranslate) : t.translateFreeN(needTranslate)}</button>}
+                {dishes.length >= 6 && dishes.some((d) => d.vi.trim() && !d.cat) && <button className="btn" disabled={!!busy} onClick={autoSort}>{t.autoSections}</button>}
               </div>
               {kind !== "food" && bareDrinks > 0 && (
                 <div className="row"><button className="btn" onClick={applyDefaults}>☕ {t.applyDefaults(bareDrinks)}</button></div>
@@ -688,15 +789,21 @@ export default function Editor({ initial, demo, ai, siteUrl, email, rates, views
             </section>
           </div>
 
-          <aside className="phone-col" aria-label={t.previewLabel}>
+          <aside className="phone-col" id="preview" aria-label={t.previewLabel}>
             <div className="phone-cap"><span>{t.customersSee}</span><span>{t.dishCount(dishes.length)}</span></div>
             <div className="phone">
               <MenuView name={name} area={area} dishes={dishes.filter((d) => d.vi)} toppings={toppings.filter((tp) => tp.vi.trim())} rates={rates}
-                soldOut={previewSold} pay={cleanPay(pay)} maps={cleanMaps(maps)} hints={{ pay: t.hintPay, review: t.hintReview, lang: uiLang }} />
+                soldOut={previewSold} closedUntil={closedUntil} pay={cleanPay(pay)} maps={cleanMaps(maps)} hints={{ pay: t.hintPay, review: t.hintReview, lang: uiLang }} />
             </div>
+            <button type="button" className="btn back-edit" onClick={() => window.scrollTo({ top: editScroll.current, behavior: "smooth" })}>{t.backToEdit}</button>
           </aside>
         </div>
       </div>
+      {/* On phones the preview sits below every step: this jumps to it, and "back" returns to the same spot. */}
+      <button type="button" className="btn primary preview-fab" onClick={() => {
+        editScroll.current = window.scrollY;
+        document.getElementById("preview")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }}>{t.previewBtn}</button>
     </main>
   );
 }

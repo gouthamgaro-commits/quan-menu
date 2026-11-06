@@ -6,9 +6,10 @@ import { uiLang } from "@/lib/server-ui";
 import { DEMO, SCHEMA_VERSION, SITE_URL } from "@/lib/config";
 import { supabaseServer } from "@/lib/supabase/server";
 import {
-  cleanDish, cleanKind, cleanMaps, cleanPay, cleanSoldOut, cleanToppings, vnToday,
+  addDays, cleanDay, cleanDish, cleanKind, cleanMaps, cleanPay, cleanSoldOut, cleanToppings, vnToday,
   type Dish, type MenuData, type StallRef,
 } from "@/lib/types";
+import type { Counts } from "@/components/Editor";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Thực đơn của bạn · Quán" };
@@ -43,24 +44,31 @@ export default async function Dashboard({ searchParams }: Search) {
   const schemaOld = version.error ? version.error.code === "PGRST202" : Number(version.data) < SCHEMA_VERSION;
 
   let initial: MenuData | null = null;
-  let views: { today: number; week: number } | undefined;
+  let views: Counts | undefined;
+  let top: { vi: string; qty: number }[] = [];
   let ownerKey: string | null = null;
   if (pick) {
-    // Views from the last 7 days (Vietnam time), for the counter in the editor.
+    // Views and orders from the last 7 days (Vietnam time), for the counters in the editor.
     const today = vnToday();
-    const since = new Date(Date.parse(today) - 6 * 86400_000).toISOString().slice(0, 10);
-    const [{ data: stall, error: stallError }, { data: dishRows, error: dishError }, { data: vrows }, { data: key }] = await Promise.all([
+    const since = addDays(today, -6);
+    const [{ data: stall, error: stallError }, { data: dishRows, error: dishError }, { data: vrows }, { data: key }, { data: orows }] = await Promise.all([
       supabase.from("stalls").select("*").eq("id", pick.id).single(),
       supabase.from("dishes").select("*").eq("stall_id", pick.id).order("position"),
-      supabase.from("menu_views").select("day, views").eq("stall_id", pick.id).gte("day", since),
+      // "*": a database without the orders column (schema v2) still gives the views.
+      supabase.from("menu_views").select("*").eq("stall_id", pick.id).gte("day", since),
       supabase.from("stall_keys").select("token").eq("stall_id", pick.id).maybeSingle(),
+      supabase.from("dish_orders").select("vi, qty").eq("stall_id", pick.id).gte("day", since),
     ]);
     if (stallError || dishError) throw new Error(`Stall ${pick.slug} could not be loaded: ${(stallError ?? dishError)!.message}`);
     if (vrows) {
-      views = {
-        today: vrows.filter((r) => r.day === today).reduce((a, r) => a + r.views, 0),
-        week: vrows.reduce((a, r) => a + r.views, 0),
-      };
+      const sum = (rows: typeof vrows, k: "views" | "orders") => rows.reduce((a, r) => a + (Number(r[k]) || 0), 0);
+      const todays = vrows.filter((r) => r.day === today);
+      views = { today: sum(todays, "views"), week: sum(vrows, "views"), ordersToday: sum(todays, "orders"), ordersWeek: sum(vrows, "orders") };
+    }
+    if (orows) {
+      const by = new Map<string, number>();
+      for (const r of orows) by.set(r.vi, (by.get(r.vi) ?? 0) + (Number(r.qty) || 0));
+      top = [...by].map(([vi, qty]) => ({ vi, qty })).sort((a, b) => b.qty - a.qty || a.vi.localeCompare(b.vi, "vi")).slice(0, 5);
     }
     ownerKey = typeof key?.token === "string" ? key.token : null;
     if (stall) {
@@ -77,6 +85,7 @@ export default async function Dashboard({ searchParams }: Search) {
         pay: cleanPay(stall.pay),
         maps: cleanMaps(stall.maps),
         soldOut: cleanSoldOut(stall.sold_out),
+        closedUntil: cleanDay(stall.closed_until),
       };
     }
   }
@@ -84,7 +93,7 @@ export default async function Dashboard({ searchParams }: Search) {
   return (
     <UiProvider lang={lang}>
       <Editor key={initial?.id ?? "new"} initial={initial} demo={false} ai={ai} siteUrl={SITE_URL} email={auth.user.email ?? ""}
-        rates={rates} views={views} stalls={stalls} ownerKey={ownerKey} schemaOld={schemaOld} />
+        rates={rates} views={views} top={top} stalls={stalls} ownerKey={ownerKey} schemaOld={schemaOld} />
     </UiProvider>
   );
 }

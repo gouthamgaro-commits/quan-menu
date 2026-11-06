@@ -4,7 +4,7 @@ import { LangSwitch, UiProvider } from "@/components/Ui";
 import { DEMO } from "@/lib/config";
 import { serverT, uiLang } from "@/lib/server-ui";
 import { supabasePublic } from "@/lib/supabase/public";
-import { SIZE_KEYS, type SizeKey } from "@/lib/types";
+import { SIZE_KEYS, cleanDay, type SizeKey } from "@/lib/types";
 
 type Params = { params: Promise<{ token: string }> };
 
@@ -35,9 +35,13 @@ async function load(token: string): Promise<QuickData | null> {
   if (!data || typeof data !== "object") return null;
   const d = obj(data);
   const s = obj(d.stall);
+  const count = (v: unknown) => ({ today: Number(obj(v).today) || 0, week: Number(obj(v).week) || 0 });
   return {
     stall: { name: String(s.name ?? ""), slug: String(s.slug ?? ""), published: s.published === true },
     soldOut: list(s.sold_out).filter((n): n is string => typeof n === "string"),
+    closedUntil: cleanDay(s.closed_until),
+    orders: count(d.orders),
+    top: list(d.top).map(obj).filter((x) => typeof x.vi === "string").map((x) => ({ vi: String(x.vi), qty: Number(x.qty) || 0 })).slice(0, 5),
     dishes: list(d.dishes).map(obj).map((x) => {
       const sizes = list(obj(x.opts).sizes).map(obj).filter((z) => SIZE_KEYS.includes(z.k as SizeKey));
       return {
@@ -47,7 +51,7 @@ async function load(token: string): Promise<QuickData | null> {
         sizes: sizes.length >= 2 ? sizes.map((z) => ({ k: z.k as SizeKey, price: Number(z.price) || 0 })) : undefined,
       };
     }),
-    views: { today: Number(obj(d.views).today) || 0, week: Number(obj(d.views).week) || 0 },
+    views: count(d.views),
   };
 }
 

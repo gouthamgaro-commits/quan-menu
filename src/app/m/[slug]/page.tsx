@@ -8,7 +8,7 @@ import { EXAMPLE_MENU } from "@/lib/demo";
 import { EXAMPLE_CAFE } from "@/lib/demo-cafe";
 import { liveRates } from "@/lib/rates";
 import { supabasePublic } from "@/lib/supabase/public";
-import { cleanDish, cleanKind, cleanMaps, cleanPay, cleanSoldOut, cleanToppings, vnToday, type Dish, type MenuData } from "@/lib/types";
+import { cleanDay, cleanDish, cleanKind, cleanMaps, cleanPay, cleanSoldOut, cleanToppings, vnToday, type Dish, type MenuData } from "@/lib/types";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -42,6 +42,7 @@ const load = cache(async (slug: string): Promise<MenuData | null> => {
     pay: cleanPay(stall.pay),
     maps: cleanMaps(stall.maps),
     soldOut: cleanSoldOut(stall.sold_out),
+    closedUntil: cleanDay(stall.closed_until),
   };
 });
 
@@ -68,7 +69,8 @@ export default async function PublicMenu({ params }: Params) {
   const rates = await liveRates();
   const demoSlug = slug === "demo" || slug === "demo-cafe";
   return (
-    <MenuView full name={menu.name} area={menu.area} dishes={menu.dishes} toppings={menu.toppings} rates={rates}
-      countSlug={demoSlug ? undefined : menu.slug} soldOut={menu.soldOut} pay={menu.pay} maps={menu.maps} />
+    <MenuView full slug={slug} name={menu.name} area={menu.area} dishes={menu.dishes} toppings={menu.toppings} rates={rates}
+      countSlug={demoSlug ? undefined : menu.slug} soldOut={menu.soldOut} closedUntil={menu.closedUntil} today={vnToday()}
+      pay={menu.pay} maps={menu.maps} />
   );
 }

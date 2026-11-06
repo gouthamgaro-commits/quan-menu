@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { quickPrice, quickSoldOut } from "@/app/k/[token]/actions";
+import { quickClosed, quickPrice, quickSoldOut } from "@/app/k/[token]/actions";
 import type { SizeKey } from "@/lib/types";
+import ClosedToggle from "./ClosedToggle";
 import { useUi } from "./Ui";
 
 export interface QuickDish {
@@ -16,8 +17,13 @@ export interface QuickData {
   stall: { name: string; slug: string; published: boolean };
   /** Dishes sold out today. */
   soldOut: string[];
+  /** Closed through this day, or "". */
+  closedUntil: string;
   dishes: QuickDish[];
   views: { today: number; week: number };
+  orders: { today: number; week: number };
+  /** Most ordered dishes in the last 7 days. */
+  top: { vi: string; qty: number }[];
 }
 
 /** The owner's own page: big buttons for "sold out" and price changes, for use on a phone at the stall. */
@@ -25,11 +31,12 @@ export default function OwnerQuick({ token, data }: { token: string; data: Quick
   const { t } = useUi();
   const router = useRouter();
   const [sold, setSold] = useState(data.soldOut);
+  const [closedUntil, setClosedUntil] = useState(data.closedUntil);
   const [msg, setMsg] = useState<{ text: string; err?: boolean }>({ text: "" });
   const req = useRef(0);
   const { stall } = data;
 
-  useEffect(() => setSold(data.soldOut), [data]);
+  useEffect(() => { setSold(data.soldOut); setClosedUntil(data.closedUntil); }, [data]);
 
   async function toggle(vi: string) {
     const on = !sold.includes(vi);
@@ -56,8 +63,17 @@ export default function OwnerQuick({ token, data }: { token: string; data: Quick
         <h1>{stall.name}</h1>
         <small className="status">{t.qSub}</small>
       </div>
-      <p className="views">👀 {t.viewsLine(data.views.today, data.views.week)}</p>
+      <div className="views">
+        <span>👀 {t.viewsLine(data.views.today, data.views.week)}</span>
+        <span>🧾 {t.ordersLine(data.orders.today, data.orders.week)}</span>
+        {data.top.length > 0 && <span>🔥 {t.topLine} {data.top.map((x) => `${x.vi} (${x.qty})`).join(", ")}</span>}
+      </div>
       {!stall.published && <p className="status err">{t.qDraft}</p>}
+      <ClosedToggle until={closedUntil} onSet={async (u) => {
+        const r = await quickClosed(token, stall.slug, u);
+        if (r.ok) setClosedUntil(r.until ?? "");
+        return r.ok;
+      }} />
       <p className="status">{t.qSoldHint}</p>
       {!data.dishes.length && <p className="status">{t.qNoDishes}</p>}
       <ul className="qlist">

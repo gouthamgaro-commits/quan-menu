@@ -54,6 +54,8 @@ export interface Dish {
   opts?: DrinkOpts | null;
   /** "Must-try" badge on the customer menu. */
   special?: boolean;
+  /** Menu section, in Vietnamese ("Đồ uống"); empty for none. See sections.ts. */
+  cat?: string;
 }
 
 /** Bank account customers can pay into by VietQR transfer. */
@@ -72,6 +74,15 @@ export interface SoldOut {
 /** Today's date in Vietnam (UTC+7, no daylight saving), as YYYY-MM-DD. */
 export const vnToday = (now = Date.now()) => new Date(now + 7 * 3600_000).toISOString().slice(0, 10);
 
+/** A YYYY-MM-DD day plus `n` days. */
+export const addDays = (day: string, n: number) => new Date(Date.parse(day) + n * 86400_000).toISOString().slice(0, 10);
+
+/** A YYYY-MM-DD date, or "" for anything else. */
+export const cleanDay = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : "");
+
+/** Whether a stall marked "closed through `until`" is closed on `today`. */
+export const isClosed = (until: string | undefined, today = vnToday()) => !!until && until >= today;
+
 export interface Stall {
   name: string;
   area: string;
@@ -89,6 +100,8 @@ export interface MenuData extends Stall {
   pay?: Pay | null;
   maps?: string;
   soldOut?: SoldOut;
+  /** Closed through this day (Vietnam time), or "" when open. */
+  closedUntil?: string;
 }
 
 /** One of the stalls an account runs, for the stall switcher. */
@@ -167,6 +180,7 @@ export function cleanDish(d: unknown): Dish | null {
     media: media(o.media),
     opts: opts(o.opts),
     special: o.special === true,
+    cat: str(o.cat).replace(/\s+/g, " ").slice(0, 40),
   };
 }
 

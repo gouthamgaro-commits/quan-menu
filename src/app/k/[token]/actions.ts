@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { slugify } from "@/lib/config";
 import { supabasePublic } from "@/lib/supabase/public";
-import { SIZE_KEYS, cleanSoldOut, soldToday, type SizeKey } from "@/lib/types";
+import { SIZE_KEYS, cleanDay, cleanSoldOut, soldToday, type SizeKey } from "@/lib/types";
 
 /**
  * Actions for the owner page. They need no login: the secret token from the link is checked by
@@ -19,6 +19,15 @@ export async function quickSoldOut(token: string, slug: string, vi: string, on: 
   if (error || !data) return { ok: false };
   revalidatePath(`/m/${slugify(slug)}`);
   return { ok: true, names: soldToday(cleanSoldOut(data)) };
+}
+
+/** Closes the stall through `until` (YYYY-MM-DD), or opens it again with null. */
+export async function quickClosed(token: string, slug: string, until: string | null): Promise<{ ok: boolean; until?: string }> {
+  if (!okToken(token)) return { ok: false };
+  const { data, error } = await supabasePublic().rpc("quick_closed", { p_token: token, p_until: cleanDay(until) || null });
+  if (error || !data || typeof data !== "object") return { ok: false };
+  revalidatePath(`/m/${slugify(slug)}`);
+  return { ok: true, until: cleanDay((data as { closed_until?: unknown }).closed_until) };
 }
 
 /** `gone` means the dish no longer exists (the menu was saved in the editor meanwhile): reload the page. */
