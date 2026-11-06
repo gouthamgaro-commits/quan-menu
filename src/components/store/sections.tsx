@@ -148,6 +148,70 @@ export function Departments({ departments, variant, browse = "Find your fit", ea
         </section>
       );
 
+    case "tags":
+      return (
+        <section className="container-page mt-16 md:mt-24">
+          <SectionHeader eyebrow="Departments" title={browse} />
+          <ul className="scrollbar-none -mx-4 flex snap-x gap-4 overflow-x-auto px-4 pt-3 pb-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-4 lg:overflow-visible lg:px-0">
+            {departments.map((d, i) => (
+              <li key={d.id} className="w-[58vw] shrink-0 snap-start sm:w-[36vw] lg:w-auto" data-reveal>
+                <Link href={`/category/${d.slug}`} className="hang-tag group block">
+                  <span aria-hidden className="hang-tag-hole" />
+                  <span className="relative mt-7 block aspect-[4/5] overflow-hidden bg-bone">{image(d, "(min-width: 1024px) 22vw, 58vw", "group-hover:scale-105", i < 2)}</span>
+                  <span className="mt-3 flex items-baseline justify-between gap-2 font-mono text-[11px] tracking-[0.06em] uppercase">
+                    <span>Dept. {String(i + 1).padStart(2, "0")}</span>
+                    <span className="text-taupe">{d.children.length ? `${d.children.length} categories` : "Shop"}</span>
+                  </span>
+                  <span className="mt-1 block font-serif text-3xl leading-none uppercase">{d.name}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+
+    case "folders":
+      return (
+        <section className="container-page mt-14 md:mt-20">
+          <SectionHeader eyebrow="Departments" title={browse} />
+          <ul className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-4 md:gap-x-10">
+            {departments.map((d, i) => (
+              <li key={d.id} data-reveal>
+                <Link href={`/category/${d.slug}`} className="folder group grid justify-items-center gap-3 text-center">
+                  <span className="folder-icon">
+                    <span className="folder-photo">{image(d, "(min-width: 640px) 12rem, 40vw", "", i < 4)}</span>
+                    <span aria-hidden className="folder-front" />
+                  </span>
+                  <span className="rounded-full px-2.5 py-0.5 font-pixel text-[11px] uppercase transition-colors group-hover:bg-brand group-hover:text-on-brand">{d.name}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+
+    case "stamps":
+      return (
+        <section className="container-page mt-16 md:mt-24">
+          <SectionHeader eyebrow="Departments" title={browse} />
+          <ul className="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4 md:gap-x-10">
+            {departments.map((d, i) => (
+              <li key={d.id} data-reveal className={["-rotate-2", "rotate-1", "-rotate-1", "rotate-2"][i % 4]}>
+                <Link href={`/category/${d.slug}`} className="stamp-edge group block transition-transform duration-300 hover:-translate-y-1 hover:rotate-0">
+                  <span className="block bg-paper p-1.5">
+                    <span className="relative block aspect-[4/5] overflow-hidden bg-bone">{image(d, "(min-width: 640px) 22vw, 45vw", "group-hover:scale-105", i < 2)}</span>
+                    <span className="mt-2 flex items-baseline justify-between gap-2 px-0.5">
+                      <span className="font-serif text-xl leading-none italic">{d.name}</span>
+                      <span className="font-mono text-[10px] text-taupe">No.{String(i + 1).padStart(2, "0")}</span>
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+
     case "mosaic":
       if (departments.length >= 3) {
         return (

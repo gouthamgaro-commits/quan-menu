@@ -43,8 +43,13 @@ const WORDMARK: Record<HeaderStyle, string> = {
   overlay: "text-xl tracking-[0.42em] uppercase",
   floating: "text-xl tracking-tight sm:text-2xl",
   glass: "text-xl tracking-tight uppercase",
+  utility: "text-2xl tracking-[0.02em] uppercase",
+  window: "text-xl sm:text-2xl",
+  tape: "text-2xl italic",
 };
-const LOGO_HEIGHT: Record<HeaderStyle, string> = { classic: "h-8", inline: "h-7", bold: "h-9", centered: "h-10", heritage: "h-10", overlay: "h-8", floating: "h-7", glass: "h-8" };
+const LOGO_HEIGHT: Record<HeaderStyle, string> = {
+  classic: "h-8", inline: "h-7", bold: "h-9", centered: "h-10", heritage: "h-10", overlay: "h-8", floating: "h-7", glass: "h-8", utility: "h-7", window: "h-8", tape: "h-8",
+};
 
 export function Logo({ settings, variant = "classic", className }: { settings: Settings; variant?: HeaderStyle; className?: string }) {
   return (
@@ -324,6 +329,97 @@ export default function Header({ settings, departments, announcement, design, ov
             </div>
           </div>
         </OverlayHeader>
+      );
+
+    case "utility":
+      return (
+        <>
+          {bar}
+          <header className="sticky top-0 z-40 border-b border-ink bg-ivory text-[11px] uppercase">
+            <div className="container-page flex h-14 items-stretch lg:h-16">
+              <div className="flex items-center pr-3 lg:hidden">{menu}</div>
+              <Logo settings={settings} variant="utility" className="flex items-center border-x border-ink px-4" />
+              <nav aria-label="Main" className="hidden flex-1 lg:block">
+                <ul className="flex h-full items-stretch font-mono tracking-[0.06em]">
+                  {items.map((i) => (
+                    <li key={i.key} className="group relative flex">
+                      <Link
+                        href={i.href}
+                        aria-haspopup={hasChildren(i) ? "true" : undefined}
+                        className={cx("utility-link flex items-center border-r border-ink px-3 whitespace-nowrap transition-colors hover:bg-ink hover:text-ivory xl:px-4", i.sale && "text-sale")}
+                      >
+                        {i.label}
+                      </Link>
+                      {hasChildren(i) && <DropList item={i} className="left-0" panelClassName="border border-ink bg-ivory p-5 normal-case" />}
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <div className="ml-auto flex items-center border-l border-ink pl-2 sm:pl-3"><HeaderActions /></div>
+            </div>
+          </header>
+        </>
+      );
+
+    case "window":
+      return (
+        <>
+          {bar}
+          <header className="sticky top-0 z-40 px-2 pt-2 sm:px-4">
+            <div className="win-chrome mx-auto flex h-14 max-w-7xl items-center gap-3 rounded-[14px] border border-line px-3 shadow-[0_12px_30px_-18px_rgb(0_0_0/0.4)] backdrop-blur-xl sm:px-4">
+              <span aria-hidden className="hidden items-center gap-1.5 sm:flex">
+                <i className="win-dot bg-brand" />
+                <i className="win-dot bg-accent" />
+                <i className="win-dot bg-sand" />
+              </span>
+              <div className="lg:hidden">{menu}</div>
+              <Logo settings={settings} variant="window" />
+              <nav aria-label="Main" className="hidden flex-1 lg:block">
+                <ul className="flex items-center justify-center gap-0.5 font-pixel text-[11px] uppercase">
+                  {items.map((i) => (
+                    <li key={i.key} className="group relative">
+                      <Link
+                        href={i.href}
+                        aria-haspopup={hasChildren(i) ? "true" : undefined}
+                        className={cx("inline-flex h-8 items-center rounded-full px-2.5 whitespace-nowrap transition-colors hover:bg-brand hover:text-on-brand xl:px-3.5", i.sale && "text-sale")}
+                      >
+                        {i.label}
+                      </Link>
+                      {hasChildren(i) && <DropList item={i} className="left-1/2 -translate-x-1/2 pt-3" panelClassName="win-panel rounded-card p-5 font-sans normal-case" />}
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <div className="ml-auto lg:ml-0"><HeaderActions /></div>
+            </div>
+          </header>
+        </>
+      );
+
+    case "tape":
+      return (
+        <>
+          {bar}
+          <header className="sticky top-0 z-40 border-b border-dashed border-taupe/50 bg-ivory/95 backdrop-blur supports-[backdrop-filter]:bg-ivory/90">
+            <div className="container-page flex h-16 items-center gap-4 lg:h-[4.5rem]">
+              <div className="lg:hidden">{menu}</div>
+              <Logo settings={settings} variant="tape" className="tape-label" />
+              <nav aria-label="Main" className="hidden flex-1 lg:block">
+                <ul className="flex items-center justify-center gap-5 font-hand text-[1.4rem] leading-none xl:gap-7">
+                  {items.map((i) => (
+                    <li key={i.key} className="group relative">
+                      <Link href={i.href} aria-haspopup={hasChildren(i) ? "true" : undefined} className={cx("scribble-link inline-block py-1", i.sale && "text-sale")}>
+                        {i.label}
+                      </Link>
+                      {hasChildren(i) && <DropList item={i} className="left-1/2 -translate-x-1/2 pt-3" panelClassName="paper-note p-5 font-sans text-[15px]" />}
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <div className="ml-auto lg:ml-0"><HeaderActions /></div>
+            </div>
+          </header>
+        </>
       );
 
     case "overlay":

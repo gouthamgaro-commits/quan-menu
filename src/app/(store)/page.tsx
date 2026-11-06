@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from "react";
 import Aisle from "@/components/store/Aisle";
 import Bento from "@/components/store/Bento";
 import Doors, { type Doorway } from "@/components/store/Doors";
+import Drop from "@/components/store/Drop";
 import IndexList from "@/components/store/IndexList";
 import Lookbook from "@/components/store/Lookbook";
 import Moodboard from "@/components/store/Moodboard";
@@ -10,9 +11,11 @@ import Numbers, { type Figure } from "@/components/store/Numbers";
 import Rack from "@/components/store/Rack";
 import RecentlyViewed from "@/components/store/RecentlyViewed";
 import Reel from "@/components/store/Reel";
+import Scrapbook from "@/components/store/Scrapbook";
 import Showcase from "@/components/store/Showcase";
 import Hero from "@/components/store/heroes";
 import Spotlight, { type Chapter } from "@/components/store/Spotlight";
+import Vibes, { type Vibe } from "@/components/store/Vibes";
 import {
   BrandStrip,
   CampaignBand,
@@ -30,7 +33,7 @@ import {
   TrustStrip,
   trustPoints,
 } from "@/components/store/sections";
-import { getHomeData } from "@/lib/catalog";
+import { getHomeData, searchProducts } from "@/lib/catalog";
 import { homeSections, type SectionKey } from "@/lib/designs";
 import { storefrontLook } from "@/lib/look";
 import { formatMoney } from "@/lib/money";
@@ -127,6 +130,12 @@ export default async function Home() {
   // Every section the home page can show; the design (or the store's own arrangement in
   // Settings › Homepage) decides which appear, and in what order.
   const order = homeSections(design, home.sections);
+  // Shop by vibe: the featured collections' pieces, fetched only where the page shows them.
+  const vibes: Vibe[] = order.includes("vibes")
+    ? await Promise.all(
+        data.trending.slice(0, 4).map(async (c) => ({ title: c.title, slug: c.slug, products: (await searchProducts({ collection: c.slug, sort: "featured", limit: 6 })).items })),
+      )
+    : [];
   const sections: Record<SectionKey, () => ReactNode> = {
     hero: () => (
       <Hero
@@ -207,6 +216,9 @@ export default async function Home() {
     moodboard: () => <Moodboard collections={data.trending} products={newest} title="Our moodboard" />,
     doors: () => <Doors doorways={doorways} eyebrow={collectionDoors ? "Our collections" : "Departments"} title="Step inside" />,
     reel: () => <Reel products={newest.slice(0, 8)} eyebrow="Just landed" title="Now showing" />,
+    drop: () => <Drop products={newest} />,
+    vibes: () => <Vibes vibes={vibes} />,
+    scrapbook: () => <Scrapbook products={newest} />,
     story: () => <StorySection settings={settings} variant={design.key} />,
     recommended: () => <RecentlyViewed title="Recommended for you" mode="recommend" />,
     newsletter: () => <NewsletterSection variant={design.key} title={kind.words.newsletter} text={kind.words.newsletterText} />,

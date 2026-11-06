@@ -333,6 +333,148 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
       );
     }
 
+    case "drop": {
+      const picture = image ?? extras.find((x): x is string => !!x) ?? null;
+      const mono = "font-mono uppercase tracking-[0.08em]";
+      return (
+        <section className="border-b border-ink">
+          <div className="container-page grid lg:grid-cols-[1.2fr_1fr] lg:divide-x lg:divide-ink">
+            <div className="flex flex-col justify-between gap-10 py-10 lg:py-14 lg:pr-12">
+              <p className={cx("flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px]", mono)}>
+                <span className="inline-flex items-center gap-2">
+                  <span aria-hidden className="size-2 animate-pulse rounded-full bg-accent" />
+                  {slide?.eyebrow || "New drop"}
+                </span>
+                <span className="text-taupe">{storeName} / {new Date().getFullYear()}</span>
+              </p>
+              <h1 data-rise="load" className="font-serif text-[clamp(3.4rem,10.5vw,9rem)] leading-[0.88] break-words uppercase"><Rise text={heading} /></h1>
+              <div className="grid gap-6 border-t border-ink pt-6 xl:grid-cols-[1fr_auto] xl:items-end">
+                {slide?.subheading ? <p className="max-w-md font-mono text-[13px] leading-relaxed">{slide.subheading}</p> : <span />}
+                {slide ? (
+                  <Ctas slide={slide} primary={buttonClass("primary", "lg", mono)} secondary={buttonClass("secondary", "lg", mono)} />
+                ) : (
+                  <Link href="/shop?sort=newest" className={buttonClass("primary", "lg", mono)}>Shop the drop</Link>
+                )}
+              </div>
+            </div>
+            <div className="pt-4 pb-10 lg:py-10 lg:pl-12">
+              <div className="crop-marks relative mx-auto max-w-md lg:max-w-none">
+                <div className="relative aspect-[4/5] overflow-hidden bg-bone">
+                  {picture && <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 40vw, 100vw" className="object-cover" />}
+                  <span className={cx("absolute top-3 left-3 bg-ink px-2 py-1 text-[10px] text-ivory", mono)}>Img_001</span>
+                  <span aria-hidden className={cx("drop-stamp absolute right-4 bottom-4 text-[11px]", mono)}>In stock</span>
+                </div>
+              </div>
+              <p className={cx("mt-4 flex justify-between gap-4 text-[10px] text-taupe", mono)}>
+                <span className="truncate">{slide?.image_alt || storeName}</span>
+                <span aria-hidden>↓ Scroll</span>
+              </p>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    case "desktop": {
+      const pictures = [image, ...extras].filter((x): x is string => !!x).slice(0, 2);
+      const file = (slide?.image_alt || heading).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").split("-").slice(0, 3).join("-") || "new";
+      return (
+        <section className="desktop-sky relative overflow-hidden">
+          <span aria-hidden className="bubble top-[12%] left-[6%] size-16 md:size-24" />
+          <span aria-hidden className="bubble right-[8%] bottom-[14%] size-10 [animation-delay:-2s] md:size-16" />
+          <span aria-hidden className="bubble top-[55%] left-[44%] hidden size-8 [animation-delay:-4s] md:block" />
+          <div className="container-page relative grid items-center gap-12 py-12 md:py-20 lg:grid-cols-[1.1fr_1fr]">
+            <div className="relative z-10 text-center lg:text-left">
+              <p className="inline-flex items-center gap-2 rounded-full border border-line bg-paper/75 px-3 py-1 font-pixel text-[11px] uppercase backdrop-blur">
+                <span aria-hidden className="text-accent">✦</span> {slide?.eyebrow || "New drop"}
+              </p>
+              <h1 className="chrome-text mt-5 font-serif text-[clamp(2.9rem,7.5vw,6.25rem)] leading-[0.98]">{heading}</h1>
+              {slide?.subheading && <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-taupe lg:mx-0">{slide.subheading}</p>}
+              {slide ? (
+                <Ctas slide={slide} className="mt-8 justify-center lg:justify-start" primary={buttonClass("primary", "lg", "glossy font-bold")} secondary={buttonClass("secondary", "lg", "glossy font-bold")} />
+              ) : (
+                <Link href="/shop?sort=newest" className={buttonClass("primary", "lg", "glossy mt-8 font-bold")}>Shop new arrivals</Link>
+              )}
+            </div>
+            <div className="relative mx-auto w-full max-w-[22rem] pb-10 sm:max-w-sm lg:max-w-md">
+              <div className="win-window relative z-10 -rotate-2">
+                <p className="win-titlebar">
+                  <span aria-hidden className="flex gap-1"><i className="win-dot bg-brand" /><i className="win-dot bg-accent" /><i className="win-dot bg-sand" /></span>
+                  <span className="truncate">{file}.jpg</span>
+                </p>
+                <div className="relative aspect-[4/5] overflow-hidden bg-bone">
+                  {pictures[0] && <HeroMedia image={pictures[0]} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 28rem, 85vw" className="object-cover" />}
+                </div>
+              </div>
+              {pictures[1] && (
+                <div aria-hidden className="win-window absolute -right-3 bottom-0 z-20 w-[46%] rotate-[5deg] sm:-right-10">
+                  <p className="win-titlebar"><span className="flex gap-1"><i className="win-dot bg-brand" /><i className="win-dot bg-accent" /></span><span className="truncate">fit-check.jpg</span></p>
+                  <div className="relative aspect-square overflow-hidden bg-bone">
+                    <CatalogImage src={pictures[1]} alt="" fill sizes="(min-width: 1024px) 13rem, 40vw" className="object-cover" />
+                  </div>
+                </div>
+              )}
+              <span aria-hidden className="sparkle absolute -top-7 -left-5 z-30 text-5xl text-accent">✦</span>
+              <span aria-hidden className="sparkle absolute top-1/3 -right-4 z-30 text-3xl text-brand [animation-delay:-1.5s] sm:-right-8">✧</span>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    case "collage": {
+      const pictures = [image, ...extras].filter((x): x is string => !!x).slice(0, 3);
+      return (
+        <section className="paper-bg relative overflow-hidden">
+          <div className="container-page grid items-center gap-14 py-12 md:py-20 lg:grid-cols-[1fr_1.05fr]">
+            <div className="relative z-10">
+              <p className="inline-flex -rotate-2 items-center gap-2 font-hand text-2xl text-accent">
+                {slide?.eyebrow || "new in!"}
+                <svg aria-hidden viewBox="0 0 60 24" className="h-5 w-12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 14c12-9 28-11 50-4M44 4l9 6-8 8" /></svg>
+              </p>
+              <h1 className="ransom mt-4 font-serif text-[clamp(2.4rem,6vw,5rem)] leading-[1.18]">
+                {heading.split(/\s+/).map((w, i) => (
+                  <span key={i} className="ransom-word">{w}</span>
+                ))}
+              </h1>
+              {slide?.subheading && <p className="mt-6 max-w-md font-mono text-[13px] leading-relaxed text-taupe">{slide.subheading}</p>}
+              {slide ? (
+                <Ctas slide={slide} className="mt-8" primary={buttonClass("primary", "lg", "font-bold")} secondary={buttonClass("secondary", "lg", "font-bold")} />
+              ) : (
+                <Link href="/shop?sort=newest" className={buttonClass("primary", "lg", "mt-8 font-bold")}>Shop new arrivals</Link>
+              )}
+            </div>
+            <div className="relative mx-auto aspect-[5/6] w-full max-w-lg">
+              {pictures[0] && (
+                <figure className="polaroid absolute top-0 left-0 z-10 w-[62%] -rotate-3">
+                  <span className="relative block aspect-[4/5] overflow-hidden bg-bone">
+                    <HeroMedia image={pictures[0]} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 20rem, 60vw" className="object-cover" />
+                  </span>
+                  <figcaption className="mt-2 font-hand text-xl leading-none">{slide?.eyebrow || storeName}</figcaption>
+                </figure>
+              )}
+              {pictures[1] && (
+                <figure aria-hidden className="polaroid absolute right-0 bottom-0 z-20 w-[50%] rotate-[5deg]">
+                  <span className="relative block aspect-square overflow-hidden bg-bone">
+                    <CatalogImage src={pictures[1]} alt="" fill sizes="(min-width: 1024px) 16rem, 48vw" className="object-cover" />
+                  </span>
+                  <span className="mt-2 block font-hand text-xl leading-none">{tagline || storeName}</span>
+                </figure>
+              )}
+              {pictures[2] && (
+                <span aria-hidden className="stamp-edge absolute top-[6%] right-[4%] z-0 block w-[30%] rotate-[8deg]">
+                  <span className="relative block aspect-[4/5] overflow-hidden bg-bone">
+                    <CatalogImage src={pictures[2]} alt="" fill sizes="10rem" className="object-cover" />
+                  </span>
+                </span>
+              )}
+              <span aria-hidden className="absolute bottom-[38%] left-[4%] z-30 -rotate-6 font-hand text-3xl text-accent">wear it loud ♡</span>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
     default:
       if (!slide) {
         return (

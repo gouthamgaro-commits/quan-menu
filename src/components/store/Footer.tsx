@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Department } from "@/lib/catalog";
 import type { FooterStyle } from "@/lib/designs";
+import { formatMoney } from "@/lib/money";
 import { contactOf, socialOf, type Settings } from "@/lib/settings";
 import { storeKind } from "@/lib/store-types";
 import { cx } from "../ui/controls";
@@ -175,6 +176,86 @@ export default function Footer({ settings, departments, variant = "columns" }: {
           </div>
           <p aria-hidden className="wordmark-glow container-page font-serif text-[clamp(3rem,15vw,12rem)] leading-[0.9] whitespace-nowrap uppercase">{settings.store_name}</p>
           <div className="container-page border-t border-line">{legal}</div>
+        </footer>
+      );
+
+    case "receipt":
+      return (
+        <footer className="mt-24 border-t border-ink">
+          <div className="container-page grid gap-14 py-16 lg:grid-cols-[minmax(0,25rem)_1fr] lg:items-start">
+            <div className="receipt mx-auto w-full max-w-sm font-mono text-[12px] uppercase">
+              <p className="text-center font-serif text-3xl">{settings.store_name}</p>
+              {settings.tagline && <p className="mt-1 text-center text-[11px] text-taupe normal-case">{settings.tagline}</p>}
+              <p aria-hidden className="receipt-rule" />
+              <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1.5">
+                {!!settings.free_shipping_threshold && (
+                  <><dt>Free delivery</dt><dd>Over {formatMoney(settings.free_shipping_threshold, settings.currency)}</dd></>
+                )}
+                {settings.return_window_days > 0 && (
+                  <><dt>Returns</dt><dd>{settings.return_window_days} days</dd></>
+                )}
+                <dt>Cash on delivery</dt>
+                <dd>{settings.cod_enabled ? "Yes" : "No"}</dd>
+                <dt>Prices</dt>
+                <dd>{settings.currency}{settings.tax_mode === "inclusive" ? `, incl. ${settings.tax_label}` : ""}</dd>
+              </dl>
+              <p aria-hidden className="receipt-rule" />
+              <h2 className="text-center text-[13px] font-bold tracking-[0.08em]">{join}</h2>
+              <p className="mt-2 text-center text-[11px] leading-relaxed text-taupe normal-case">{pitch}</p>
+              <NewsletterForm />
+              <p aria-hidden className="barcode mt-7" />
+              <p className="mt-2 text-center text-[10px] tracking-[0.3em]">Thank you · Come again</p>
+            </div>
+            <div className="grid gap-10 sm:grid-cols-3">{columns}</div>
+          </div>
+          <div className="container-page border-t border-ink">{legal}</div>
+        </footer>
+      );
+
+    case "taskbar":
+      return (
+        <footer className="mt-24">
+          <div className="container-page">
+            <div className="win-window">
+              <p className="win-titlebar">
+                <span aria-hidden className="flex gap-1"><i className="win-dot bg-brand" /><i className="win-dot bg-accent" /><i className="win-dot bg-sand" /></span>
+                <span className="truncate">mailing-list.txt</span>
+              </p>
+              <div className="grid gap-12 p-6 md:p-10 lg:grid-cols-[1.3fr_repeat(3,1fr)]">
+                <div className="max-w-sm">
+                  <h2 className="chrome-text font-serif text-3xl leading-tight">{join}</h2>
+                  <p className="mt-3 text-sm leading-relaxed text-taupe">{pitch}</p>
+                  <NewsletterForm boxed />
+                </div>
+                {columns}
+              </div>
+            </div>
+          </div>
+          <div className="taskbar mt-10">
+            <div className="container-page flex h-12 items-center gap-2 font-pixel text-[11px] uppercase">
+              <Link href="/" className="taskbar-start"><span aria-hidden>✦</span> {settings.store_name}</Link>
+              <Link href="/shop?sort=newest" className="taskbar-btn hidden sm:inline-flex">New in</Link>
+              <Link href="/collections" className="taskbar-btn hidden sm:inline-flex">Collections</Link>
+              <span className="ml-auto">© {year}</span>
+            </div>
+          </div>
+          <div className="container-page">{legal}</div>
+        </footer>
+      );
+
+    case "collage":
+      return (
+        <footer className="torn-top mt-24 bg-sand">
+          <div className="container-page grid gap-12 pt-20 pb-14 lg:grid-cols-[1.25fr_repeat(3,1fr)]">
+            <div className="paper-note -rotate-1 p-6 md:p-7">
+              <h2 className="font-serif text-3xl leading-tight italic">{join}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-taupe">{pitch}</p>
+              <NewsletterForm />
+              <p className="mt-4 -rotate-2 font-hand text-2xl text-accent">see you soon x</p>
+            </div>
+            {columns}
+          </div>
+          <div className="container-page border-t border-dashed border-taupe/50">{legal}</div>
         </footer>
       );
 

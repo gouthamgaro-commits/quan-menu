@@ -15,12 +15,12 @@ import {
   type ThemeColors,
 } from "./theme";
 
-export const DESIGN_KEYS = ["atelier", "nordic", "bazaar", "boutique", "heritage", "noir", "cinema", "neon"] as const;
+export const DESIGN_KEYS = ["atelier", "nordic", "bazaar", "boutique", "heritage", "noir", "cinema", "neon", "drop", "y2k", "zine"] as const;
 export type DesignKey = (typeof DESIGN_KEYS)[number];
 
-export const HEADER_STYLES = ["classic", "inline", "bold", "centered", "heritage", "overlay", "floating", "glass"] as const;
-export const HERO_STYLES = ["split", "full", "type", "framed", "arch", "cinema", "film", "glow"] as const;
-export const CARD_STYLES = ["classic", "minimal", "sticker", "soft", "framed", "overlay", "gallery", "glow"] as const;
+export const HEADER_STYLES = ["classic", "inline", "bold", "centered", "heritage", "overlay", "floating", "glass", "utility", "window", "tape"] as const;
+export const HERO_STYLES = ["split", "full", "type", "framed", "arch", "cinema", "film", "glow", "drop", "desktop", "collage"] as const;
+export const CARD_STYLES = ["classic", "minimal", "sticker", "soft", "framed", "overlay", "gallery", "glow", "spec", "window", "polaroid"] as const;
 export const CORNER_STYLES = ["sharp", "soft", "round"] as const;
 export const BUTTON_STYLES = ["square", "soft", "pill"] as const;
 /** How much the store moves: not at all, sections easing in as they scroll into view, or that plus parallax and scroll-driven scenes. */
@@ -34,16 +34,16 @@ export type CornerStyle = (typeof CORNER_STYLES)[number];
 export type ButtonStyle = (typeof BUTTON_STYLES)[number];
 export type MotionStyle = (typeof MOTION_STYLES)[number];
 export type IntroStyle = (typeof INTRO_STYLES)[number];
-export type DepartmentStyle = "tiles" | "list" | "chips" | "circles" | "arches" | "mosaic" | "panels" | "lineup";
-export type TitleStyle = "editorial" | "minimal" | "bold" | "soft" | "ornament" | "giant" | "statement" | "glow";
-export type FooterStyle = "columns" | "minimal" | "bold" | "soft" | "heritage" | "wordmark" | "grand" | "neon";
+export type DepartmentStyle = "tiles" | "list" | "chips" | "circles" | "arches" | "mosaic" | "panels" | "lineup" | "tags" | "folders" | "stamps";
+export type TitleStyle = "editorial" | "minimal" | "bold" | "soft" | "ornament" | "giant" | "statement" | "glow" | "mono" | "chrome" | "scribble";
+export type FooterStyle = "columns" | "minimal" | "bold" | "soft" | "heritage" | "wordmark" | "grand" | "neon" | "receipt" | "taskbar" | "collage";
 export type AnnouncementStyle = "band" | "slim" | "marquee";
 export type GalleryStyle = "thumbs" | "stack" | "grid";
 
 /** Homepage sections, in the order a design shows them unless the store reorders them. */
 export const SECTION_KEYS = [
   "hero", "trust", "departments", "new", "promos", "best", "seasonal", "collections", "brands", "campaign", "spotlight", "statement", "showcase", "rack", "aisle",
-  "marquee", "numbers", "lookbook", "index", "bento", "moodboard", "doors", "reel", "story", "recommended", "newsletter",
+  "marquee", "numbers", "lookbook", "index", "bento", "moodboard", "doors", "reel", "drop", "vibes", "scrapbook", "story", "recommended", "newsletter",
 ] as const;
 export type SectionKey = (typeof SECTION_KEYS)[number];
 
@@ -71,6 +71,9 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
   moodboard: "Moodboard: your collections and pieces as photographs pinned to a board",
   doors: "Doorways: your collections behind arched, carved doors that open as shoppers reach them",
   reel: "Reel: your newest pieces in big numbered frames that slide sideways as shoppers scroll",
+  drop: "The drop: your newest pieces as a numbered drop, with when it landed and what's running low",
+  vibes: "Shop by vibe: your featured collections as tabs in a retro window, their pieces inside",
+  scrapbook: "Scrapbook: your newest pieces cut out and taped onto a page, with a typed price list",
   story: "Your story (from Policies › About)",
   recommended: "Recommended for each shopper",
   newsletter: "Newsletter sign-up",
@@ -314,6 +317,82 @@ export const DESIGNS: Record<DesignKey, Design> = {
     bodies: ["inter", "dm-sans", "figtree", "outfit"],
     italic: false,
   },
+  drop: {
+    key: "drop",
+    name: "Drop",
+    summary: "Streetwear drop culture: a monospace utility bar, giant condensed capitals, ruled spec-sheet cards, departments on hang tags, the latest drop numbered and a receipt for a footer.",
+    header: "utility",
+    hero: "drop",
+    card: "spec",
+    corners: "sharp",
+    buttons: "square",
+    departments: "tags",
+    title: "mono",
+    footer: "receipt",
+    announcement: "marquee",
+    gallery: "grid",
+    filters: "sidebar",
+    headingCase: "uppercase",
+    headingTracking: "0",
+    headingWeight: 400,
+    motion: "subtle",
+    intro: "none",
+    sections: ["hero", "drop", "departments", "marquee", "best", "collections", "numbers", "new", "recommended"],
+    palettes: ["concrete", "volt", "utility", "blueprint"],
+    headings: ["anton", "archivo", "space-grotesk", "bricolage"],
+    bodies: ["space-mono", "inter", "work-sans"],
+    italic: false,
+  },
+  y2k: {
+    key: "y2k",
+    name: "Y2K",
+    summary: "Glossy and nostalgic: retro computer windows, chrome headlines, pixel labels, departments in desktop folders, a shop-by-vibe window and a taskbar footer.",
+    header: "window",
+    hero: "desktop",
+    card: "window",
+    corners: "round",
+    buttons: "pill",
+    departments: "folders",
+    title: "chrome",
+    footer: "taskbar",
+    announcement: "band",
+    gallery: "thumbs",
+    filters: "drawer",
+    headingCase: "none",
+    headingTracking: "-0.01em",
+    motion: "subtle",
+    intro: "none",
+    sections: ["hero", "departments", "vibes", "new", "promos", "best", "trust", "collections", "recommended"],
+    palettes: ["chrome", "aqua", "cyberpink", "starlight"],
+    headings: ["bagel", "unbounded", "syne", "outfit"],
+    bodies: ["figtree", "dm-sans", "nunito", "outfit"],
+    italic: false,
+  },
+  zine: {
+    key: "zine",
+    name: "Zine",
+    summary: "Cut and paste: a scrapbook of taped polaroids, ransom-note headlines, handwritten notes, departments as postage stamps and a typed price list.",
+    header: "tape",
+    hero: "collage",
+    card: "polaroid",
+    corners: "sharp",
+    buttons: "soft",
+    departments: "stamps",
+    title: "scribble",
+    footer: "collage",
+    announcement: "slim",
+    gallery: "stack",
+    filters: "drawer",
+    headingCase: "none",
+    headingTracking: "-0.01em",
+    motion: "subtle",
+    intro: "none",
+    sections: ["hero", "departments", "scrapbook", "promos", "new", "campaign", "best", "brands", "recommended"],
+    palettes: ["kraft", "riso", "newsprint", "highlighter"],
+    headings: ["instrument", "dm-serif", "fraunces", "bricolage"],
+    bodies: ["work-sans", "karla", "dm-sans", "space-mono"],
+    italic: true,
+  },
 };
 
 export const DESIGN_LIST: Design[] = DESIGN_KEYS.map((k) => DESIGNS[k]);
@@ -346,6 +425,7 @@ export const OPTION_LABELS: { [K in keyof DesignOptions]-?: { label: string; nam
     names: {
       classic: "Centred name, large menu", inline: "Slim, name on the left", bold: "Search bar and category chips", centered: "Centred name, round menu",
       heritage: "Ornamented, with a contact bar", overlay: "See-through, menu button", floating: "Floating capsule", glass: "Dark glass with a shop button",
+      utility: "Monospace utility bar", window: "Retro window with a menu bar", tape: "Name on masking tape, handwritten links",
     },
   },
   hero: {
@@ -353,11 +433,15 @@ export const OPTION_LABELS: { [K in keyof DesignOptions]-?: { label: string; nam
     names: {
       split: "Photo beside the words", full: "Full-width photo", type: "Big words and a photo collage", framed: "Rounded photo with a card",
       arch: "Arched photo", cinema: "Full-screen photo", film: "Full-screen film, centred title", glow: "Glowing product, giant words",
+      drop: "Giant capitals and a spec-sheet photo", desktop: "Chrome words and a photo in a retro window", collage: "Taped polaroids and a ransom-note title",
     },
   },
   card: {
     label: "Product cards",
-    names: { classic: "Classic", minimal: "Minimal", sticker: "Outlined, with stickers", soft: "Soft and rounded", framed: "Framed", overlay: "Words on the photo", gallery: "Tall gallery prints", glow: "Glowing tiles" },
+    names: {
+      classic: "Classic", minimal: "Minimal", sticker: "Outlined, with stickers", soft: "Soft and rounded", framed: "Framed", overlay: "Words on the photo", gallery: "Tall gallery prints", glow: "Glowing tiles",
+      spec: "Ruled spec sheets", window: "Retro windows", polaroid: "Taped polaroids",
+    },
   },
   corners: { label: "Corners", names: { sharp: "Sharp", soft: "Softened", round: "Round" } },
   buttons: { label: "Buttons", names: { square: "Square", soft: "Softened", pill: "Pill" } },

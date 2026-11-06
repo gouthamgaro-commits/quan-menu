@@ -17,9 +17,9 @@ export interface ThemeColors {
 
 export const HEADING_FONT_KEYS = [
   "cormorant", "playfair", "bodoni", "dm-serif", "fraunces", "cinzel", "italiana", "marcellus",
-  "syne", "space-grotesk", "unbounded", "bricolage", "archivo", "outfit", "josefin", "tenor",
+  "syne", "space-grotesk", "unbounded", "bricolage", "archivo", "outfit", "josefin", "tenor", "anton", "bagel", "instrument",
 ] as const;
-export const BODY_FONT_KEYS = ["jost", "inter", "manrope", "dm-sans", "karla", "work-sans", "figtree", "nunito", "lora", "outfit"] as const;
+export const BODY_FONT_KEYS = ["jost", "inter", "manrope", "dm-sans", "karla", "work-sans", "figtree", "nunito", "lora", "outfit", "space-mono"] as const;
 export type HeadingFont = (typeof HEADING_FONT_KEYS)[number];
 export type BodyFont = (typeof BODY_FONT_KEYS)[number];
 
@@ -27,7 +27,7 @@ export interface FontInfo {
   label: string;
   /** The CSS variable app/fonts.ts declares. */
   css: string;
-  kind: "serif" | "sans";
+  kind: "serif" | "sans" | "mono";
   /** Whether the face has a true italic (others would be slanted artificially). */
   italic: boolean;
   /** The weight headings are set in, chosen per face so none looks faint, and the range it has. */
@@ -56,6 +56,9 @@ export const HEADING_FONTS: Record<HeadingFont, FontInfo> = {
   outfit: font("Outfit", "outfit", "sans", false, 500, 100, 900),
   josefin: font("Josefin Sans", "josefin", "sans", true, 500, 100, 700),
   tenor: font("Tenor Sans", "tenor", "sans", false, 400),
+  anton: font("Anton", "anton", "sans", false, 400),
+  bagel: font("Bagel Fat One", "bagel", "sans", false, 400),
+  instrument: font("Instrument Serif", "instrument", "serif", true, 400),
 };
 
 export const BODY_FONTS: Record<BodyFont, FontInfo> = {
@@ -69,6 +72,7 @@ export const BODY_FONTS: Record<BodyFont, FontInfo> = {
   nunito: font("Nunito", "nunito", "sans", true, 400, 200, 1000),
   lora: font("Lora", "lora", "serif", true, 400, 400, 700),
   outfit: font("Outfit", "outfit", "sans", false, 400, 100, 900),
+  "space-mono": font("Space Mono", "space-mono", "mono", true, 400, 400, 700),
 };
 
 export const isHeadingFont = (k: unknown): k is HeadingFont => typeof k === "string" && k in HEADING_FONTS;
@@ -76,6 +80,7 @@ export const isBodyFont = (k: unknown): k is BodyFont => typeof k === "string" &
 
 /** A font's CSS stack, with fallbacks of the same kind while it loads. */
 export function fontStack(f: FontInfo) {
+  if (f.kind === "mono") return `${f.css}, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
   return f.kind === "serif"
     ? `${f.css}, Georgia, "Times New Roman", serif`
     : `${f.css}, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif`;
@@ -143,6 +148,21 @@ export const PALETTES: Palette[] = [
   palette("cyber", "Electric blue", "#eef6ff", "#2f80ff", "#22d3ee", "#050a14"),
   palette("magma", "Magma", "#fff3ec", "#ff5a1f", "#ffb020", "#110705"),
   palette("toxic", "Acid green", "#f2ffe8", "#9dff3b", "#3bffd2", "#070b06"),
+  // Drop
+  palette("concrete", "Concrete and safety orange", "#161616", "#161616", "#ff4f00", "#ebeae6"),
+  palette("volt", "Volt on black", "#f1f1ee", "#e4ff1a", "#e4ff1a", "#0c0c0c"),
+  palette("utility", "Olive and orange", "#1e2118", "#3d4728", "#e8590c", "#efeee6"),
+  palette("blueprint", "Blueprint", "#0e1a3a", "#1d3bff", "#ff2d55", "#f1f3f7"),
+  // Y2K
+  palette("chrome", "Chrome lilac", "#1d1b2e", "#6f55ff", "#ff6fcf", "#f2efff"),
+  palette("aqua", "Aqua and lime", "#0b2a3a", "#0a7cc2", "#25b864", "#eaf7ff"),
+  palette("cyberpink", "Hot pink and ice", "#2a0f24", "#e8288c", "#14a7c4", "#fff0f8"),
+  palette("starlight", "Starlight", "#efecff", "#b9a6ff", "#7af0ff", "#13102a"),
+  // Zine
+  palette("kraft", "Kraft and marker red", "#231f1a", "#d8362a", "#2b59c3", "#eee4d3"),
+  palette("riso", "Riso pink and blue", "#1a1a2e", "#e8338f", "#0a6fb5", "#fbf6ec"),
+  palette("newsprint", "Newsprint", "#151515", "#151515", "#e23d75", "#f3f0e8"),
+  palette("highlighter", "Highlighter yellow", "#111111", "#111111", "#b89b00", "#fffdf3"),
 ];
 
 export const paletteByKey = (key: string) => PALETTES.find((p) => p.key === key);

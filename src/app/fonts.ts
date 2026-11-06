@@ -1,6 +1,9 @@
 import {
+  Anton,
   Archivo,
+  Bagel_Fat_One,
   Bodoni_Moda,
+  Caveat,
   Bricolage_Grotesque,
   Cinzel,
   Cormorant_Garamond,
@@ -8,6 +11,7 @@ import {
   DM_Serif_Display,
   Figtree,
   Fraunces,
+  Instrument_Serif,
   Inter,
   Italiana,
   Josefin_Sans,
@@ -19,7 +23,9 @@ import {
   Nunito,
   Outfit,
   Playfair_Display,
+  Silkscreen,
   Space_Grotesk,
+  Space_Mono,
   Syne,
   Tenor_Sans,
   Unbounded,
@@ -55,10 +61,18 @@ const workSans = Work_Sans({ subsets: ["latin"], variable: "--font-work-sans", d
 const figtree = Figtree({ subsets: ["latin"], variable: "--font-figtree", display: "swap", preload: false });
 const nunito = Nunito({ subsets: ["latin"], variable: "--font-nunito", display: "swap", preload: false });
 const lora = Lora({ subsets: ["latin"], variable: "--font-lora", display: "swap", preload: false });
+const anton = Anton({ subsets: ["latin"], weight: "400", variable: "--font-anton", display: "swap", preload: false });
+const bagel = Bagel_Fat_One({ subsets: ["latin"], weight: "400", variable: "--font-bagel", display: "swap", preload: false });
+const instrument = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-instrument", display: "swap", preload: false });
+const spaceMono = Space_Mono({ subsets: ["latin"], weight: ["400", "700"], style: ["normal", "italic"], variable: "--font-space-mono", display: "swap", preload: false });
+// Not for the admin to choose: the pixel letters of Y2K's windows and the handwriting of Zine's notes.
+const pixel = Silkscreen({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-pixel-face", display: "swap", preload: false });
+const hand = Caveat({ subsets: ["latin"], variable: "--font-hand-face", display: "swap", preload: false });
 
 const fonts = {
   cormorant, playfair, bodoni, "dm-serif": dmSerif, fraunces, cinzel, italiana, marcellus, syne, "space-grotesk": spaceGrotesk, unbounded, bricolage, archivo,
   outfit, josefin, tenor, jost, inter, manrope, "dm-sans": dmSans, karla, "work-sans": workSans, figtree, nunito, lora,
+  anton, bagel, instrument, "space-mono": spaceMono, pixel, hand,
 };
 
 export const fontVariables = Object.values(fonts).map((f) => f.variable).join(" ");
