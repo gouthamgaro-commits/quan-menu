@@ -61,7 +61,8 @@ Supabase's free plan pauses a project after a week with too little database acti
 | `src/app/in-ma/[slug]` | Printable QR codes, one per table (`?n=` sets how many). Each opens the menu with `?b=<table>`, so the order screen, the spoken order and the bank-transfer note carry the table number. |
 | `src/app/api/say` | Vietnamese speech for the menu's 🔊 buttons (see Free services). |
 | `src/app/to-roi` | Printable Vietnamese flyer for walking up to stalls, with QR codes to the sample menus and the helper's name and Zalo number. |
-| `src/app/m/[slug]` | Public customer menu (what the QR code opens). Cached and served to every scanner, rebuilt at most once a minute, and refreshed immediately when the vendor saves. |
+| `src/app/m/[slug]` | Public customer menu (what the QR code opens). Cached and served to every scanner, rebuilt at most once a minute, and refreshed immediately when the vendor saves. Shared links show a preview card (`opengraph-image.tsx`: the stall, four dishes and prices, drawn with Be Vietnam Pro from `assets/fonts`, SIL Open Font License), and search engines get schema.org Restaurant and Menu data. The sample menus are kept out of search results. |
+| `src/app/sitemap.ts`, `src/app/robots.ts` | Every live menu for search engines (refreshed hourly); editors, owner links and print pages are marked off limits. |
 | `src/app/api/extract` | Photo → dishes, using Claude vision. Signed-in vendors only. |
 | `src/app/api/translate` | Names of new dishes → translations, allergens, pronunciation (the editor sends 15 at a time) |
 | `src/app/api/health` | Deployment check: which settings are missing |

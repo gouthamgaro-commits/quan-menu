@@ -1,55 +1,31 @@
 import type { Metadata } from "next";
-import { cache } from "react";
 import { notFound } from "next/navigation";
 import MenuView from "@/components/MenuView";
 import DemoMenu from "@/components/DemoMenu";
-import { DEMO } from "@/lib/config";
-import { EXAMPLE_MENU } from "@/lib/demo";
-import { EXAMPLE_CAFE } from "@/lib/demo-cafe";
+import { DEMO, SITE_URL } from "@/lib/config";
 import { liveRates } from "@/lib/rates";
-import { supabasePublic } from "@/lib/supabase/public";
-import { cleanDay, cleanDish, cleanKind, cleanMaps, cleanPay, cleanSoldOut, cleanToppings, vnToday, type Dish, type MenuData } from "@/lib/types";
+import { sectionName, sectionsOf } from "@/lib/sections";
+import { vnToday, type Dish, type MenuData } from "@/lib/types";
+import { isDemoSlug, loadMenu } from "./load";
 
 type Params = { params: Promise<{ slug: string }> };
 
-/** Shared by the page and its metadata, so each render queries the database once. */
-const load = cache(async (slug: string): Promise<MenuData | null> => {
-  // The food example shows one dish sold out, so vendors can see what customers see.
-  if (slug === "demo") return { ...EXAMPLE_MENU, soldOut: { day: vnToday(), names: ["Hủ tiếu Nam Vang"] } };
-  if (slug === "demo-cafe") return EXAMPLE_CAFE;
-  if (DEMO) return null;
-  const supabase = supabasePublic();
-  const { data: stall, error } = await supabase
-    .from("stalls")
-    .select("*")
-    .eq("slug", slug)
-    .eq("published", true)
-    .maybeSingle();
-  // A database hiccup must not look like a missing or empty menu: throwing keeps serving the last
-  // good copy of this page (or shows "try again" if there is none) instead of caching "not found".
-  if (error) throw new Error(`Menu ${slug} could not be loaded: ${error.message}`);
-  if (!stall) return null;
-  const { data: rows, error: dishError } = await supabase.from("dishes").select("*").eq("stall_id", stall.id).order("position");
-  if (dishError) throw new Error(`Dishes for ${slug} could not be loaded: ${dishError.message}`);
-  return {
-    name: stall.name,
-    area: stall.area,
-    slug: stall.slug,
-    published: true,
-    dishes: rows.map(cleanDish).filter((d): d is Dish => !!d),
-    kind: cleanKind(stall.kind),
-    toppings: cleanToppings(stall.toppings),
-    pay: cleanPay(stall.pay),
-    maps: cleanMaps(stall.maps),
-    soldOut: cleanSoldOut(stall.sold_out),
-    closedUntil: cleanDay(stall.closed_until),
-  };
-});
-
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
-  const m = await load(slug);
-  return { title: m ? `${m.name} — Menu` : "Menu — Quán" };
+  const m = await loadMenu(slug);
+  if (!m) return { title: "Menu — Quán" };
+  const title = `${m.name} — Menu`;
+  const description = `${m.name}${m.area ? `, ${m.area}` : ""}: ${m.dishes.length} dishes with prices, in English, 한국어, 中文 and 日本語. ` +
+    m.dishes.slice(0, 4).map((d) => d.name?.en || d.vi).join(" · ");
+  return {
+    title,
+    description,
+    alternates: SITE_URL ? { canonical: `${SITE_URL}/m/${m.slug}` } : undefined,
+    openGraph: { title, description, type: "website", siteName: "Quán", locale: "vi_VN" },
+    twitter: { card: "summary_large_image", title, description },
+    // The sample stalls aren't real places: keep them out of search results.
+    robots: isDemoSlug(slug) ? { index: false, follow: true } : undefined,
+  };
 }
 
 // Every QR scan lands here, so menus are cached and rebuilt at most once a minute.
@@ -59,18 +35,55 @@ export async function generateStaticParams() {
   return [];
 }
 
+/** What search engines read about the stall and its dishes (schema.org Restaurant with its Menu). */
+function structuredData(m: MenuData) {
+  const item = (d: Dish) => ({
+    "@type": "MenuItem",
+    name: d.name?.en || d.vi,
+    ...(d.name?.en ? { alternateName: d.vi } : {}),
+    ...(d.desc?.en ? { description: d.desc.en } : {}),
+    offers: { "@type": "Offer", price: d.opts?.sizes?.[0]?.price || d.price, priceCurrency: "VND" },
+  });
+  const sections = sectionsOf(m.dishes);
+  return {
+    "@context": "https://schema.org",
+    "@type": m.kind === "cafe" || m.kind === "tea" ? "CafeOrCoffeeShop" : "Restaurant",
+    name: m.name,
+    ...(SITE_URL ? { url: `${SITE_URL}/m/${m.slug}` } : {}),
+    ...(m.area ? { address: { "@type": "PostalAddress", streetAddress: m.area, addressCountry: "VN" } } : {}),
+    ...(m.maps ? { hasMap: m.maps } : {}),
+    servesCuisine: "Vietnamese",
+    currenciesAccepted: "VND",
+    paymentAccepted: m.pay ? "Cash, Bank transfer" : "Cash",
+    hasMenu: {
+      "@type": "Menu",
+      inLanguage: ["vi", "en", "ko", "zh", "ja"],
+      ...(sections
+        ? { hasMenuSection: sections.map((s) => ({ "@type": "MenuSection", name: sectionName(s.cat, "en"), hasMenuItem: s.idx.map((i) => item(m.dishes[i])) })) }
+        : { hasMenuItem: m.dishes.map(item) }),
+    },
+  };
+}
+
 export default async function PublicMenu({ params }: Params) {
   const { slug } = await params;
-  const menu = await load(slug);
+  const menu = await loadMenu(slug);
   if (!menu) {
     if (DEMO) return <DemoMenu slug={slug} />;
     notFound();
   }
   const rates = await liveRates();
-  const demoSlug = slug === "demo" || slug === "demo-cafe";
+  const demo = isDemoSlug(slug);
   return (
-    <MenuView full slug={slug} name={menu.name} area={menu.area} dishes={menu.dishes} toppings={menu.toppings} rates={rates}
-      countSlug={demoSlug ? undefined : menu.slug} soldOut={menu.soldOut} closedUntil={menu.closedUntil} today={vnToday()}
-      pay={menu.pay} maps={menu.maps} />
+    <>
+      {!demo && (
+        <script type="application/ld+json"
+          // "<" is escaped so a dish name can never close the script tag.
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData(menu)).replace(/</g, "\\u003c") }} />
+      )}
+      <MenuView full slug={slug} name={menu.name} area={menu.area} dishes={menu.dishes} toppings={menu.toppings} rates={rates}
+        countSlug={demo ? undefined : menu.slug} soldOut={menu.soldOut} closedUntil={menu.closedUntil} today={vnToday()}
+        pay={menu.pay} maps={menu.maps} />
+    </>
   );
 }
