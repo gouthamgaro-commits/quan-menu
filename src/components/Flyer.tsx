@@ -59,9 +59,11 @@ export default function Flyer({ siteUrl, name: name0, phone: phone0 }: Props) {
           <p className="fl-sub">Khách Hàn, Trung, Nhật, Tây quét mã là hiểu món. Không cần hỏi, không cần chỉ trỏ.</p>
           <ul className="fl-list">
             <li>🌏 <b>Khách tự đọc món</b> bằng tiếng Anh, Hàn, Trung, Nhật, có thành phần và giá quy đổi ra tiền của họ.</li>
-            <li>👉 <b>Khách bấm chọn món</b> rồi đưa màn hình cho bạn: đơn hiện bằng tiếng Việt.</li>
+            <li>👉 <b>Khách bấm chọn món</b> rồi đưa màn hình cho bạn: đơn hiện bằng tiếng Việt, có loa đọc to, ghi chú “không cay”, “mang về” và cảnh báo dị ứng.</li>
             <li>💳 <b>Nhận chuyển khoản VietQR</b> đúng số tiền của đơn, không cần nói giá.</li>
-            <li>📱 <b>Báo hết món, đổi giá</b> ngay trên điện thoại. Không cần in lại mã.</li>
+            <li>📱 <b>Báo hết món, đổi giá, báo nghỉ</b> ngay trên điện thoại. Không cần in lại mã.</li>
+            <li>🖨 <b>In thực đơn giấy song ngữ</b> và mã QR cho từng bàn, miễn phí.</li>
+            <li>📊 <b>Biết mỗi ngày</b> bao nhiêu khách xem, bao nhiêu đơn, món nào được gọi nhiều nhất.</li>
             <li>⭐ <b>Mời khách đánh giá</b> quán trên Google Maps.</li>
           </ul>
           <div className="fl-qrs">
