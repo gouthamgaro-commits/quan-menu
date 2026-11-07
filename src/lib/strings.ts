@@ -302,6 +302,11 @@ const en = {
   tablesCount: "Number of tables",
   tablesPrint: "Print codes",
   tablesNeedLive: "Turn on “Menu is live” and save to print codes for each table.",
+  paperLink: "🖨 Print a paper menu",
+  paperTitle: "Paper menu",
+  paperHint: "One A4 page: every dish in Vietnamese and one other language, by section, with prices, and a QR code to the full menu with photos. Prints in black and white too.",
+  paperLang: "Second language",
+  paperPrint: "Print menu",
 
   // Owner link
   ownerTitle: "Link for the stall owner",
@@ -658,6 +663,11 @@ const vi: Strings = {
   tablesCount: "Số bàn",
   tablesPrint: "In mã",
   tablesNeedLive: "Bật “Mở thực đơn” rồi lưu để in mã cho từng bàn.",
+  paperLink: "🖨 In thực đơn giấy",
+  paperTitle: "Thực đơn giấy",
+  paperHint: "Một trang A4: mọi món bằng tiếng Việt và một thứ tiếng nữa, theo nhóm, có giá, và mã QR dẫn tới thực đơn đầy đủ có ảnh. In trắng đen cũng rõ.",
+  paperLang: "Thứ tiếng thứ hai",
+  paperPrint: "In thực đơn",
 
   ownerTitle: "Link cho chủ quán",
   ownerHint: "Chủ quán mở link này trên điện thoại để tự báo hết món và đổi giá, không cần tài khoản. Ai có link đều sửa được, nên chỉ gửi cho chủ quán.",
