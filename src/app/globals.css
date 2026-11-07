@@ -398,3 +398,13 @@ div.views span:first-child { font-size: 15px; }
   .paper-page .pm-body { columns: 2; }
   .paper-page .pm-head { flex-direction: row; align-items: flex-start; text-align: left; }
 }
+
+/* Order screen: requests and the customer's allergies, for the vendor */
+.order .vnote { font-size: 22px; font-weight: 800; }
+.order .allergy { display: grid; gap: 2px; padding: 10px 12px; border-radius: 10px; background: #c8231b; color: #fff; }
+.order .allergy b { font-size: 20px; line-height: 1.25; }
+.order .allergy small { font-size: 12px; opacity: .85; }
+.order .notes { display: grid; gap: 8px; }
+.order .btn.addnote { background: none; color: var(--sign-ink); border-color: var(--sign-ink); border-style: dashed; font-weight: 600; }
+.order .notes .chip { background: #fff; color: var(--sign-ink); border-color: var(--sign-ink); }
+.order .notes .chip[aria-pressed="true"] { background: var(--sign-ink); color: var(--sign); }

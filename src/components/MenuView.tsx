@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ALLERGENS, CURRENCIES, CURRENCY_CODES, LANGS, LANG_CURRENCY, guessCurrency, guessLang, inCurrency, isCurrency, shortDay, vnd,
-  type Currency,
+  ALLERGENS, ALLERGEN_VI, CURRENCIES, CURRENCY_CODES, DIET, LANGS, LANG_CURRENCY, NOTES, NOTE_KEYS,
+  guessCurrency, guessLang, inCurrency, isCurrency, shortDay, vnd,
+  type Currency, type NoteKey,
 } from "@/lib/i18n";
 import { ICE, OPT_UI, SUGAR, hasOpts, lineVi, sameLine, unitPrice, type Line } from "@/lib/drinks";
 import { countByName, freshLines, loadCart, menuSig, saveCart, sentQty } from "@/lib/cart";
@@ -85,6 +86,9 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
   const [cart, setCart] = useState<Line[]>([]);
   // Lines the vendor has already been shown ("gọi thêm" then shows only what's new).
   const [sent, setSent] = useState<Line[]>([]);
+  // Requests for the vendor ("no chili", "take away"), shown in Vietnamese on the order screen.
+  const [notes, setNotes] = useState<NoteKey[]>([]);
+  const [notesOpen, setNotesOpen] = useState(false);
   // The drink whose options are being chosen, with the choices so far.
   const [pick, setPick] = useState<Line | null>(null);
   const [shown, setShown] = useState<Shown | null>(null);
@@ -150,14 +154,17 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
   const [ready, setReady] = useState(false);
   useEffect(() => {
     const saved = slug ? loadCart(slug, sig, dishes.length) : null;
-    if (saved) { setCart(saved.lines); setSent(saved.sent); setOrderNo(saved.no); }
+    if (saved) {
+      setCart(saved.lines); setSent(saved.sent); setOrderNo(saved.no);
+      setNotes(saved.notes.filter((n): n is NoteKey => (NOTE_KEYS as string[]).includes(n)));
+    }
     setReady(true);
     // Only on first load: later menu changes (the editor preview) mustn't bring back an old order.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
   useEffect(() => {
-    if (slug && ready) saveCart(slug, sig, { lines: cart, sent, no: orderNo });
-  }, [slug, sig, ready, cart, sent, orderNo]);
+    if (slug && ready) saveCart(slug, sig, { lines: cart, sent, no: orderNo, notes });
+  }, [slug, sig, ready, cart, sent, orderNo, notes]);
 
   // Drop cart lines for dishes that no longer exist (the vendor edited the preview).
   useEffect(() => {
@@ -268,12 +275,22 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
   };
 
   const lineText = (l: Line) => (dishes[l.i] ? `${l.q} ${spoken(lineVi(dishes[l.i], l, toppings))}` : "");
+  // What the customer must not eat, from their allergy filter, as the vendor reads it.
+  const allergyVi = [
+    ...(avoid.some((a) => !DIET.includes(a)) ? [`Tôi bị dị ứng: ${avoid.filter((a) => !DIET.includes(a)).map((a) => ALLERGEN_VI[a]).join(", ")}`] : []),
+    ...(avoid.some((a) => DIET.includes(a)) ? [`Tôi không ăn: ${avoid.filter((a) => DIET.includes(a)).map((a) => ALLERGEN_VI[a]).join(", ")}`] : []),
+  ];
+  const notesVi = notes.map((k) => NOTES[k].vi).join(", ");
   const orderParts = (s: Shown) => {
     const tbl = table ? `Bàn ${table}. ` : "";
     if (s.mode === "bill") return pack([tbl + "Tính tiền", `Tổng ${total} đồng`]);
-    if (s.mode === "more") return pack([tbl + "Cho tôi thêm", ...s.lines.map(lineText).filter(Boolean)]);
-    return pack([tbl + "Cho tôi", ...s.lines.map(lineText).filter(Boolean), `Tổng ${total} đồng`]);
+    const extra = [...(notesVi ? [notesVi] : []), ...allergyVi.map((x) => x.replace(":", ""))];
+    if (s.mode === "more") return pack([tbl + "Cho tôi thêm", ...s.lines.map(lineText).filter(Boolean), ...extra]);
+    return pack([tbl + "Cho tôi", ...s.lines.map(lineText).filter(Boolean), ...extra, `Tổng ${total} đồng`]);
   };
+  const toggleNote = (k: NoteKey) =>
+    // "No chili" and "a little chili" can't both be asked for.
+    setNotes((n) => (n.includes(k) ? n.filter((x) => x !== k) : [...n.filter((x) => !(k === "nochili" && x === "mild") && !(k === "mild" && x === "nochili")), k]));
 
   /** Opens the order screen: the whole order the first time, then only what was added, or the bill. */
   function openOrder() {
@@ -291,6 +308,7 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
     if (!window.confirm(L.newOrderAsk)) return;
     setCart([]);
     setSent([]);
+    setNotes([]);
     setOrderNo("");
     setShown(null);
   }
@@ -617,6 +635,29 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
           <ul>
             {shown.lines.map((l, k) => (dishes[l.i] ? <li key={k}>{l.q} × {lineVi(dishes[l.i], l, toppings)}</li> : null))}
           </ul>
+          {shown.mode !== "bill" && notes.length > 0 && <div className="vnote">Ghi chú: {notes.map((k) => NOTES[k].vi).join(" · ")}</div>}
+          {shown.mode !== "bill" && allergyVi.length > 0 && (
+            <div className="allergy" role="note">
+              {allergyVi.map((x) => <b key={x}>⚠️ {x}</b>)}
+              <small lang={lang}>{L.allergyShown}</small>
+            </div>
+          )}
+          {shown.mode !== "bill" && (
+            <div className="notes" lang={lang}>
+              <button type="button" className="btn addnote" aria-expanded={notesOpen} onClick={() => setNotesOpen(!notesOpen)}>
+                {notesOpen ? "−" : "+"} {L.notes}
+              </button>
+              {notesOpen && (
+                <div className="chips">
+                  {NOTE_KEYS.map((k) => (
+                    <button key={k} type="button" className="chip" aria-pressed={notes.includes(k)} onClick={() => toggleNote(k)}>
+                      {NOTES[k].icon} {NOTES[k][lang]}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {shown.mode === "more" && shown.before.length > 0 && (
             <div className="before">
               <span>Đã gọi trước <i lang={lang}>· {L.before}</i></span>

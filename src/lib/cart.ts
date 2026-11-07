@@ -11,6 +11,8 @@ export interface SavedCart {
   sent: Line[];
   /** The order number shown to the vendor and put in the bank transfer note. */
   no: string;
+  /** Requests for the vendor ("nochili", "takeaway"…, see NOTES in i18n.ts). */
+  notes: string[];
 }
 
 const KEY = (slug: string) => "quan-cart-" + slug;
@@ -38,7 +40,8 @@ export function loadCart(slug: string, sig: string, n: number, now = Date.now())
     if (!raw || raw.sig !== sig || !(now - raw.at < MAX_AGE)) return null;
     const lines = (Array.isArray(raw.lines) ? raw.lines : []).filter((l: unknown) => okLine(l, n));
     const sent = (Array.isArray(raw.sent) ? raw.sent : []).filter((l: unknown) => okLine(l, n));
-    return lines.length ? { lines, sent, no: /^\d{4}$/.test(raw.no) ? raw.no : "" } : null;
+    const notes = (Array.isArray(raw.notes) ? raw.notes : []).filter((x: unknown): x is string => typeof x === "string" && x.length <= 20);
+    return lines.length ? { lines, sent, no: /^\d{4}$/.test(raw.no) ? raw.no : "", notes } : null;
   } catch {
     return null;
   }
