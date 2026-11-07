@@ -381,7 +381,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
       const file = (slide?.image_alt || heading).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").split("-").slice(0, 3).join("-") || "new";
       return (
         <section className="desktop-sky relative overflow-hidden">
-          <span aria-hidden className="bubble top-[12%] left-[6%] size-16 md:size-24" />
+          <span aria-hidden className="bubble top-[2%] right-[4%] size-12 md:size-16 lg:top-[12%] lg:right-auto lg:left-[6%] lg:size-24" />
           <span aria-hidden className="bubble right-[8%] bottom-[14%] size-10 [animation-delay:-2s] md:size-16" />
           <span aria-hidden className="bubble top-[55%] left-[44%] hidden size-8 [animation-delay:-4s] md:block" />
           <div className="container-page relative grid items-center gap-12 py-12 md:py-20 lg:grid-cols-[1.1fr_1fr]">
