@@ -15,14 +15,13 @@ export const revalidate = 3600;
 
 // Be Vietnam Pro (SIL Open Font License, assets/fonts/OFL.txt). Whole fonts, not subsets: every
 // letter and the ₫ sign come from the font of the right weight, with nothing left to fall back on.
-const fontFile = (name: string) => readFile(join(process.cwd(), "assets/fonts", name));
-
+// The paths are written out in full so the build ships the files (see also next.config.ts).
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const [menu, regular, bold] = await Promise.all([
     loadMenu(slug).catch(() => null),
-    fontFile("BeVietnamPro-Regular.ttf"),
-    fontFile("BeVietnamPro-ExtraBold.ttf"),
+    readFile(join(process.cwd(), "assets/fonts/BeVietnamPro-Regular.ttf")),
+    readFile(join(process.cwd(), "assets/fonts/BeVietnamPro-ExtraBold.ttf")),
   ]);
   const ink = "#1a1405";
   const dishes = (menu?.dishes ?? []).slice(0, 4);

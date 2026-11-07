@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // The share image reads its fonts from disk at run time, so they must ship with that function.
+  outputFileTracingIncludes: {
+    "/m/[slug]/opengraph-image": ["./assets/fonts/*"],
+  },
   experimental: {
     serverActions: { bodySizeLimit: "2mb" },
   },
