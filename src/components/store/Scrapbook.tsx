@@ -4,8 +4,13 @@ import CatalogImage from "../ui/CatalogImage";
 import { buttonClass, cx } from "../ui/controls";
 import Price from "./Price";
 
-// Where the three photographs sit on the page on wide screens, and how they lean.
-const SPOTS = ["md:top-0 md:left-[2%] md:w-[52%] -rotate-3", "md:top-[12%] md:right-[2%] md:w-[44%] rotate-[4deg]", "md:bottom-0 md:left-[24%] md:w-[42%] -rotate-1"];
+// Where the three photographs sit on the page on wide screens, and how they lean. The third is
+// tucked under the other two, so every handwritten caption stays readable.
+const SPOTS = [
+  "md:top-0 md:left-0 md:z-10 md:w-[48%] -rotate-3",
+  "md:top-[5%] md:right-[1%] md:z-10 md:w-[42%] rotate-[4deg]",
+  "md:bottom-0 md:left-[28%] md:w-[42%] -rotate-1",
+];
 
 /**
  * The scrapbook: the newest pieces cut out and taped onto a page, each with a handwritten caption
@@ -17,10 +22,10 @@ export default function Scrapbook({ products, title = "This week's crushes" }: {
 
   return (
     <section aria-label={title} className="container-page mt-16 md:mt-24">
-      <div className="paper-page grid gap-10 p-5 md:p-10 lg:grid-cols-[1.15fr_1fr] lg:gap-14">
-        <ul className="grid grid-cols-3 gap-3 md:relative md:block md:min-h-[34rem]">
+      <div className="paper-page grid grid-cols-1 gap-10 p-5 md:p-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-14">
+        <ul className="grid grid-cols-3 gap-3 md:relative md:mx-auto md:block md:aspect-[4/5] md:w-full md:max-w-xl lg:max-w-none">
           {items.slice(0, 3).map((p, i) => (
-            <li key={p.id} className={cx("md:absolute", SPOTS[i])} data-reveal>
+            <li key={p.id} className={cx("md:absolute md:hover:z-20 md:focus-within:z-20", SPOTS[i])} data-reveal>
               <Link href={`/products/${p.slug}`} className="polaroid group block transition-transform duration-300 hover:-translate-y-1 hover:rotate-0">
                 <span className="relative block aspect-[4/5] overflow-hidden bg-bone">
                   <CatalogImage src={p.image_url} alt="" fill sizes="(min-width: 768px) 22vw, 30vw" className="object-cover" />

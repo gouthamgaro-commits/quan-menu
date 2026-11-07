@@ -338,7 +338,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
       const mono = "font-mono uppercase tracking-[0.08em]";
       return (
         <section className="border-b border-ink">
-          <div className="container-page grid lg:grid-cols-[1.2fr_1fr] lg:divide-x lg:divide-ink">
+          <div className="container-page grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:divide-x lg:divide-ink">
             <div className="flex flex-col justify-between gap-10 py-10 lg:py-14 lg:pr-12">
               <p className={cx("flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px]", mono)}>
                 <span className="inline-flex items-center gap-2">
@@ -450,7 +450,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
                   <span className="relative block aspect-[4/5] overflow-hidden bg-bone">
                     <HeroMedia image={pictures[0]} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 20rem, 60vw" className="object-cover" />
                   </span>
-                  <figcaption className="mt-2 font-hand text-xl leading-none">{slide?.eyebrow || storeName}</figcaption>
+                  <figcaption className="mt-2 font-hand text-xl leading-none">fit check ✓</figcaption>
                 </figure>
               )}
               {pictures[1] && (
@@ -468,7 +468,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
                   </span>
                 </span>
               )}
-              <span aria-hidden className="absolute bottom-[38%] left-[4%] z-30 -rotate-6 font-hand text-3xl text-accent">wear it loud ♡</span>
+              <span aria-hidden className="absolute bottom-[8%] left-[3%] z-30 -rotate-6 font-hand text-3xl text-accent">wear it loud ♡</span>
             </div>
           </div>
         </section>
