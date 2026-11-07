@@ -1,4 +1,4 @@
-// Store designs: each of the eight builds the storefront its own way and stays accessible;
+// Store designs: each of the eleven builds the storefront its own way and stays accessible;
 // "Preview on the store" shows an unsaved look only in the browser that opens the signed
 // link; the home page follows the store's own section order; the WhatsApp chat button and
 // each store's own icon; a film in the opening banner; a product's 360° view.
@@ -56,7 +56,7 @@ const DESIGNS: { name: string; key: string; home: (p: Page) => Promise<void>; sh
       await expect(p.getByRole("heading", { name: "Find your fit" })).toBeVisible();
       await expect(p.getByRole("button", { name: "Subscribe" }).last()).toHaveCSS("border-top-left-radius", "999px");
       // The moodboard: collections and pieces pinned to a board.
-      await expect(p.getByRole("region", { name: "Our moodboard" }).getByRole("link", { name: /Autumn/ }).first()).toHaveAttribute("href", /^\/collections\//);
+      await expect(p.getByRole("region", { name: "Our moodboard" }).getByRole("link", { name: /Y2K Revival/ }).first()).toHaveAttribute("href", /^\/collections\//);
     },
   },
   {
@@ -113,6 +113,56 @@ const DESIGNS: { name: string; key: string; home: (p: Page) => Promise<void>; sh
       await expect(show.getByRole("link", { name: `Shop now: ${first}` })).toHaveAttribute("href", /^\/products\//);
     },
   },
+  {
+    name: "Drop",
+    key: "drop",
+    home: async (p) => {
+      await expect(p.locator("h1").first()).toHaveCSS("text-transform", "uppercase");
+      // The latest drop: numbered pieces, each with how many are left, under a count of the drop.
+      const drop = p.getByRole("region", { name: "The latest drop" });
+      await expect(drop.getByText("Running low")).toBeVisible();
+      const first = drop.getByRole("listitem").first();
+      await expect(first).toContainText("001");
+      await expect(first).toContainText(/In stock|\d+ left|Sold out/);
+      await expect(first.getByRole("link")).toHaveAttribute("href", /^\/products\//);
+      // Departments on hang tags, and a receipt for a footer.
+      await expect(p.getByText("Dept. 01")).toBeVisible();
+      await expect(p.getByText("Thank you · Come again")).toBeAttached();
+    },
+  },
+  {
+    name: "Y2K",
+    key: "y2k",
+    home: async (p) => {
+      // Shop by vibe: a collection to a tab, moved between with the arrow keys.
+      const vibes = p.getByRole("region", { name: "Shop by vibe" });
+      const tabs = vibes.getByRole("tab");
+      await expect(tabs.first()).toHaveAttribute("aria-selected", "true");
+      const second = (await tabs.nth(1).textContent())!;
+      await tabs.first().focus();
+      await p.keyboard.press("ArrowRight");
+      await expect(tabs.nth(1)).toBeFocused();
+      await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
+      await expect(vibes.getByRole("tabpanel", { name: second })).toBeVisible();
+      await expect(vibes.getByRole("link", { name: `All of ${second}` })).toHaveAttribute("href", /^\/collections\//);
+      // A taskbar along the foot of the page.
+      await expect(p.locator("footer .taskbar-start")).toBeAttached();
+    },
+  },
+  {
+    name: "Zine",
+    key: "zine",
+    home: async (p) => {
+      // A ransom-note headline, cut out word by word.
+      expect(await p.locator("h1").first().locator(".ransom-word").count()).toBeGreaterThan(1);
+      // The scrapbook: taped photos beside a typed price list.
+      const book = p.getByRole("region", { name: "This week's crushes" });
+      const line = book.getByRole("list").last().getByRole("listitem").first();
+      await expect(line).toContainText("01");
+      await expect(line).toContainText("₹");
+      await expect(line.getByRole("link")).toHaveAttribute("href", /^\/products\//);
+    },
+  },
 ];
 
 /** Picks a design in Settings › Appearance and opens "Preview on the store" in a new tab. */
@@ -156,7 +206,7 @@ test("each design builds the store its own way, and every one stays accessible",
   // Ending the preview brings back the saved look.
   const tab = await context.newPage();
   await tab.goto("/");
-  await expect(tab.locator("[data-design]")).toHaveAttribute("data-design", "neon");
+  await expect(tab.locator("[data-design]")).toHaveAttribute("data-design", DESIGNS.at(-1)!.key);
   await tab.getByRole("link", { name: "End preview" }).click();
   await expect(tab.locator("[data-design]")).toHaveAttribute("data-design", "atelier");
   await expect(tab.getByText("Preview of a look")).toHaveCount(0);

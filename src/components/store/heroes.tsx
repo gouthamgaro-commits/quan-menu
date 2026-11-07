@@ -367,7 +367,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
               </div>
               <p className={cx("mt-4 flex justify-between gap-4 text-[10px] text-taupe", mono)}>
                 <span className="truncate">{slide?.image_alt || storeName}</span>
-                <span aria-hidden>↓ Scroll</span>
+                <span aria-hidden className="shrink-0">↓ Scroll</span>
               </p>
             </div>
           </div>

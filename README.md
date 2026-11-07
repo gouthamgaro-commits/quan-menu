@@ -83,10 +83,11 @@ payment account and web address, and the platform's administrators create them f
 - Policy pages, FAQ, contact form, maintenance page, sitemap and robots.
 - Until a store has something on sale, its homepage says it is opening soon and takes email
   sign-ups for launch day.
-- Eight designs, each built differently: its header and menu, home page layout, product cards,
+- Eleven designs, each built differently: its header and menu, home page layout, product cards,
   section titles, buttons, product photos and footer (Atelier, Nordic, Bazaar, Boutique,
-  Heritage, Noir, Cinema, Neon), in 38 palettes, light and dark, and 26 fonts. New stores start
-  with a look no other store has (see [Appearance](#appearance)).
+  Heritage, Noir, Cinema, Neon, and three made for Gen Z shoppers: Drop, Y2K and Zine), in 50
+  palettes, light and dark, and 29 fonts. New stores start with a look no other store has (see
+  [Appearance](#appearance)).
 - Movement, as the design chooses: sections that ease in as the shopper scrolls, headlines that
   rise into place line by line, an opening banner that zooms in as the page slides over it,
   pictures that drift slower than the page, a Spotlight whose picture stays pinned while each
@@ -103,7 +104,9 @@ payment account and web address, and the platform's administrators create them f
   design has one of its own: a lookbook laid out like a magazine (Atelier), an index of what's
   new in big type (Nordic), a bento grid with price stickers (Bazaar), a moodboard of pinned
   photographs (Boutique), collections behind carved doors that open (Heritage), a reel of numbered
-  frames sliding past (Noir), the aisle (Cinema) and the showcase (Neon).
+  frames sliding past (Noir), the aisle (Cinema), the showcase (Neon), the latest drop numbered
+  with what's left of each piece (Drop), a shop-by-vibe window with a tab for each collection
+  (Y2K) and a scrapbook of taped photos beside a typed price list (Zine).
 - An announcement bar whose messages take turns (or scroll past), an add-to-bag bar that stays in
   reach on phones, free-delivery progress in the bag, an optional WhatsApp "Chat with us" button,
   and each store's own icon in browser tabs.
@@ -706,7 +709,7 @@ can be read at `http://localhost:4014/__test/messages`.
 
 **Admin › Settings › Appearance** sets how the whole storefront looks and is laid out:
 
-- **Design:** how the store is built. Each of the eight has its own header and menu, home page
+- **Design:** how the store is built. Each of the eleven has its own header and menu, home page
   (banner, departments and the order of sections), product cards, section titles, buttons,
   product photos, shop filters and footer, and suits its own colours and fonts:
 
@@ -720,15 +723,20 @@ can be read at `http://localhost:4014/__test/messages`.
   | Noir | Dark: a see-through header over a full-screen photograph, a full-screen menu, a reel of numbered frames that slides past as you scroll, cards with words on the photo |
   | Cinema | Cinematic and calm: a floating header over a full-screen film or photograph, big serif lines, a pinned Spotlight, an aisle to walk down, departments as full-width scenes, tall gallery cards, the store in numbers |
   | Neon | Electric: a glass header with its own shop button, a glowing product in front of giant words, a showcase of featured pieces each lit in its own colour, promises on moving bands, pieces on a rail, colours that change as you scroll, glowing cards on dark backgrounds |
+  | Drop | Streetwear drop culture: a monospace utility bar, giant condensed capitals, a banner with crop marks and an "in stock" stamp, the latest drop numbered with how many are left, ruled spec-sheet cards, departments on hang tags, a receipt for a footer |
+  | Y2K | Glossy and nostalgic: a header like a retro window, chrome headlines, pixel labels, the banner's photos in desktop windows among bubbles and sparkles, departments in folders that open, a shop-by-vibe window with tabs, a taskbar along the foot |
+  | Zine | Cut and paste: a masking-tape logo and handwritten menu, a ransom-note headline, taped polaroids on lined paper, departments as postage stamps, a scrapbook with a typed price list, polaroid cards, a torn-paper footer |
 
-- **Colours:** 38 palettes, four to six made for each design (any works with any), or your own
+- **Colours:** 50 palettes, four to six made for each design (any works with any), or your own
   four colours: text; buttons and bands; accent; background (light or dark). Everything else
   the store paints with (panels, borders, secondary text, the words on buttons, sale and error
   colours, form fields) is derived from those four in `src/lib/theme.ts`, keeping every pairing
   readable to WCAG AA on light and dark backgrounds; the form warns about combinations that
   would be hard to read.
-- **Typography:** 16 heading fonts (serif and sans serif) and 10 for body text, and italic
-  headings where the font has a true italic.
+- **Typography:** 19 heading fonts (serif, sans serif and display faces such as Anton's condensed
+  capitals and Bagel Fat One's bubble letters) and 11 for body text (Space Mono among them), and
+  italic headings where the font has a true italic. The Gen Z designs also use Silkscreen for
+  pixel labels and Caveat for handwritten notes.
 - **Mix and match:** take the header, main banner, product cards, corners, buttons, motion or
   opening from another design.
 - **Motion:** still; sections easing in as the shopper scrolls; or cinematic, which adds
@@ -794,6 +802,13 @@ bring the next one forward; the stage's colours always keep words readable, from
   screens the section holds still while the page scrolls and the frames slide past sideways, with
   a bar for how far along it is (reaching a frame with the keyboard scrolls to it); on phones it
   is swiped.
+- **The drop** (`Drop.tsx`, Drop's): the newest pieces as a release sheet, numbered 001 onwards
+  in a ruled grid, each marked in stock, "3 left" or sold out, under a count of the pieces, when
+  they landed and how many are running low.
+- **Shop by vibe** (`Vibes.tsx`, Y2K's): the featured collections as tabs in a retro window,
+  each showing six of its pieces; the arrow keys move between the tabs.
+- **Scrapbook** (`Scrapbook.tsx`, Zine's): the newest pieces as taped polaroids with handwritten
+  captions beside a typed price list with dotted leaders.
 
 Any design can show them, and all of them stay still for shoppers who ask for less motion. The
 footer holds the store's newsletter sign-up, in the words of what it sells; the home page's own
@@ -907,9 +922,9 @@ admin, a payment going to the store's own Razorpay account with its own webhook 
 suspending and reopening the store.
 
 **Theme and design tests (68 unit, 4 database, 9 Playwright)** cover the colour arithmetic; that
-every one of the 38 palettes keeps text, labels, secondary text, sale and error colours, fields
+every one of the 50 palettes keeps text, labels, secondary text, sale and error colours, fields
 and the words on buttons readable on every surface, and on the Spotlight's and the Showcase's
-changing backgrounds too, whatever colour a product is; fonts' weights; that the eight designs differ in every part and suggest real palettes,
+changing backgrounds too, whatever colour a product is; fonts' weights; that the eleven designs differ in every part and suggest real palettes,
 fonts and sections; mixed-in parts, motion, openings and defaults; that new stores get different looks
 until the designs and palettes run out, and Shuffle always shows something new; the home page's
 own section order; store icons' initials; figures counting up in their own format (prefix,
@@ -917,7 +932,7 @@ grouping, decimals and suffix kept); the database saving a new store's design an
 rejecting malformed names, taking banner films only from staff and nothing but pictures and
 videos, and the 360° switch (staff only) reaching the product page; and, in the browser, every
 design built its own way and accessible on its home, product and shop pages through **Preview on
-the store** (Neon's Showcase turned with its arrows and dots), a forged preview link doing nothing and customers seeing the saved look meanwhile,
+the store** (Neon's Showcase turned with its arrows and dots, Drop's numbered drop, Y2K's vibe tabs moved with the arrow keys and Zine's price list), a forged preview link doing nothing and customers seeing the saved look meanwhile,
 a cinematic store's opening curtain (once a visit, lifted by a tap, never for shoppers who ask
 for less motion), its banner zooming as the page scrolls, headlines rising line by line and the
 Spotlight's dots, Neon's moving bands, a piece brought forward from its rail (turned to its back,
@@ -958,7 +973,7 @@ its words changing when it sells instruments instead.
 **Accessibility checks (2, Playwright + axe-core)** scan 13 storefront pages (including the
 checkout) and 20 admin pages for WCAG 2.1 A/AA problems and fail on anything serious or critical;
 the mobile sign-in tests run the same check on the number and code forms and the settings tab,
-and the design tests on the home, product and shop pages of all eight designs, a home page with
+and the design tests on the home, product and shop pages of all eleven designs, a home page with
 a film and a product page with a 360° view. Automated checks
 don't replace testing with a keyboard and a screen reader.
 
