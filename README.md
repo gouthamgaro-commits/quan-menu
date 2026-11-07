@@ -921,7 +921,7 @@ checklist and the dashboard's pointer to it, a shopper's order showing only in t
 admin, a payment going to the store's own Razorpay account with its own webhook secret, and
 suspending and reopening the store.
 
-**Theme and design tests (68 unit, 4 database, 9 Playwright)** cover the colour arithmetic; that
+**Theme and design tests (80 unit, 4 database, 9 Playwright)** cover the colour arithmetic; that
 every one of the 50 palettes keeps text, labels, secondary text, sale and error colours, fields
 and the words on buttons readable on every surface, and on the Spotlight's and the Showcase's
 changing backgrounds too, whatever colour a product is; fonts' weights; that the eleven designs differ in every part and suggest real palettes,
@@ -977,10 +977,10 @@ and the design tests on the home, product and shop pages of all eleven designs, 
 a film and a product page with a 360° view. Automated checks
 don't replace testing with a keyboard and a screen reader.
 
-Latest local run, on a database rebuilt from the migrations: typecheck clean, unit 106/106,
-integration 99/99, Playwright 41/41 against the production build (`next build`), and the home,
-shop, product, bag, sign-in and collections pages of all eight designs checked at 360, 390, 768,
-1024 and 1280 px wide without horizontal scrolling.
+Latest local run, against the local database with the Gen Z sample catalog: typecheck clean,
+unit 121/121, integration 99/99, Playwright 43/43 against the production build (`next build`),
+and the home, shop, product, bag, sign-in and collections pages of all eleven designs checked at
+360, 390, 768, 1024 and 1280 px wide without horizontal scrolling.
 
 ## Running the store
 
