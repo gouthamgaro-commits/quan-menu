@@ -3,6 +3,7 @@ import type { ProductCard } from "@/lib/types";
 import CatalogImage from "../ui/CatalogImage";
 import { buttonClass, cx } from "../ui/controls";
 import Price from "./Price";
+import RansomWords from "./RansomWords";
 
 // Where the three photographs sit on the page on wide screens, and how they lean. The third is
 // tucked under the other two, so every handwritten caption stays readable.
@@ -38,9 +39,7 @@ export default function Scrapbook({ products, title = "This week's crushes" }: {
         <div className="self-center">
           <p className="inline-block -rotate-2 font-hand text-2xl text-accent">the price list ↓</p>
           <h2 className="ransom mt-3 font-serif text-[clamp(2.2rem,4.5vw,3.5rem)] leading-[1.2]">
-            {title.split(/\s+/).map((w, i) => (
-              <span key={i} className="ransom-word">{w}</span>
-            ))}
+            <RansomWords text={title} />
           </h2>
           <ol className="mt-8 font-mono text-[13px]">
             {items.map((p, i) => (

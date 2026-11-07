@@ -153,10 +153,13 @@ const DESIGNS: { name: string; key: string; home: (p: Page) => Promise<void>; sh
     name: "Zine",
     key: "zine",
     home: async (p) => {
-      // A ransom-note headline, cut out word by word.
-      expect(await p.locator("h1").first().locator(".ransom-word").count()).toBeGreaterThan(1);
+      // A ransom-note headline, cut out word by word, that still reads as a sentence.
+      const h1 = p.locator("h1").first();
+      expect(await h1.locator(".ransom-word").count()).toBeGreaterThan(1);
+      expect(await h1.textContent()).toMatch(/\S \S/);
       // The scrapbook: taped photos beside a typed price list.
       const book = p.getByRole("region", { name: "This week's crushes" });
+      await expect(book.getByRole("heading", { name: "This week's crushes" })).toBeVisible();
       const line = book.getByRole("list").last().getByRole("listitem").first();
       await expect(line).toContainText("01");
       await expect(line).toContainText("₹");

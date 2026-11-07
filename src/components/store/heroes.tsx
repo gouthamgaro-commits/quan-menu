@@ -6,6 +6,7 @@ import CatalogImage from "../ui/CatalogImage";
 import { buttonClass, cx } from "../ui/controls";
 import { ArrowRight } from "../ui/icons";
 import HeroMedia from "./HeroMedia";
+import RansomWords from "./RansomWords";
 import Rise from "./Rise";
 
 // The home page's main banner, in each design's hero style (lib/designs.ts). Each works from
@@ -433,9 +434,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
                 <svg aria-hidden viewBox="0 0 60 24" className="h-5 w-12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 14c12-9 28-11 50-4M44 4l9 6-8 8" /></svg>
               </p>
               <h1 className="ransom mt-4 font-serif text-[clamp(2.4rem,6vw,5rem)] leading-[1.18]">
-                {heading.split(/\s+/).map((w, i) => (
-                  <span key={i} className="ransom-word">{w}</span>
-                ))}
+                <RansomWords text={heading} />
               </h1>
               {slide?.subheading && <p className="mt-6 max-w-md font-mono text-[13px] leading-relaxed text-taupe">{slide.subheading}</p>}
               {slide ? (
