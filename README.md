@@ -83,11 +83,12 @@ payment account and web address, and the platform's administrators create them f
 - Policy pages, FAQ, contact form, maintenance page, sitemap and robots.
 - Until a store has something on sale, its homepage says it is opening soon and takes email
   sign-ups for launch day.
-- Fourteen designs, each built differently: its header and menu, home page layout, product
+- Twenty designs, each built differently: its header and menu, home page layout, product
   cards, section titles, buttons, product photos and footer (Atelier, Nordic, Bazaar, Boutique,
-  Heritage, Noir, Cinema, Neon; three made for Gen Z shoppers: Drop, Y2K and Zine; and three in
-  3D: Orbit, Puff and Prism), in 62 palettes, light and dark, and 32 fonts. New stores start with
-  a look no other store has (see [Appearance](#appearance)).
+  Heritage, Noir, Cinema, Neon; three made for Gen Z shoppers: Drop, Y2K and Zine; and nine in 3D
+  and play: Orbit, Puff, Prism, Arcade, Gallery, Pop-up, Iso, Deck and Liquid), in 86 palettes,
+  light and dark, and 33 fonts. New stores start with a look no other store has (see
+  [Appearance](#appearance)).
 - Movement, as the design chooses: sections that ease in as the shopper scrolls, headlines that
   rise into place line by line, an opening banner that zooms in as the page slides over it,
   pictures that drift slower than the page, a Spotlight whose picture stays pinned while each
@@ -107,8 +108,11 @@ payment account and web address, and the platform's administrators create them f
   frames sliding past (Noir), the aisle (Cinema), the showcase (Neon), the latest drop numbered
   with what's left of each piece (Drop), a shop-by-vibe window with a tab for each collection
   (Y2K), a scrapbook of taped photos beside a typed price list (Zine), a 3D coverflow of new
-  pieces (Orbit), cards that flip over to show their other side (Puff) and a showroom of podiums
-  above a glowing floor (Prism).
+  pieces (Orbit), cards that flip over to show their other side (Puff), a showroom of podiums
+  above a glowing floor (Prism), a high-score table of best sellers (Arcade), an exhibition wall
+  under spotlights (Gallery), an open book whose pieces pop up (Pop-up), pieces standing on
+  isometric blocks (Iso), a stack of cards to swipe through (Deck) and a reflecting pool of liquid
+  chrome (Liquid).
 - An announcement bar whose messages take turns (or scroll past), an add-to-bag bar that stays in
   reach on phones, free-delivery progress in the bag, an optional WhatsApp "Chat with us" button,
   and each store's own icon in browser tabs.
@@ -711,7 +715,7 @@ can be read at `http://localhost:4014/__test/messages`.
 
 **Admin › Settings › Appearance** sets how the whole storefront looks and is laid out:
 
-- **Design:** how the store is built. Each of the fourteen has its own header and menu, home page
+- **Design:** how the store is built. Each of the twenty has its own header and menu, home page
   (banner, departments and the order of sections), product cards, section titles, buttons,
   product photos, shop filters and footer, and suits its own colours and fonts:
 
@@ -731,15 +735,22 @@ can be read at `http://localhost:4014/__test/messages`.
   | Orbit | Built in depth: a raised header whose links lift, a ring of photos turning in 3D around the headline, extruded headings, cards that lean toward the pointer, departments on 3D cubes, a coverflow of new pieces, a planet's horizon for a footer |
   | Puff | Soft inflated clay: a puffy header, round letters on a candy base, the banner's photo in a wobbling blob among floating 3D shapes, clay cards that press in, departments as blobs, flip cards, a cloud for a footer |
   | Prism | Glass and light: a frosted header with a shimmering edge, the banner's piece on a podium above a glowing grid floor, holographic glass cards that catch the light, departments on glass panes that lean toward the pointer, a showroom of podiums, a grid horizon for a footer |
+  | Arcade | Insert coin: a neon cabinet of a header, a synthwave sun over a moving 3D grid, the banner's photo on an arcade screen, products as game cartridges, departments as levels, a high-score table of best sellers, a game-over footer |
+  | Gallery | An art gallery in 3D: a letterhead between two rules, the banner's piece framed on the far wall of a gallery room under a spotlight, products as framed works with placards, departments hung on wires as rooms, an exhibition wall, a ticket for a footer |
+  | Pop-up | A pop-up book: a folded paper header with tabs that lift, layered paper cut-outs with the photo folding up out of them, cards with a folded corner, departments standing up off the page, an open book whose pieces pop up, an envelope footer |
+  | Iso | Isometric 3D: menu links on keyboard keys, the banner's piece on a stack of isometric blocks, cards as thick 3D tiles, departments as towers, the newest pieces on blocks of different heights, a keyboard footer |
+  | Deck | A deck of cards: a segmented menu, the banner as a fanned hand of cards, products as trading cards, departments fanned like a hand, a stack to swipe through, a pile of cards for a footer |
+  | Liquid | Liquid chrome: a polished metal header, the banner's piece in a chrome ring among molten blobs, cards with metal bevels, departments in liquid droplets, pieces in a reflecting pool, a dripping footer |
 
-- **Colours:** 62 palettes, four to six made for each design (any works with any), or your own
+- **Colours:** 86 palettes, four to six made for each design (any works with any), or your own
   four colours: text; buttons and bands; accent; background (light or dark). Everything else
   the store paints with (panels, borders, secondary text, the words on buttons, sale and error
   colours, form fields) is derived from those four in `src/lib/theme.ts`, keeping every pairing
   readable to WCAG AA on light and dark backgrounds; the form warns about combinations that
   would be hard to read.
-- **Typography:** 22 heading fonts (serif, sans serif and display faces such as Anton's condensed
-  capitals, Bagel Fat One's bubble letters, Fredoka's round ones and Krona One's wide ones) and 12
+- **Typography:** 23 heading fonts (serif, sans serif and display faces such as Anton's condensed
+  capitals, Bagel Fat One's bubble letters, Fredoka's round ones, Krona One's wide ones and Bungee's
+  arcade capitals) and 12
   for body text (Space Mono and Sora among them), and italic headings where the font has a true
   italic. The Gen Z designs also use Silkscreen for pixel labels and Caveat for handwritten notes.
 - **Mix and match:** take the header, main banner, product cards, corners, buttons, motion or
@@ -823,6 +834,20 @@ bring the next one forward; the stage's colours always keep words readable, from
   their round button on any screen; the name, price and link stay below the card.
 - **Showroom** (`Showroom.tsx`, Prism's): the featured pieces standing on podiums above a grid
   floor that runs to the horizon, the middle one raised, each leaning toward the pointer.
+- **High scores** (`Leaderboard.tsx`, Arcade's): the best sellers ranked 1st to 5th in pixel
+  letters on a bordered board, the leader on a gold row.
+- **Exhibition** (`Exhibition.tsx`, Gallery's): the featured pieces framed on a long gallery wall,
+  each under its own spotlight (brighter when pointed at) with a placard beneath.
+- **Pop-up spread** (`PopupSpread.tsx`, Pop-up's): an open book whose pieces fold up off the
+  pages one after another as it comes into view (already standing for shoppers who ask for less
+  motion).
+- **Blocks** (`IsoBlocks.tsx`, Iso's): the newest pieces standing on isometric blocks of different
+  heights, lifting when pointed at.
+- **Swipe the stack** (`SwipeStack.tsx`, Deck's): the pieces as a pile of cards; drag or swipe the
+  top one away, or use the arrows, and it goes round again at the end. The top card opens its
+  piece.
+- **The pool** (`Pool.tsx`, Liquid's): the pieces standing in a pool of liquid chrome, reflected in
+  its surface with a ripple at each one's foot (no reflection where the browser can't draw one).
 
 The 3D designs' cards, Prism's panes and the showroom lean toward a mouse and catch the light
 where it points (`Tilt.tsx`); on touch screens and for shoppers who ask for less motion they sit
@@ -939,10 +964,10 @@ checklist and the dashboard's pointer to it, a shopper's order showing only in t
 admin, a payment going to the store's own Razorpay account with its own webhook secret, and
 suspending and reopening the store.
 
-**Theme and design tests (92 unit, 4 database, 9 Playwright)** cover the colour arithmetic; that
-every one of the 62 palettes keeps text, labels, secondary text, sale and error colours, fields
+**Theme and design tests (116 unit, 4 database, 9 Playwright)** cover the colour arithmetic; that
+every one of the 86 palettes keeps text, labels, secondary text, sale and error colours, fields
 and the words on buttons readable on every surface, and on the Spotlight's and the Showcase's
-changing backgrounds too, whatever colour a product is; fonts' weights; that the fourteen designs differ in every part and suggest real palettes,
+changing backgrounds too, whatever colour a product is; fonts' weights; that the twenty designs differ in every part and suggest real palettes,
 fonts and sections; mixed-in parts, motion, openings and defaults; that new stores get different looks
 until the designs and palettes run out, and Shuffle always shows something new; the home page's
 own section order; store icons' initials; figures counting up in their own format (prefix,
@@ -950,7 +975,7 @@ grouping, decimals and suffix kept); the database saving a new store's design an
 rejecting malformed names, taking banner films only from staff and nothing but pictures and
 videos, and the 360° switch (staff only) reaching the product page; and, in the browser, every
 design built its own way and accessible on its home, product and shop pages through **Preview on
-the store** (Neon's Showcase turned with its arrows and dots, Drop's numbered drop, Y2K's vibe tabs moved with the arrow keys, Zine's price list, Orbit's coverflow turned with its arrows, Puff's cards turned over and back, and Prism's showroom), a forged preview link doing nothing and customers seeing the saved look meanwhile,
+the store** (Neon's Showcase turned with its arrows and dots, Drop's numbered drop, Y2K's vibe tabs moved with the arrow keys, Zine's price list, Orbit's coverflow turned with its arrows, Puff's cards turned over and back, Prism's showroom, Arcade's high scores, Gallery's room and exhibition, Pop-up's book, Iso's keys and blocks, Deck's stack dealt with its arrows and Liquid's pool), a forged preview link doing nothing and customers seeing the saved look meanwhile,
 a cinematic store's opening curtain (once a visit, lifted by a tap, never for shoppers who ask
 for less motion), its banner zooming as the page scrolls, headlines rising line by line and the
 Spotlight's dots, Neon's moving bands, a piece brought forward from its rail (turned to its back,
@@ -991,13 +1016,13 @@ its words changing when it sells instruments instead.
 **Accessibility checks (2, Playwright + axe-core)** scan 13 storefront pages (including the
 checkout) and 20 admin pages for WCAG 2.1 A/AA problems and fail on anything serious or critical;
 the mobile sign-in tests run the same check on the number and code forms and the settings tab,
-and the design tests on the home, product and shop pages of all fourteen designs, a home page with
+and the design tests on the home, product and shop pages of all twenty designs, a home page with
 a film and a product page with a 360° view. Automated checks
 don't replace testing with a keyboard and a screen reader.
 
 Latest local run, against the local database with the Gen Z sample catalog: typecheck clean,
-unit 133/133, integration 99/99, Playwright 43/43 against the production build (`next build`),
-and the home, shop, product, bag, sign-in and collections pages of all fourteen designs checked
+unit 157/157, integration 99/99, Playwright 43/43 against the production build (`next build`),
+and the home, shop, product, bag, sign-in and collections pages of all twenty designs checked
 at 360, 390, 768, 1024 and 1280 px wide without horizontal scrolling. The accessibility checks
 wait for sections still easing in, so colours are measured as shoppers see them.
 
