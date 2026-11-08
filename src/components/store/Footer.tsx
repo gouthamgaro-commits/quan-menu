@@ -290,6 +290,122 @@ export default function Footer({ settings, departments, variant = "columns" }: {
         </footer>
       );
 
+    case "gameover":
+      return (
+        <footer className="gameover mt-28 border-t-2 border-ink">
+          <div className="container-page grid gap-12 pt-14 pb-12 lg:grid-cols-[1.3fr_repeat(3,1fr)]">
+            <div className="max-w-sm">
+              <p aria-hidden className="neon-text font-serif text-3xl uppercase">Game over?</p>
+              <h2 className="mt-3 font-pixel text-[13px] uppercase">{join}</h2>
+              <p className="mt-3 text-sm leading-relaxed text-taupe">{pitch}</p>
+              <NewsletterForm boxed />
+              <p aria-hidden className="mt-4 font-pixel text-[11px] text-accent uppercase">
+                <span className="blink">▶</span> Continue?
+              </p>
+            </div>
+            {columns}
+          </div>
+          <div className="container-page">{legal}</div>
+        </footer>
+      );
+
+    case "ticket":
+      return (
+        <footer className="mt-28 border-t border-line">
+          <div className="container-page grid gap-12 pt-14 pb-12 lg:grid-cols-[1.3fr_repeat(3,1fr)]">
+            <div className="ticket max-w-sm">
+              <div className="p-6 pb-5">
+                <h2 className="font-serif text-3xl leading-tight">{join}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-taupe">{pitch}</p>
+                <NewsletterForm boxed />
+              </div>
+              <p aria-hidden className="ticket-stub flex items-center justify-between px-6 py-3 text-[10px] tracking-[0.28em] text-taupe uppercase">
+                <span>Admit one</span>
+                <span>{settings.store_name}</span>
+              </p>
+            </div>
+            {columns}
+          </div>
+          <div className="container-page">{legal}</div>
+        </footer>
+      );
+
+    case "envelope":
+      return (
+        <footer className="mt-28 bg-sand">
+          <div className="container-page grid gap-12 pt-16 pb-12 lg:grid-cols-[1.3fr_repeat(3,1fr)]">
+            <div className="envelope relative max-w-sm">
+              <span aria-hidden className="envelope-flap" />
+              <div className="envelope-letter relative p-6">
+                <h2 className="cutout-text font-serif text-3xl leading-tight">{join}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-taupe">{pitch}</p>
+                <NewsletterForm boxed />
+              </div>
+            </div>
+            {columns}
+          </div>
+          <div className="container-page">{legal}</div>
+        </footer>
+      );
+
+    case "keyboard":
+      return (
+        <footer className="mt-28 border-t border-line">
+          <div className="container-page grid gap-12 pt-14 pb-12 lg:grid-cols-[1.3fr_repeat(3,1fr)]">
+            <div className="max-w-sm">
+              <h2 className="font-serif text-3xl leading-tight">{join}</h2>
+              <p className="mt-3 text-sm leading-relaxed text-taupe">{pitch}</p>
+              <NewsletterForm boxed />
+              <p aria-hidden className="mt-6 flex flex-wrap gap-1.5">
+                {Array.from(settings.store_name.slice(0, 12)).map((ch, i) => (
+                  <span key={i} className="keycap inline-grid size-9 place-items-center text-sm font-bold uppercase">{ch === " " ? "␣" : ch}</span>
+                ))}
+              </p>
+            </div>
+            {columns}
+          </div>
+          <div className="container-page">{legal}</div>
+        </footer>
+      );
+
+    case "stack":
+      return (
+        <footer className="mt-28 border-t border-line">
+          <div className="container-page grid gap-12 pt-16 pb-12 lg:grid-cols-[1.3fr_repeat(3,1fr)]">
+            <div className="card-pile relative max-w-sm">
+              <span aria-hidden className="card-pile-back card-pile-1" />
+              <span aria-hidden className="card-pile-back card-pile-2" />
+              <div className="relative rounded-[20px] border border-line bg-paper p-6 shadow-xl">
+                <p aria-hidden className="text-[13px] font-bold tracking-[0.3em] text-accent">♥ ♠ ♦ ♣</p>
+                <h2 className="mt-2 font-serif text-3xl leading-tight">{join}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-taupe">{pitch}</p>
+                <NewsletterForm boxed />
+              </div>
+            </div>
+            {columns}
+          </div>
+          <div className="container-page">{legal}</div>
+        </footer>
+      );
+
+    case "drip":
+      return (
+        <footer className="drip-footer relative mt-28 bg-sand">
+          <svg aria-hidden className="drip-svg" viewBox="0 0 1440 80" preserveAspectRatio="none">
+            <path d="M0 0H1440V16H1300C1288 16 1284 24 1284 40 1284 58 1262 58 1262 40 1262 26 1258 16 1246 16H1040C1028 16 1024 22 1024 32 1024 46 1008 46 1008 32 1008 22 1004 16 992 16H760C748 16 744 28 744 52 744 74 716 74 716 52 716 28 712 16 700 16H420C408 16 404 24 404 36 404 52 386 52 386 36 386 24 382 16 370 16H160C148 16 144 26 144 44 144 64 120 64 120 44 120 26 116 16 104 16H0Z" />
+          </svg>
+          <div className="container-page grid gap-12 pt-24 pb-12 lg:grid-cols-[1.3fr_repeat(3,1fr)]">
+            <div className="max-w-sm">
+              <h2 className="liquid-text font-serif text-3xl leading-tight">{join}</h2>
+              <p className="mt-3 text-sm leading-relaxed text-taupe">{pitch}</p>
+              <NewsletterForm boxed />
+            </div>
+            {columns}
+          </div>
+          <div className="container-page">{legal}</div>
+        </footer>
+      );
+
     case "collage":
       return (
         <footer className="torn-top mt-24 bg-sand">

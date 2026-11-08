@@ -15,12 +15,12 @@ import {
   type ThemeColors,
 } from "./theme";
 
-export const DESIGN_KEYS = ["atelier", "nordic", "bazaar", "boutique", "heritage", "noir", "cinema", "neon", "drop", "y2k", "zine", "orbit", "puff", "prism"] as const;
+export const DESIGN_KEYS = ["atelier", "nordic", "bazaar", "boutique", "heritage", "noir", "cinema", "neon", "drop", "y2k", "zine", "orbit", "puff", "prism", "arcade", "museum", "popup", "iso", "deck", "liquid"] as const;
 export type DesignKey = (typeof DESIGN_KEYS)[number];
 
-export const HEADER_STYLES = ["classic", "inline", "bold", "centered", "heritage", "overlay", "floating", "glass", "utility", "window", "tape", "slab", "pillow", "frost"] as const;
-export const HERO_STYLES = ["split", "full", "type", "framed", "arch", "cinema", "film", "glow", "drop", "desktop", "collage", "orbit", "inflated", "podium"] as const;
-export const CARD_STYLES = ["classic", "minimal", "sticker", "soft", "framed", "overlay", "gallery", "glow", "spec", "window", "polaroid", "depth", "clay", "holo"] as const;
+export const HEADER_STYLES = ["classic", "inline", "bold", "centered", "heritage", "overlay", "floating", "glass", "utility", "window", "tape", "slab", "pillow", "frost", "cabinet", "letterhead", "fold", "keycaps", "segmented", "metal"] as const;
+export const HERO_STYLES = ["split", "full", "type", "framed", "arch", "cinema", "film", "glow", "drop", "desktop", "collage", "orbit", "inflated", "podium", "arcade", "room", "paper", "isometric", "deck", "liquid"] as const;
+export const CARD_STYLES = ["classic", "minimal", "sticker", "soft", "framed", "overlay", "gallery", "glow", "spec", "window", "polaroid", "depth", "clay", "holo", "cartridge", "artwork", "folded", "block", "trading", "metal"] as const;
 export const CORNER_STYLES = ["sharp", "soft", "round"] as const;
 export const BUTTON_STYLES = ["square", "soft", "pill"] as const;
 /** How much the store moves: not at all, sections easing in as they scroll into view, or that plus parallax and scroll-driven scenes. */
@@ -34,16 +34,16 @@ export type CornerStyle = (typeof CORNER_STYLES)[number];
 export type ButtonStyle = (typeof BUTTON_STYLES)[number];
 export type MotionStyle = (typeof MOTION_STYLES)[number];
 export type IntroStyle = (typeof INTRO_STYLES)[number];
-export type DepartmentStyle = "tiles" | "list" | "chips" | "circles" | "arches" | "mosaic" | "panels" | "lineup" | "tags" | "folders" | "stamps" | "cubes" | "blobs" | "panes";
-export type TitleStyle = "editorial" | "minimal" | "bold" | "soft" | "ornament" | "giant" | "statement" | "glow" | "mono" | "chrome" | "scribble" | "extrude" | "puffy" | "holo";
-export type FooterStyle = "columns" | "minimal" | "bold" | "soft" | "heritage" | "wordmark" | "grand" | "neon" | "receipt" | "taskbar" | "collage" | "horizon" | "cloud" | "grid";
+export type DepartmentStyle = "tiles" | "list" | "chips" | "circles" | "arches" | "mosaic" | "panels" | "lineup" | "tags" | "folders" | "stamps" | "cubes" | "blobs" | "panes" | "levels" | "rooms" | "popups" | "towers" | "hand" | "droplets";
+export type TitleStyle = "editorial" | "minimal" | "bold" | "soft" | "ornament" | "giant" | "statement" | "glow" | "mono" | "chrome" | "scribble" | "extrude" | "puffy" | "holo" | "pixel" | "exhibit" | "cutout" | "keys" | "badge" | "liquid";
+export type FooterStyle = "columns" | "minimal" | "bold" | "soft" | "heritage" | "wordmark" | "grand" | "neon" | "receipt" | "taskbar" | "collage" | "horizon" | "cloud" | "grid" | "gameover" | "ticket" | "envelope" | "keyboard" | "stack" | "drip";
 export type AnnouncementStyle = "band" | "slim" | "marquee";
 export type GalleryStyle = "thumbs" | "stack" | "grid";
 
 /** Homepage sections, in the order a design shows them unless the store reorders them. */
 export const SECTION_KEYS = [
   "hero", "trust", "departments", "new", "promos", "best", "seasonal", "collections", "brands", "campaign", "spotlight", "statement", "showcase", "rack", "aisle",
-  "marquee", "numbers", "lookbook", "index", "bento", "moodboard", "doors", "reel", "drop", "vibes", "scrapbook", "coverflow", "flip", "showroom", "story", "recommended", "newsletter",
+  "marquee", "numbers", "lookbook", "index", "bento", "moodboard", "doors", "reel", "drop", "vibes", "scrapbook", "coverflow", "flip", "showroom", "leaderboard", "exhibition", "spread", "blocks", "swipe", "pool", "story", "recommended", "newsletter",
 ] as const;
 export type SectionKey = (typeof SECTION_KEYS)[number];
 
@@ -77,6 +77,12 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
   coverflow: "Coverflow: your newest pieces in a 3D carousel, the one in front facing the shopper",
   flip: "Flip cards: your pieces on cards that turn over to show their other side",
   showroom: "Showroom: your featured pieces standing on podiums above a glowing floor",
+  leaderboard: "High scores: your best sellers ranked like an arcade's high-score table",
+  exhibition: "Exhibition: your featured pieces framed on a gallery wall under spotlights",
+  spread: "Pop-up spread: your pieces standing up off an open book as it comes into view",
+  blocks: "Blocks: your newest pieces standing on isometric blocks of different heights",
+  swipe: "Swipe the stack: your pieces as a stack of cards to swipe through",
+  pool: "The pool: your pieces standing in a liquid chrome pool, reflected",
   story: "Your story (from Policies › About)",
   recommended: "Recommended for each shopper",
   newsletter: "Newsletter sign-up",
@@ -471,6 +477,156 @@ export const DESIGNS: Record<DesignKey, Design> = {
     bodies: ["sora", "inter", "manrope"],
     italic: false,
   },
+  arcade: {
+    key: "arcade",
+    name: "Arcade",
+    summary: "Insert coin: a neon cabinet of a header, a synthwave sun over a moving 3D grid, products as game cartridges, departments as levels, a high-score table of best sellers and a game-over footer.",
+    header: "cabinet",
+    hero: "arcade",
+    card: "cartridge",
+    corners: "soft",
+    buttons: "square",
+    departments: "levels",
+    title: "pixel",
+    footer: "gameover",
+    announcement: "marquee",
+    gallery: "thumbs",
+    filters: "drawer",
+    headingCase: "uppercase",
+    headingTracking: "0.01em",
+    motion: "subtle",
+    intro: "none",
+    sections: ["hero", "leaderboard", "departments", "new", "promos", "best", "marquee", "collections", "recommended"],
+    palettes: ["synthwave", "gameboy", "arcade-red", "pac"],
+    headings: ["bungee", "unbounded", "space-grotesk", "anton"],
+    bodies: ["space-mono", "inter", "dm-sans"],
+    italic: false,
+  },
+  museum: {
+    key: "museum",
+    name: "Gallery",
+    summary: "An art gallery in 3D: a letterhead of a header, the banner's piece framed on the far wall of a gallery room under a spotlight, products as framed works with placards, departments as rooms, an exhibition wall and a ticket for a footer.",
+    header: "letterhead",
+    hero: "room",
+    card: "artwork",
+    corners: "sharp",
+    buttons: "square",
+    departments: "rooms",
+    title: "exhibit",
+    footer: "ticket",
+    announcement: "slim",
+    gallery: "stack",
+    filters: "sidebar",
+    headingCase: "none",
+    headingTracking: "0",
+    motion: "subtle",
+    intro: "none",
+    sections: ["hero", "exhibition", "departments", "new", "seasonal", "best", "collections", "brands", "recommended"],
+    palettes: ["white-cube", "salon", "terracotta", "night-museum"],
+    headings: ["italiana", "cormorant", "bodoni", "marcellus"],
+    bodies: ["manrope", "lora", "karla"],
+    italic: false,
+  },
+  popup: {
+    key: "popup",
+    name: "Pop-up",
+    summary: "A pop-up book: a folded paper header, layered paper cut-outs with the photo folding up out of them, cards with a folded corner, departments that stand up off the page, a spread of pieces that pop up as it opens and an envelope for a footer.",
+    header: "fold",
+    hero: "paper",
+    card: "folded",
+    corners: "soft",
+    buttons: "soft",
+    departments: "popups",
+    title: "cutout",
+    footer: "envelope",
+    announcement: "band",
+    gallery: "grid",
+    filters: "drawer",
+    headingCase: "none",
+    headingTracking: "-0.01em",
+    motion: "subtle",
+    intro: "none",
+    sections: ["hero", "departments", "spread", "new", "promos", "best", "trust", "collections", "recommended"],
+    palettes: ["papercut", "pastel-paper", "construction", "origami"],
+    headings: ["fraunces", "bricolage", "dm-serif", "fredoka"],
+    bodies: ["karla", "work-sans", "nunito"],
+    italic: false,
+  },
+  iso: {
+    key: "iso",
+    name: "Iso",
+    summary: "Isometric 3D: menu links on keyboard keys, the banner's piece standing on a stack of isometric blocks, cards as thick 3D tiles, departments as towers, the newest pieces on blocks of different heights and a keyboard for a footer.",
+    header: "keycaps",
+    hero: "isometric",
+    card: "block",
+    corners: "soft",
+    buttons: "soft",
+    departments: "towers",
+    title: "keys",
+    footer: "keyboard",
+    announcement: "slim",
+    gallery: "thumbs",
+    filters: "sidebar",
+    headingCase: "none",
+    headingTracking: "-0.02em",
+    motion: "subtle",
+    intro: "none",
+    sections: ["hero", "blocks", "departments", "best", "new", "promos", "numbers", "collections", "recommended"],
+    palettes: ["keyboard", "mint-iso", "sunset-iso", "midnight-iso"],
+    headings: ["space-grotesk", "archivo", "sora", "syne"],
+    bodies: ["inter", "dm-sans", "space-mono"],
+    italic: false,
+  },
+  deck: {
+    key: "deck",
+    name: "Deck",
+    summary: "A deck of cards: a segmented menu, the banner as a fanned hand of cards, products as collectible trading cards, departments fanned like a hand, a stack to swipe through and a pile of cards for a footer.",
+    header: "segmented",
+    hero: "deck",
+    card: "trading",
+    corners: "round",
+    buttons: "pill",
+    departments: "hand",
+    title: "badge",
+    footer: "stack",
+    announcement: "band",
+    gallery: "thumbs",
+    filters: "drawer",
+    headingCase: "none",
+    headingTracking: "-0.02em",
+    motion: "subtle",
+    intro: "none",
+    sections: ["hero", "swipe", "departments", "new", "promos", "best", "trust", "collections", "recommended"],
+    palettes: ["royal-deck", "ace", "felt", "lime"],
+    headings: ["unbounded", "outfit", "bricolage", "fredoka"],
+    bodies: ["dm-sans", "figtree", "outfit"],
+    italic: false,
+  },
+  liquid: {
+    key: "liquid",
+    name: "Liquid",
+    summary: "Liquid chrome: a polished metal header, the banner's piece in a chrome ring among molten blobs, cards with metal bevels, departments in liquid droplets, pieces standing in a reflecting pool and a dripping footer.",
+    header: "metal",
+    hero: "liquid",
+    card: "metal",
+    corners: "round",
+    buttons: "pill",
+    departments: "droplets",
+    title: "liquid",
+    footer: "drip",
+    announcement: "slim",
+    gallery: "stack",
+    filters: "drawer",
+    headingCase: "none",
+    headingTracking: "-0.02em",
+    motion: "subtle",
+    intro: "none",
+    sections: ["hero", "departments", "pool", "new", "best", "promos", "marquee", "collections", "recommended"],
+    palettes: ["mercury", "liquid-gold", "aqua-chrome", "rose-chrome"],
+    headings: ["syne", "unbounded", "krona", "sora"],
+    bodies: ["manrope", "inter", "sora"],
+    italic: false,
+  },
 };
 
 export const DESIGN_LIST: Design[] = DESIGN_KEYS.map((k) => DESIGNS[k]);
@@ -505,6 +661,8 @@ export const OPTION_LABELS: { [K in keyof DesignOptions]-?: { label: string; nam
       heritage: "Ornamented, with a contact bar", overlay: "See-through, menu button", floating: "Floating capsule", glass: "Dark glass with a shop button",
       utility: "Monospace utility bar", window: "Retro window with a menu bar", tape: "Name on masking tape, handwritten links",
       slab: "Raised slab with lifting links", pillow: "Puffy inflated bar", frost: "Frosted glass with a shimmering edge",
+      cabinet: "Neon arcade cabinet", letterhead: "Gallery letterhead between two rules", fold: "Folded paper with lifting tabs",
+      keycaps: "Links on keyboard keys", segmented: "Segmented menu with a sliding pill", metal: "Polished metal bar",
     },
   },
   hero: {
@@ -514,6 +672,8 @@ export const OPTION_LABELS: { [K in keyof DesignOptions]-?: { label: string; nam
       arch: "Arched photo", cinema: "Full-screen photo", film: "Full-screen film, centred title", glow: "Glowing product, giant words",
       drop: "Giant capitals and a spec-sheet photo", desktop: "Chrome words and a photo in a retro window", collage: "Taped polaroids and a ransom-note title",
       orbit: "A ring of photos turning around the words", inflated: "Puffy 3D words and a photo in a squishy blob", podium: "The piece on a podium above a glowing floor",
+      arcade: "A synthwave sun over a moving neon grid", room: "The piece framed in a 3D gallery room", paper: "Layered paper with the photo folding up",
+      isometric: "The piece on a stack of isometric blocks", deck: "A fanned hand of cards", liquid: "A chrome ring among molten blobs",
     },
   },
   card: {
@@ -521,6 +681,7 @@ export const OPTION_LABELS: { [K in keyof DesignOptions]-?: { label: string; nam
     names: {
       classic: "Classic", minimal: "Minimal", sticker: "Outlined, with stickers", soft: "Soft and rounded", framed: "Framed", overlay: "Words on the photo", gallery: "Tall gallery prints", glow: "Glowing tiles",
       spec: "Ruled spec sheets", window: "Retro windows", polaroid: "Taped polaroids", depth: "Tilting 3D cards", clay: "Soft clay cards", holo: "Holographic glass",
+      cartridge: "Game cartridges", artwork: "Framed works with placards", folded: "Folded corners", block: "Thick 3D tiles", trading: "Trading cards", metal: "Metal bevels",
     },
   },
   corners: { label: "Corners", names: { sharp: "Sharp", soft: "Softened", round: "Round" } },

@@ -49,9 +49,16 @@ const WORDMARK: Record<HeaderStyle, string> = {
   slab: "extrude-text text-xl tracking-tight sm:text-2xl",
   pillow: "puffy-text text-2xl",
   frost: "text-xl tracking-[0.08em] uppercase",
+  cabinet: "neon-text text-xl uppercase tracking-[0.04em] sm:text-2xl",
+  letterhead: "text-2xl tracking-[0.06em]",
+  fold: "cutout-text text-2xl",
+  keycaps: "text-lg font-bold tracking-tight",
+  segmented: "text-xl font-bold tracking-tight",
+  metal: "liquid-text text-xl font-bold tracking-tight sm:text-2xl",
 };
 const LOGO_HEIGHT: Record<HeaderStyle, string> = {
   classic: "h-8", inline: "h-7", bold: "h-9", centered: "h-10", heritage: "h-10", overlay: "h-8", floating: "h-7", glass: "h-8", utility: "h-7", window: "h-8", tape: "h-8", slab: "h-8", pillow: "h-9", frost: "h-8",
+  cabinet: "h-8", letterhead: "h-9", fold: "h-8", keycaps: "h-7", segmented: "h-8", metal: "h-8",
 };
 
 export function Logo({ settings, variant = "classic", className }: { settings: Settings; variant?: HeaderStyle; className?: string }) {
@@ -501,6 +508,187 @@ export default function Header({ settings, departments, announcement, design, ov
                         {i.label}
                       </Link>
                       {hasChildren(i) && <DropList item={i} className="left-1/2 -translate-x-1/2 pt-3" panelClassName="frost-panel rounded-card p-5" />}
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <div className="ml-auto lg:ml-0"><HeaderActions /></div>
+            </div>
+          </header>
+        </>
+      );
+
+    case "cabinet":
+      return (
+        <>
+          {bar}
+          <header className="cabinet sticky top-0 z-40">
+            <div className="container-page flex h-16 items-center gap-4">
+              <div className="lg:hidden">{menu}</div>
+              <Logo settings={settings} variant="cabinet" />
+              <nav aria-label="Main" className="hidden flex-1 lg:block">
+                <ul className="flex items-center justify-center gap-1 font-pixel text-[11px] uppercase">
+                  {items.map((i) => (
+                    <li key={i.key} className="group relative">
+                      <Link
+                        href={i.href}
+                        aria-haspopup={hasChildren(i) ? "true" : undefined}
+                        className={cx("arcade-link inline-flex h-9 items-center px-3 whitespace-nowrap", i.sale && "text-sale")}
+                      >
+                        {i.label}
+                      </Link>
+                      {hasChildren(i) && <DropList item={i} className="left-1/2 -translate-x-1/2 pt-3" panelClassName="cabinet-panel rounded-card p-5 font-sans normal-case" />}
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <span aria-hidden className="insert-coin hidden font-pixel text-[10px] uppercase xl:inline">Insert coin</span>
+              <div className="ml-auto lg:ml-0"><HeaderActions /></div>
+            </div>
+          </header>
+        </>
+      );
+
+    case "letterhead":
+      return (
+        <>
+          {bar}
+          <header className="sticky top-0 z-40 bg-ivory/95 backdrop-blur supports-[backdrop-filter]:bg-ivory/90">
+            <div className="container-page letterhead flex h-16 items-center gap-4 lg:h-[4.5rem]">
+              <div className="lg:hidden">{menu}</div>
+              <Logo settings={settings} variant="letterhead" />
+              <nav aria-label="Main" className="hidden flex-1 lg:block">
+                <ul className="flex items-center justify-end gap-6 text-[11px] tracking-[0.24em] uppercase xl:gap-8">
+                  {items.map((i) => (
+                    <li key={i.key} className="group relative">
+                      <Link
+                        href={i.href}
+                        aria-haspopup={hasChildren(i) ? "true" : undefined}
+                        className={cx("gallery-link inline-block py-2 whitespace-nowrap", i.sale && "text-sale")}
+                      >
+                        {i.label}
+                      </Link>
+                      {hasChildren(i) && <DropList item={i} className="left-1/2 -translate-x-1/2 pt-3" panelClassName="border border-line bg-paper p-5 normal-case tracking-normal shadow-xl" />}
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <div className="ml-auto lg:ml-0"><HeaderActions /></div>
+            </div>
+          </header>
+        </>
+      );
+
+    case "fold":
+      return (
+        <>
+          {bar}
+          <header className="sticky top-0 z-40 px-2 pt-2 sm:px-4">
+            <div className="fold-paper mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:h-16 sm:px-6">
+              <div className="lg:hidden">{menu}</div>
+              <Logo settings={settings} variant="fold" />
+              <nav aria-label="Main" className="hidden flex-1 lg:block">
+                <ul className="flex items-center justify-center gap-1 text-[14px] font-semibold">
+                  {items.map((i) => (
+                    <li key={i.key} className="group relative">
+                      <Link
+                        href={i.href}
+                        aria-haspopup={hasChildren(i) ? "true" : undefined}
+                        className={cx("paper-tab inline-flex h-10 items-center px-3.5 whitespace-nowrap", i.sale && "text-sale")}
+                      >
+                        {i.label}
+                      </Link>
+                      {hasChildren(i) && <DropList item={i} className="left-1/2 -translate-x-1/2 pt-3" panelClassName="fold-paper p-5" />}
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <div className="ml-auto lg:ml-0"><HeaderActions /></div>
+            </div>
+          </header>
+        </>
+      );
+
+    case "keycaps":
+      return (
+        <>
+          {bar}
+          <header className="sticky top-0 z-40 border-b border-line bg-ivory/95 backdrop-blur supports-[backdrop-filter]:bg-ivory/90">
+            <div className="container-page flex h-16 items-center gap-4 lg:h-[4.5rem]">
+              <div className="lg:hidden">{menu}</div>
+              <Logo settings={settings} variant="keycaps" className="keycap inline-flex items-center px-3 py-1.5" />
+              <nav aria-label="Main" className="hidden flex-1 lg:block">
+                <ul className="flex items-center justify-center gap-2 text-[12px] font-semibold">
+                  {items.map((i) => (
+                    <li key={i.key} className="group relative">
+                      <Link
+                        href={i.href}
+                        aria-haspopup={hasChildren(i) ? "true" : undefined}
+                        className={cx("keycap inline-flex h-9 items-center px-3 whitespace-nowrap", i.sale && "text-sale")}
+                      >
+                        {i.label}
+                      </Link>
+                      {hasChildren(i) && <DropList item={i} className="left-1/2 -translate-x-1/2 pt-3" panelClassName="keycap-panel rounded-card p-5" />}
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <div className="ml-auto lg:ml-0"><HeaderActions /></div>
+            </div>
+          </header>
+        </>
+      );
+
+    case "segmented":
+      return (
+        <>
+          {bar}
+          <header className="sticky top-0 z-40 bg-ivory/90 backdrop-blur supports-[backdrop-filter]:bg-ivory/80">
+            <div className="container-page flex h-16 items-center gap-4 lg:h-[4.5rem]">
+              <div className="lg:hidden">{menu}</div>
+              <Logo settings={settings} variant="segmented" />
+              <nav aria-label="Main" className="hidden flex-1 lg:block">
+                <ul className="segmented mx-auto flex w-fit items-center gap-0.5 rounded-full p-1 text-[13px] font-semibold">
+                  {items.map((i) => (
+                    <li key={i.key} className="group relative">
+                      <Link
+                        href={i.href}
+                        aria-haspopup={hasChildren(i) ? "true" : undefined}
+                        className={cx("seg-link inline-flex h-9 items-center rounded-full px-3.5 whitespace-nowrap", i.sale && "text-sale")}
+                      >
+                        {i.label}
+                      </Link>
+                      {hasChildren(i) && <DropList item={i} className="left-1/2 -translate-x-1/2 pt-3" panelClassName="rounded-card border border-line bg-paper p-5 shadow-xl" />}
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <div className="ml-auto lg:ml-0"><HeaderActions /></div>
+            </div>
+          </header>
+        </>
+      );
+
+    case "metal":
+      return (
+        <>
+          {bar}
+          <header className="sticky top-0 z-40 px-2 pt-2 sm:px-4 sm:pt-3">
+            <div className="metal-bar mx-auto flex h-14 max-w-7xl items-center gap-4 rounded-full px-4 sm:h-16 sm:px-6">
+              <div className="lg:hidden">{menu}</div>
+              <Logo settings={settings} variant="metal" />
+              <nav aria-label="Main" className="hidden flex-1 lg:block">
+                <ul className="flex items-center justify-center gap-1 text-[13px] font-semibold">
+                  {items.map((i) => (
+                    <li key={i.key} className="group relative">
+                      <Link
+                        href={i.href}
+                        aria-haspopup={hasChildren(i) ? "true" : undefined}
+                        className={cx("metal-link inline-flex h-9 items-center rounded-full px-3.5 whitespace-nowrap", i.sale && "text-sale")}
+                      >
+                        {i.label}
+                      </Link>
+                      {hasChildren(i) && <DropList item={i} className="left-1/2 -translate-x-1/2 pt-3" panelClassName="metal-panel rounded-card p-5" />}
                     </li>
                   ))}
                 </ul>

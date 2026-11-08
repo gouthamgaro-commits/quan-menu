@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import type { Brand, Collection, Department } from "@/lib/catalog";
 import type { DepartmentStyle, DesignKey } from "@/lib/designs";
 import { formatMoney } from "@/lib/money";
@@ -271,6 +272,127 @@ export function Departments({ departments, variant, browse = "Find your fit", ea
                     <span className="block font-serif text-lg leading-tight sm:text-xl">{d.name}</span>
                     <span className="mt-0.5 inline-flex items-center gap-1 text-[12px] font-medium">Shop now <ArrowRight size={12} /></span>
                   </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+
+    case "levels":
+      return (
+        <section className="container-page mt-16 md:mt-24">
+          <SectionHeader eyebrow="Select a level" title={browse} />
+          <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {departments.map((d, i) => (
+              <li key={d.id} data-reveal>
+                <Link href={`/category/${d.slug}`} className="level group flex items-center gap-4 p-3">
+                  <span className="relative block size-20 shrink-0 overflow-hidden rounded-[6px] bg-bone">{image(d, "5rem", "group-hover:scale-110", i < 4)}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-pixel text-[11px] text-accent uppercase">Level {String(i + 1).padStart(2, "0")}</span>
+                    <span className="mt-1 block truncate font-serif text-xl uppercase">{d.name}</span>
+                    <span aria-hidden className="level-bar mt-2 block h-2.5">
+                      <span style={{ width: `${45 + ((i * 23) % 50)}%` }} />
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+
+    case "rooms":
+      return (
+        <section className="container-page mt-16 md:mt-24">
+          <SectionHeader eyebrow="The rooms" title={browse} />
+          <ul className="grid grid-cols-2 gap-x-6 gap-y-12 sm:grid-cols-4 md:gap-x-10">
+            {departments.map((d, i) => (
+              <li key={d.id} data-reveal>
+                <Link href={`/category/${d.slug}`} className="hung group block text-center">
+                  <span className="hung-frame relative mx-auto block aspect-[4/5] w-full">
+                    <span className="relative block h-full w-full overflow-hidden bg-bone">{image(d, "(min-width: 640px) 20vw, 40vw", "group-hover:scale-105", i < 4)}</span>
+                  </span>
+                  <span className="mt-4 block text-[10px] tracking-[0.3em] text-taupe uppercase">Room {String(i + 1).padStart(2, "0")}</span>
+                  <span className="mt-1 block font-serif text-2xl">{d.name}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+
+    case "popups":
+      return (
+        <section className="container-page mt-16 md:mt-24">
+          <SectionHeader eyebrow="Departments" title={browse} />
+          <ul className="grid grid-cols-2 gap-x-6 gap-y-12 sm:grid-cols-4 md:gap-x-10">
+            {departments.map((d, i) => (
+              <li key={d.id} data-reveal className="popup-dept">
+                <Link href={`/category/${d.slug}`} className="group block text-center">
+                  <span className="popup-stand relative block aspect-[4/5] overflow-hidden bg-bone">{image(d, "(min-width: 640px) 22vw, 44vw", "", i < 4)}</span>
+                  <span aria-hidden className="popup-page block" />
+                  <span className="paper-label relative mt-4 inline-block px-3 py-1 font-serif text-lg">{d.name}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+
+    case "towers":
+      return (
+        <section className="container-page mt-16 md:mt-24">
+          <SectionHeader eyebrow="Departments" title={browse} />
+          <ul className="grid grid-cols-2 items-end gap-x-10 gap-y-14 sm:grid-cols-4 md:gap-x-14">
+            {departments.map((d, i) => (
+              <li key={d.id} data-reveal>
+                <Link href={`/category/${d.slug}`} className="tower group block">
+                  <span className="iso-box tower-box relative block" style={{ "--h": `${[10, 12.5, 9, 11.5][i % 4]}rem` } as CSSProperties}>
+                    <span className="relative block h-full w-full overflow-hidden">{image(d, "(min-width: 640px) 20vw, 40vw", "", i < 4)}</span>
+                  </span>
+                  <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold">
+                    {d.name} <ArrowRight size={14} className="transition group-hover:translate-x-0.5" />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+
+    case "hand":
+      return (
+        <section className="container-page mt-16 md:mt-24">
+          <SectionHeader eyebrow="Pick a card" title={browse} />
+          <ul className="hand scrollbar-none -mx-4 flex snap-x gap-4 overflow-x-auto px-4 pt-2 pb-6 sm:mx-0 sm:justify-center sm:gap-0 sm:overflow-visible sm:px-0 sm:pt-8 sm:pb-10">
+            {departments.map((d, i) => {
+              const off = i - (departments.length - 1) / 2;
+              return (
+                <li key={d.id} data-reveal className="hand-card snap-start" style={{ "--o": off } as CSSProperties}>
+                  <Link href={`/category/${d.slug}`} className="trading-frame group block">
+                    <span className="relative block aspect-[3/4] overflow-hidden rounded-[11px] bg-bone">{image(d, "(min-width: 640px) 15rem, 44vw", "", i < 4)}</span>
+                    <span className="mt-2 block rounded-[10px] bg-paper px-2 py-1.5 text-center font-serif text-lg font-bold">{d.name}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      );
+
+    case "droplets":
+      return (
+        <section className="container-page mt-16 md:mt-24">
+          <SectionHeader eyebrow="Departments" title={browse} />
+          <ul className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-4 md:gap-x-10">
+            {departments.map((d, i) => (
+              <li key={d.id} data-reveal>
+                <Link href={`/category/${d.slug}`} className="drop-link group grid justify-items-center gap-4 text-center">
+                  <span className="droplet relative block aspect-[4/5] w-full max-w-[12.5rem]">
+                    <span className="droplet-inner relative block h-full w-full overflow-hidden bg-bone">{image(d, "(min-width: 640px) 12rem, 42vw", "group-hover:scale-105", i < 4)}</span>
+                  </span>
+                  <span className="metal-chip rounded-full px-4 py-1.5 text-sm font-semibold">{d.name}</span>
                 </Link>
               </li>
             ))}

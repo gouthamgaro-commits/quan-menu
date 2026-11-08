@@ -95,7 +95,7 @@ describe("designs", () => {
   });
 
   it("each have a home page section of their own, and one sign-up (the footer's)", () => {
-    const own = { atelier: "lookbook", nordic: "index", bazaar: "bento", boutique: "moodboard", heritage: "doors", noir: "reel", cinema: "aisle", neon: "showcase", drop: "drop", y2k: "vibes", zine: "scrapbook", orbit: "coverflow", puff: "flip", prism: "showroom" } as const;
+    const own = { atelier: "lookbook", nordic: "index", bazaar: "bento", boutique: "moodboard", heritage: "doors", noir: "reel", cinema: "aisle", neon: "showcase", drop: "drop", y2k: "vibes", zine: "scrapbook", orbit: "coverflow", puff: "flip", prism: "showroom", arcade: "leaderboard", museum: "exhibition", popup: "spread", iso: "blocks", deck: "swipe", liquid: "pool" } as const;
     for (const d of DESIGN_LIST) {
       expect(d.sections, d.key).toContain(own[d.key]);
       for (const other of DESIGN_LIST) if (other.key !== d.key) expect(other.sections, `${other.key} has ${d.key}'s ${own[d.key]}`).not.toContain(own[d.key]);
@@ -148,6 +148,8 @@ describe("looks", () => {
       taken("noir", "onyx"), taken("cinema", "linen"), taken("neon", "ultraviolet"),
       taken("drop", "concrete"), taken("y2k", "chrome"), taken("zine", "kraft"),
       taken("orbit", "lunar"), taken("puff", "candy"), taken("prism", "pearl"),
+      taken("arcade", "synthwave"), taken("museum", "white-cube"), taken("popup", "papercut"),
+      taken("iso", "keyboard"), taken("deck", "royal-deck"), taken("liquid", "mercury"),
     ];
     for (let seed = 1; seed < 20; seed++) {
       const look = freshLook(others, seeded(seed));

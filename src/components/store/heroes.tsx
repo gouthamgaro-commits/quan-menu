@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import type { HeroStyle } from "@/lib/designs";
 import type { HeroSlide } from "@/lib/types";
 import { safeHref } from "@/lib/urls";
@@ -574,6 +575,209 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
                   <span className="podium-top" />
                   <span className="podium-body" />
                 </span>
+              </div>
+            )}
+          </div>
+        </section>
+      );
+    }
+
+    case "arcade": {
+      const picture = image ?? extras.find((x): x is string => !!x) ?? null;
+      return (
+        <section className="arcade-hero relative overflow-hidden">
+          <span aria-hidden className="arcade-sun" />
+          <span aria-hidden className="grid-floor arcade-floor" />
+          <div className="container-page relative grid items-center gap-10 pt-12 pb-28 md:pt-16 lg:grid-cols-[1.1fr_1fr] lg:pb-32">
+            <div className="relative z-10 text-center lg:text-left">
+              <p className="font-pixel text-[12px] text-accent uppercase">
+                <span aria-hidden className="blink">▶</span> {slide?.eyebrow || "Player one ready"}
+              </p>
+              <h1 className="neon-text mt-5 font-serif text-[clamp(2.3rem,5.8vw,4.9rem)] leading-[1.08]">{heading}</h1>
+              {slide?.subheading && <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-taupe lg:mx-0">{slide.subheading}</p>}
+              {slide ? (
+                <Ctas slide={slide} className="mt-8 justify-center lg:justify-start" primary={buttonClass("primary", "lg", "arcade-btn font-pixel text-[12px]")} secondary={buttonClass("secondary", "lg", "arcade-btn font-pixel text-[12px]")} />
+              ) : (
+                <Link href="/shop?sort=newest" className={buttonClass("primary", "lg", "arcade-btn mt-8 font-pixel text-[12px]")}>Press start</Link>
+              )}
+            </div>
+            {picture && (
+              <div className="crt relative mx-auto aspect-[4/5] w-full max-w-[19rem] sm:max-w-sm">
+                <span className="relative block h-full w-full overflow-hidden rounded-[10px]">
+                  <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 24rem, 80vw" className="object-cover" />
+                  <span aria-hidden className="crt-scan" />
+                </span>
+              </div>
+            )}
+          </div>
+        </section>
+      );
+    }
+
+    case "room": {
+      const picture = image ?? extras.find((x): x is string => !!x) ?? null;
+      return (
+        <section className="room-hero relative overflow-hidden">
+          <div className="container-page relative grid items-center gap-10 py-12 md:py-16 lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="relative z-10 text-center lg:text-left">
+              <p className="text-[11px] tracking-[0.3em] text-accent uppercase">{slide?.eyebrow || "Now showing"}</p>
+              <h1 className="mt-5 font-serif text-[clamp(2.6rem,6vw,5.25rem)] leading-[1.03]">{heading}</h1>
+              {slide?.subheading && <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-taupe lg:mx-0">{slide.subheading}</p>}
+              {slide ? (
+                <Ctas slide={slide} className="mt-8 justify-center lg:justify-start" primary={buttonClass("primary", "lg")} secondary={buttonClass("secondary", "lg")} />
+              ) : (
+                <Link href="/shop?sort=newest" className={buttonClass("primary", "lg", "mt-8")}>Enter the gallery</Link>
+              )}
+              <p aria-hidden className="mt-8 text-[11px] tracking-[0.24em] text-taupe uppercase">{storeName} · Room 01</p>
+            </div>
+            {picture && (
+              <div className="room relative mx-auto w-full max-w-xl">
+                <span aria-hidden className="room-ceiling" />
+                <span aria-hidden className="room-wall room-left" />
+                <span aria-hidden className="room-wall room-right" />
+                <span aria-hidden className="room-floor" />
+                <div className="room-back">
+                  <span aria-hidden className="room-spot" />
+                  <div className="room-frame relative aspect-[4/5]">
+                    <span className="relative block h-full w-full overflow-hidden">
+                      <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 18rem, 45vw" className="object-cover" />
+                    </span>
+                  </div>
+                  <span aria-hidden className="room-placard" />
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      );
+    }
+
+    case "paper": {
+      const picture = image ?? extras.find((x): x is string => !!x) ?? null;
+      return (
+        <section className="paper-hero relative overflow-hidden">
+          <svg aria-hidden className="paper-layer paper-layer-1" viewBox="0 0 1440 320" preserveAspectRatio="none"><path d="M0 170C180 110 330 220 520 190S860 80 1040 120 1320 210 1440 150V320H0Z" /></svg>
+          <svg aria-hidden className="paper-layer paper-layer-2" viewBox="0 0 1440 320" preserveAspectRatio="none"><path d="M0 210C210 260 380 150 600 180S940 280 1150 220 1360 170 1440 200V320H0Z" /></svg>
+          <svg aria-hidden className="paper-layer paper-layer-3" viewBox="0 0 1440 320" preserveAspectRatio="none"><path d="M0 250C240 220 420 290 700 260S1160 210 1440 255V320H0Z" /></svg>
+          <div className="container-page relative grid items-center gap-10 pt-12 pb-32 md:pt-16 lg:grid-cols-2 lg:pb-40">
+            <div className="relative z-10 text-center lg:text-left">
+              <p className="paper-label inline-block -rotate-1 px-3 py-1 text-[13px] font-semibold">{slide?.eyebrow || "New chapter"}</p>
+              <h1 className="cutout-text mt-5 font-serif text-[clamp(2.6rem,6.4vw,5.5rem)] leading-[1.03]">{heading}</h1>
+              {slide?.subheading && <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-taupe lg:mx-0">{slide.subheading}</p>}
+              {slide ? (
+                <Ctas slide={slide} className="mt-8 justify-center lg:justify-start" primary={buttonClass("primary", "lg", "font-semibold")} secondary={buttonClass("secondary", "lg", "font-semibold")} />
+              ) : (
+                <Link href="/shop?sort=newest" className={buttonClass("primary", "lg", "mt-8 font-semibold")}>Open the book</Link>
+              )}
+            </div>
+            {picture && (
+              <div className="popup-stage relative mx-auto w-full max-w-[19rem] sm:max-w-sm">
+                <div className="popup-card relative aspect-[4/5] overflow-hidden">
+                  <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 24rem, 80vw" className="object-cover" />
+                </div>
+                <span aria-hidden className="popup-base" />
+              </div>
+            )}
+          </div>
+        </section>
+      );
+    }
+
+    case "isometric": {
+      const picture = image ?? extras.find((x): x is string => !!x) ?? null;
+      return (
+        <section className="iso-hero relative overflow-hidden">
+          <span aria-hidden className="iso-grid" />
+          <div className="container-page relative grid items-center gap-12 py-12 md:py-20 lg:grid-cols-2">
+            <div className="relative z-10 text-center lg:text-left">
+              <p className="keycap inline-flex h-8 items-center px-3 text-[12px] font-semibold">{slide?.eyebrow || "New in"}</p>
+              <h1 className="mt-5 font-serif text-[clamp(2.6rem,6.2vw,5.5rem)] leading-[1.02]">{heading}</h1>
+              {slide?.subheading && <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-taupe lg:mx-0">{slide.subheading}</p>}
+              {slide ? (
+                <Ctas slide={slide} className="mt-8 justify-center lg:justify-start" primary={buttonClass("primary", "lg", "font-semibold")} secondary={buttonClass("secondary", "lg", "font-semibold")} />
+              ) : (
+                <Link href="/shop?sort=newest" className={buttonClass("primary", "lg", "mt-8 font-semibold")}>Shop new arrivals</Link>
+              )}
+            </div>
+            {picture && (
+              <div className="iso-stage relative mx-auto w-full max-w-[20rem] sm:max-w-sm">
+                <span aria-hidden className="iso-box iso-mini iso-mini-1" />
+                <span aria-hidden className="iso-box iso-mini iso-mini-2" />
+                <div className="iso-photo relative mx-auto aspect-[4/5] w-[72%] overflow-hidden rounded-card">
+                  <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 18rem, 60vw" className="object-cover" />
+                </div>
+                <span aria-hidden className="iso-box iso-pedestal" />
+              </div>
+            )}
+          </div>
+        </section>
+      );
+    }
+
+    case "deck": {
+      const cards = [image, ...gallery, ...extras].filter((x, i, all): x is string => !!x && all.indexOf(x) === i).slice(0, 5);
+      const top = Math.floor((cards.length - 1) / 2);
+      return (
+        <section className="deck-hero relative overflow-hidden">
+          <div className="container-page relative grid items-center gap-12 py-12 md:py-20 lg:grid-cols-2">
+            <div className="relative z-10 text-center lg:text-left">
+              <p className="deck-badge inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-[12px] font-bold"><span aria-hidden>♠</span> {slide?.eyebrow || "New hand"}</p>
+              <h1 className="mt-5 font-serif text-[clamp(2.6rem,6.2vw,5.5rem)] leading-[1.02]">{heading}</h1>
+              {slide?.subheading && <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-taupe lg:mx-0">{slide.subheading}</p>}
+              {slide ? (
+                <Ctas slide={slide} className="mt-8 justify-center lg:justify-start" primary={buttonClass("primary", "lg", "font-bold")} secondary={buttonClass("secondary", "lg", "font-bold")} />
+              ) : (
+                <Link href="/shop?sort=newest" className={buttonClass("primary", "lg", "mt-8 font-bold")}>Deal me in</Link>
+              )}
+            </div>
+            {cards.length > 0 && (
+              <div className="deck-fan relative mx-auto aspect-[5/4] w-full max-w-md">
+                {cards.map((src, i) => {
+                  const off = i - top;
+                  return (
+                    <div key={`${src}-${i}`} className="deck-card" style={{ "--o": off, "--a": Math.abs(off), zIndex: 10 - Math.abs(off) } as CSSProperties}>
+                      <span className="relative block h-full w-full overflow-hidden rounded-[14px]">
+                        {i === 0 ? (
+                          <HeroMedia image={src} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 15rem, 45vw" className="object-cover" />
+                        ) : (
+                          <CatalogImage src={src} alt="" fill sizes="(min-width: 1024px) 15rem, 45vw" className="object-cover" />
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+      );
+    }
+
+    case "liquid": {
+      const picture = image ?? extras.find((x): x is string => !!x) ?? null;
+      return (
+        <section className="liquid-hero relative overflow-hidden">
+          <span aria-hidden className="liquid-blob liquid-b1" />
+          <span aria-hidden className="liquid-blob liquid-b2" />
+          <span aria-hidden className="liquid-blob liquid-b3" />
+          <div className="container-page relative grid items-center gap-12 py-12 md:py-20 lg:grid-cols-2">
+            <div className="relative z-10 text-center lg:text-left">
+              <p className="metal-chip inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-[12px] font-semibold">{slide?.eyebrow || "Freshly poured"}</p>
+              <h1 className="liquid-text mt-5 font-serif text-[clamp(2.6rem,6.4vw,5.6rem)] leading-[1.04]">{heading}</h1>
+              {slide?.subheading && <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-taupe lg:mx-0">{slide.subheading}</p>}
+              {slide ? (
+                <Ctas slide={slide} className="mt-8 justify-center lg:justify-start" primary={buttonClass("primary", "lg", "font-semibold")} secondary={buttonClass("secondary", "lg", "metal-link font-semibold")} />
+              ) : (
+                <Link href="/shop?sort=newest" className={buttonClass("primary", "lg", "mt-8 font-semibold")}>Shop new arrivals</Link>
+              )}
+            </div>
+            {picture && (
+              <div className="relative mx-auto w-full max-w-[20rem] sm:max-w-sm">
+                <div className="chrome-ring relative aspect-square rounded-full p-3">
+                  <span className="relative block h-full w-full overflow-hidden rounded-full">
+                    <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 24rem, 80vw" className="object-cover" />
+                  </span>
+                </div>
               </div>
             )}
           </div>

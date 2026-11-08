@@ -15,6 +15,12 @@ import Scrapbook from "@/components/store/Scrapbook";
 import Coverflow from "@/components/store/Coverflow";
 import FlipCards from "@/components/store/FlipCards";
 import Showroom from "@/components/store/Showroom";
+import Exhibition from "@/components/store/Exhibition";
+import IsoBlocks from "@/components/store/IsoBlocks";
+import Leaderboard from "@/components/store/Leaderboard";
+import Pool from "@/components/store/Pool";
+import PopupSpread from "@/components/store/PopupSpread";
+import SwipeStack from "@/components/store/SwipeStack";
 import Showcase from "@/components/store/Showcase";
 import Hero from "@/components/store/heroes";
 import Spotlight, { type Chapter } from "@/components/store/Spotlight";
@@ -226,6 +232,12 @@ export default async function Home() {
     coverflow: () => <Coverflow products={newest} />,
     flip: () => <FlipCards products={chosen} />,
     showroom: () => <Showroom products={showcase} />,
+    leaderboard: () => <Leaderboard products={pictured(data.bestSellers, data.featured, data.newArrivals)} />,
+    exhibition: () => <Exhibition products={chosen} />,
+    spread: () => <PopupSpread products={newest} />,
+    blocks: () => <IsoBlocks products={newest} />,
+    swipe: () => <SwipeStack products={chosen} />,
+    pool: () => <Pool products={chosen} />,
     story: () => <StorySection settings={settings} variant={design.key} />,
     recommended: () => <RecentlyViewed title="Recommended for you" mode="recommend" />,
     newsletter: () => <NewsletterSection variant={design.key} title={kind.words.newsletter} text={kind.words.newsletterText} />,

@@ -182,6 +182,56 @@ export default function DesignThumb({
             {line("8%", 3)}
           </div>
         );
+      case "cabinet":
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: "5%", height: 18, padding: "0 5%", background: mix(colors.background, colors.brand, 0.12), borderBottom: `2px solid ${colors.brand}`, boxShadow: `0 0 8px ${colors.brand}` }}>
+            <span style={{ textShadow: `1px 1px 0 ${colors.brand}, -1px 0 0 ${colors.accent}` }}>{logo(9)}</span>
+            <span style={{ display: "flex", flex: 1, justifyContent: "center", gap: 4 }}>{[0, 1, 2, 3].map((i) => <span key={i} style={{ width: "11%", height: 6, background: i === 0 ? colors.brand : "transparent", border: `1px solid ${c("line")}` }} />)}</span>
+            <span style={{ width: 16, height: 3, background: c("accent") }} />
+          </div>
+        );
+      case "letterhead":
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: "6%", height: 19, margin: "3px 5% 0", borderTop: `1px solid ${c("ink")}`, borderBottom: `3px double ${c("ink")}` }}>
+            {logo(10)}
+            <span style={{ display: "flex", flex: 1, justifyContent: "flex-end", gap: 6 }}>{[0, 1, 2, 3].map((i) => line("8%", 1.5, c("ink"), { opacity: 0.6 }, i))}</span>
+          </div>
+        );
+      case "fold":
+        return (
+          <div style={{ padding: "4px 5% 3px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, height: 16, padding: "0 7px", borderRadius: 2, background: `linear-gradient(90deg, ${c("paper")} 49%, ${mix(c("paper"), colors.text, 0.1)} 50%, ${c("paper")} 51%)`, boxShadow: "0 3px 6px -3px rgb(0 0 0 / 0.35)" }}>
+              <span style={{ textShadow: `1px 1px 0 ${mix(colors.background, colors.brand, 0.45)}` }}>{logo(9)}</span>
+              <span style={{ display: "flex", flex: 1, justifyContent: "center", gap: 3, alignSelf: "flex-end" }}>{[0, 1, 2, 3].map((i) => <span key={i} style={{ width: "13%", height: 8, borderRadius: "3px 3px 0 0", background: i === 0 ? mix(c("paper"), colors.brand, 0.2) : "transparent" }} />)}</span>
+            </div>
+          </div>
+        );
+      case "keycaps":
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 5, height: 20, padding: "0 5%", borderBottom: `1px solid ${c("line")}` }}>
+            <span style={{ padding: "1px 4px", borderRadius: 3, background: c("paper"), border: `1px solid ${c("line")}`, boxShadow: `0 2px 0 ${mix(c("paper"), colors.text, 0.25)}` }}>{logo(8)}</span>
+            <span style={{ display: "flex", flex: 1, justifyContent: "center", gap: 4 }}>{[0, 1, 2, 3].map((i) => <span key={i} style={{ width: "12%", height: 8, borderRadius: 2, background: c("paper"), border: `1px solid ${c("line")}`, boxShadow: `0 2px 0 ${mix(c("paper"), colors.text, 0.25)}` }} />)}</span>
+          </div>
+        );
+      case "segmented":
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 6, height: 20, padding: "0 5%" }}>
+            {logo(9)}
+            <span style={{ display: "flex", flex: 1, justifyContent: "center" }}>
+              <span style={{ display: "flex", gap: 2, padding: 2, borderRadius: 99, background: mix(colors.background, colors.text, 0.08) }}>{[0, 1, 2, 3].map((i) => <span key={i} style={{ width: 14, height: 7, borderRadius: 99, background: i === 0 ? c("paper") : "transparent" }} />)}</span>
+            </span>
+            {line("8%", 3)}
+          </div>
+        );
+      case "metal":
+        return (
+          <div style={{ padding: "4px 5% 3px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, height: 15, padding: "0 8px", borderRadius: 99, background: `linear-gradient(180deg, ${mix(c("paper"), "#ffffff", 0.4)}, ${mix(c("paper"), colors.text, 0.12)} 48%, ${mix(c("paper"), "#ffffff", 0.25)} 52%, ${mix(c("paper"), colors.text, 0.08)})`, border: `1px solid ${c("line")}` }}>
+              {logo(8)}
+              <span style={{ display: "flex", flex: 1, justifyContent: "center", gap: 5 }}>{[0, 1, 2, 3].map((i) => line("9%", 2, c("ink"), { opacity: 0.55 }, i))}</span>
+            </div>
+          </div>
+        );
       default:
         return (
           <div style={{ borderBottom: `1px solid ${c("line")}` }}>
@@ -352,6 +402,69 @@ export default function DesignThumb({
             </div>
           </div>
         );
+      case "arcade":
+        return (
+          <div style={{ position: "relative", display: "flex", alignItems: "center", gap: "6%", height: "44%", padding: "0 6%", overflow: "hidden", background: `linear-gradient(180deg, ${mix(colors.background, colors.brand, 0.22)}, ${colors.background} 75%)` }}>
+            <span style={{ position: "absolute", left: "50%", top: "8%", width: "38%", aspectRatio: "1", translate: "-50% 0", borderRadius: 99, background: `linear-gradient(180deg, ${colors.accent}, ${colors.brand})`, opacity: 0.45, WebkitMask: "repeating-linear-gradient(180deg, #000 0 5px, transparent 5px 7px)" }} />
+            <span style={{ position: "absolute", left: "-20%", right: "-20%", bottom: 0, height: "38%", transformOrigin: "50% 100%", transform: "perspective(60px) rotateX(55deg)", backgroundImage: `linear-gradient(${colors.brand} 1px, transparent 1px), linear-gradient(90deg, ${colors.brand} 1px, transparent 1px)`, backgroundSize: "11px 11px", opacity: 0.7 }} />
+            <span style={{ ...face, position: "relative", flex: 1, fontSize: 15, fontWeight: 700, lineHeight: 1, color: c("ink"), textTransform: "uppercase", textShadow: `1px 1px 0 ${colors.brand}, -1px 0 0 ${colors.accent}` }}>{storeName ? "Press start" : "AA BB"}</span>
+            <span style={{ position: "relative", width: "30%", height: "74%", padding: 3, borderRadius: 5, background: "#151518", boxShadow: `0 0 0 1px ${colors.brand}, 0 0 10px ${colors.brand}` }}><span style={{ display: "block", height: "100%", borderRadius: 3, background: photo }} /></span>
+          </div>
+        );
+      case "room":
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: "5%", height: "44%", padding: "0 5%", background: colors.background }}>
+            <div style={{ width: "40%" }}>{heroText(c("ink"), "left", 13)}</div>
+            <div style={{ position: "relative", flex: 1, height: "82%" }}>
+              <span style={{ position: "absolute", inset: 0, clipPath: "polygon(0 0, 16% 12%, 16% 80%, 0 100%)", background: mix(c("paper"), colors.text, 0.18) }} />
+              <span style={{ position: "absolute", inset: 0, clipPath: "polygon(100% 0, 84% 12%, 84% 80%, 100% 100%)", background: mix(c("paper"), colors.text, 0.18) }} />
+              <span style={{ position: "absolute", inset: 0, clipPath: "polygon(16% 80%, 84% 80%, 100% 100%, 0 100%)", background: mix(c("sand"), colors.text, 0.2) }} />
+              <span style={{ position: "absolute", left: "16%", right: "16%", top: "12%", bottom: "20%", display: "grid", placeItems: "center", background: c("paper") }}>
+                <span style={{ width: "34%", height: "78%", padding: 2, border: "2px solid #1c1814", background: "#f6f2ea" }}><span style={{ display: "block", height: "100%", background: photo }} /></span>
+              </span>
+            </div>
+          </div>
+        );
+      case "paper":
+        return (
+          <div style={{ position: "relative", display: "flex", alignItems: "center", gap: "6%", height: "44%", padding: "0 6%", overflow: "hidden", background: colors.background }}>
+            <span style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "48%", background: mix(colors.background, colors.brand, 0.3), borderRadius: "60% 40% 0 0 / 30% 40% 0 0", boxShadow: "0 -2px 4px rgb(0 0 0 / 0.1)" }} />
+            <span style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "28%", background: mix(colors.background, colors.accent, 0.25), borderRadius: "40% 60% 0 0 / 40% 30% 0 0", boxShadow: "0 -2px 4px rgb(0 0 0 / 0.1)" }} />
+            <span style={{ ...face, position: "relative", flex: 1, fontSize: 15, fontWeight: 600, lineHeight: 1, color: c("ink"), textShadow: `1px 1px 0 ${mix(colors.background, colors.brand, 0.45)}` }}>{storeName ? "Pop open" : "Aa Bb"}</span>
+            <span style={{ position: "relative", width: "28%", height: "70%", border: `3px solid ${c("paper")}`, background: photo, boxShadow: "0 4px 8px -4px rgb(0 0 0 / 0.4)", transform: "perspective(60px) rotateX(8deg)", transformOrigin: "50% 100%" }} />
+          </div>
+        );
+      case "isometric":
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: "6%", height: "44%", padding: "0 6%", background: colors.background }}>
+            <div style={{ flex: 1 }}>{heroText(c("ink"), "left", 14)}</div>
+            <div style={{ position: "relative", display: "grid", justifyItems: "center", width: "34%" }}>
+              <span style={{ zIndex: 1, width: "70%", aspectRatio: "4 / 5", borderRadius: radius + 1, background: photo, marginBottom: -3 }} />
+              <span style={{ position: "relative", width: "84%", height: 12, background: mix(c("paper"), colors.brand, 0.4), boxShadow: `5px -5px 0 ${mix(c("paper"), colors.brand, 0.2)}, 5px 0 0 ${mix(colors.brand, colors.text, 0.3)}` }} />
+            </div>
+          </div>
+        );
+      case "deck":
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: "6%", height: "44%", padding: "0 6%", background: `radial-gradient(70% 60% at 80% 40%, ${mix(colors.background, colors.brand, 0.18)}, transparent 70%), ${colors.background}` }}>
+            <div style={{ flex: 1 }}>{heroText(c("ink"), "left", 14)}</div>
+            <div style={{ position: "relative", width: "38%", height: "86%" }}>
+              {[-1, 0, 1].map((o) => (
+                <span key={o} style={{ position: "absolute", left: "30%", bottom: 0, width: "40%", height: "82%", padding: 2, borderRadius: 4, background: colors.brand, transformOrigin: "50% 130%", transform: `rotate(${o * 14}deg)`, zIndex: 2 - Math.abs(o), boxShadow: "0 3px 6px -3px rgb(0 0 0 / 0.4)" }}>
+                  <span style={{ display: "block", height: "100%", borderRadius: 3, background: o === 0 ? photo : dark }} />
+                </span>
+              ))}
+            </div>
+          </div>
+        );
+      case "liquid":
+        return (
+          <div style={{ position: "relative", display: "flex", alignItems: "center", gap: "6%", height: "44%", padding: "0 6%", overflow: "hidden", background: colors.background }}>
+            <span style={{ position: "absolute", left: -8, top: "10%", width: 26, height: 26, borderRadius: "43% 57% 62% 38% / 42% 45% 55% 58%", background: "radial-gradient(circle at 32% 28%, #fff 0 6%, #a3acb6 40%, #3c434c 75%)" }} />
+            <span style={{ ...face, position: "relative", flex: 1, fontSize: 15, fontWeight: 700, lineHeight: 1, background: `linear-gradient(180deg, ${colors.text} 45%, ${mix(colors.text, colors.background, 0.6)} 50%, ${colors.text} 55%)`, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>{storeName ? "Poured" : "Aa Bb"}</span>
+            <span style={{ position: "relative", width: "32%", aspectRatio: "1", padding: 3, borderRadius: 99, background: "conic-gradient(from 210deg, #f5f7fa, #9aa3ad, #ffffff, #6b7480, #e9edf2, #8d96a0, #f5f7fa)" }}><span style={{ display: "block", height: "100%", borderRadius: 99, background: photo }} /></span>
+          </div>
+        );
       default:
         return (
           <div style={{ display: "flex", height: "44%" }}>
@@ -468,6 +581,51 @@ export default function DesignThumb({
             {img("4 / 5", radius, { background: `linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.45) 45%, transparent 60%), ${photo}` })}
             {line("60%", 2)}
             {line("30%", 2, c("stone"))}
+          </div>
+        );
+      case "cartridge":
+        return (
+          <div style={{ display: "grid", gap: 3, padding: 3, border: `1.5px solid ${c("ink")}`, borderRadius: "5px 5px 2px 2px", background: mix(c("paper"), colors.text, 0.06), boxShadow: `2px 2px 0 ${colors.brand}` }}>
+            <span style={{ height: 2, margin: "0 20%", background: `repeating-linear-gradient(90deg, ${c("ink")} 0 2px, transparent 2px 4px)`, opacity: 0.4 }} />
+            {img("4 / 5", 2, { border: `1px solid ${c("ink")}` })}
+            {line("70%", 2)}
+          </div>
+        );
+      case "artwork":
+        return (
+          <div style={{ display: "grid", gap: 3, justifyItems: "center" }}>
+            <span style={{ display: "block", width: "100%", aspectRatio: "4 / 5", padding: "8%", border: "2.5px solid #1c1814", background: "#f6f2ea" }}><span style={{ display: "block", height: "100%", background: photo }} /></span>
+            <span style={{ padding: "1px 4px", border: `1px solid ${c("line")}`, background: c("paper") }}>{line("18px", 2)}</span>
+          </div>
+        );
+      case "folded":
+        return (
+          <div style={{ position: "relative", display: "grid", gap: 3, padding: 3, borderRadius: 2, background: c("paper"), boxShadow: "0 3px 6px -3px rgb(0 0 0 / 0.35)" }}>
+            <span style={{ position: "absolute", top: 0, right: 0, width: 7, height: 7, background: `linear-gradient(225deg, ${colors.background} 50%, ${mix(c("paper"), colors.text, 0.2)} 50%)` }} />
+            {img("4 / 5", 1)}
+            {line("60%", 2)}
+          </div>
+        );
+      case "block":
+        return (
+          <div style={{ display: "grid", gap: 3, padding: 3, border: `1px solid ${c("ink")}`, borderRadius: radius, background: c("paper"), boxShadow: `1px 1px 0 ${colors.brand}, 2px 2px 0 ${colors.brand}, 3px 3px 0 ${c("ink")}` }}>
+            {img("4 / 5", Math.max(0, radius - 1), { border: `1px solid ${c("ink")}` })}
+            {line("60%", 2)}
+          </div>
+        );
+      case "trading":
+        return (
+          <div style={{ display: "grid", gap: 2, padding: 2, borderRadius: 6, background: `linear-gradient(160deg, ${colors.brand}, ${mix(colors.brand, colors.accent, 0.45)})` }}>
+            {img("4 / 5", 4, { border: "1px solid rgb(255 255 255 / 0.85)" })}
+            <span style={{ display: "grid", gap: 2, padding: 2, borderRadius: 3, background: c("paper") }}>{line("60%", 2)}{line("30%", 2, c("stone"))}</span>
+          </div>
+        );
+      case "metal":
+        return (
+          <div style={{ display: "grid", gap: 3, padding: 3, border: "1.5px solid transparent", borderRadius: 7, background: `linear-gradient(${c("paper")}, ${c("paper")}) padding-box, linear-gradient(160deg, #ffffff, #9aa3ad 30%, #f2f4f7 50%, #6b7480 75%, #e3e7ec) border-box` }}>
+            {img("4 / 5", 5)}
+            {line("60%", 2)}
+            <span style={{ width: "34%", height: 5, borderRadius: 99, background: "linear-gradient(180deg, #ffffff, #c8ced6)", border: `1px solid ${c("line")}` }} />
           </div>
         );
       default:

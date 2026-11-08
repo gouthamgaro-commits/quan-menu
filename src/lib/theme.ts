@@ -18,7 +18,7 @@ export interface ThemeColors {
 export const HEADING_FONT_KEYS = [
   "cormorant", "playfair", "bodoni", "dm-serif", "fraunces", "cinzel", "italiana", "marcellus",
   "syne", "space-grotesk", "unbounded", "bricolage", "archivo", "outfit", "josefin", "tenor", "anton", "bagel", "instrument",
-  "fredoka", "sora", "krona",
+  "fredoka", "sora", "krona", "bungee",
 ] as const;
 export const BODY_FONT_KEYS = ["jost", "inter", "manrope", "dm-sans", "karla", "work-sans", "figtree", "nunito", "lora", "outfit", "space-mono", "sora"] as const;
 export type HeadingFont = (typeof HEADING_FONT_KEYS)[number];
@@ -63,6 +63,7 @@ export const HEADING_FONTS: Record<HeadingFont, FontInfo> = {
   fredoka: font("Fredoka", "fredoka", "sans", false, 600, 300, 700),
   sora: font("Sora", "sora", "sans", false, 600, 100, 800),
   krona: font("Krona One", "krona", "sans", false, 400),
+  bungee: font("Bungee", "bungee", "sans", false, 400),
 };
 
 export const BODY_FONTS: Record<BodyFont, FontInfo> = {
@@ -183,6 +184,36 @@ export const PALETTES: Palette[] = [
   palette("aurora", "Aurora", "#e9f1ff", "#4dd2ff", "#b06bff", "#070b1a"),
   palette("obsidian", "Obsidian glass", "#f2f2f5", "#c9c9ff", "#59ffd8", "#0b0b10"),
   palette("lagoon", "Lagoon", "#08202a", "#0a95ab", "#ff5c8a", "#eaf7fa"),
+  // Arcade
+  palette("synthwave", "Synthwave", "#f6eaff", "#ff3cac", "#2de2e6", "#140a26"),
+  palette("gameboy", "Handheld green", "#0f2a12", "#306230", "#7a5c00", "#e3efc9"),
+  palette("arcade-red", "Arcade red", "#ffffff", "#ff3b3b", "#ffd319", "#0b0b12"),
+  palette("pac", "Maze yellow", "#ffffff", "#ffd319", "#ff7ad9", "#0a0f2c"),
+  // Gallery
+  palette("white-cube", "White cube", "#141414", "#141414", "#9a6b17", "#f7f6f2"),
+  palette("salon", "Salon green and gold", "#f4efe6", "#c9a45c", "#e8c27a", "#1d3329"),
+  palette("terracotta", "Terracotta", "#2a1810", "#8c3b22", "#2f5d50", "#efe3d6"),
+  palette("night-museum", "Night at the gallery", "#ece7dc", "#d4af37", "#8fb3ff", "#101114"),
+  // Pop-up
+  palette("papercut", "Papercut", "#2a2118", "#d9481f", "#1f7a8c", "#f5efe6"),
+  palette("pastel-paper", "Pastel paper", "#2d1e2f", "#8a4fd8", "#d63c97", "#fdf3f7"),
+  palette("construction", "Construction paper", "#1b1b1b", "#2457e6", "#c26b00", "#fff8e6"),
+  palette("origami", "Origami", "#10231f", "#0f766e", "#d01c43", "#eef4f2"),
+  // Iso
+  palette("keyboard", "Keyboard grey", "#1c1c1c", "#2f2f35", "#d9480f", "#ecebe7"),
+  palette("mint-iso", "Mint blocks", "#0f2b21", "#1a7f5a", "#6c47ff", "#e8f6ef"),
+  palette("sunset-iso", "Sunset blocks", "#2b160c", "#d9480f", "#3b5bdb", "#fff1e8"),
+  palette("midnight-iso", "Midnight blocks", "#e9ecff", "#7c8cff", "#ffb02e", "#0f1222"),
+  // Deck
+  palette("royal-deck", "Royal deck", "#1b1640", "#4b2ee8", "#d26f00", "#f3f0ff"),
+  palette("ace", "Ace of hearts", "#2a0d0d", "#d61f3a", "#1b4dff", "#fff4f4"),
+  palette("felt", "Card-table felt", "#eefaf3", "#3ddc84", "#ffd166", "#0e2a1f"),
+  palette("lime", "Lime", "#172409", "#4a7c00", "#d4245e", "#f7ffe9"),
+  // Liquid
+  palette("mercury", "Mercury", "#121418", "#2b2f38", "#6a5cff", "#eceef2"),
+  palette("liquid-gold", "Liquid gold", "#f5ecd7", "#d4a63a", "#f5d27a", "#0d0b08"),
+  palette("aqua-chrome", "Aqua chrome", "#0b2229", "#0b6e8a", "#e03a7a", "#e7f5f8"),
+  palette("rose-chrome", "Rose chrome", "#2b1218", "#9e2a4f", "#3a7bd5", "#fbeff2"),
 ];
 
 export const paletteByKey = (key: string) => PALETTES.find((p) => p.key === key);
