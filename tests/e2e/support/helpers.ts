@@ -149,6 +149,11 @@ export function pngBuffer(width = 400, height = 500, rgb: [number, number, numbe
 /** Fails on serious or critical axe-core findings (WCAG 2.1 A and AA rules) on the page as it is now. */
 export async function expectAccessible(page: Page, label = page.url()) {
   await page.waitForLoadState("networkidle");
+  // Let anything still easing in finish (Motion.tsx's reveals), so colours are measured as shoppers
+  // see them rather than half faded in; endless decoration (a turning ring, floating shapes) is left be.
+  await page
+    .waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getComputedTiming().iterations === Infinity), undefined, { timeout: 5_000 })
+    .catch(() => {});
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     // Next.js's development overlay isn't part of the app.

@@ -514,8 +514,8 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
       const picture = image ?? extras.find((x): x is string => !!x) ?? null;
       return (
         <section className="puff-hero relative overflow-hidden">
-          <span aria-hidden className="puff-shape puff-ball top-[10%] left-[3%] size-14 md:top-[16%] md:size-20" />
-          <span aria-hidden className="puff-shape puff-ring top-[6%] right-[4%] size-16 [animation-delay:-2s] md:size-24" />
+          <span aria-hidden className="puff-shape puff-ball top-[86%] left-[4%] size-12 lg:top-[6%] lg:left-[38%] lg:size-20" />
+          <span aria-hidden className="puff-shape puff-ring top-[49%] right-[3%] size-14 [animation-delay:-2s] lg:top-[6%] lg:right-[4%] lg:size-24" />
           <span aria-hidden className="puff-shape puff-pill bottom-[8%] left-[38%] hidden h-10 w-24 [animation-delay:-4s] md:block" />
           <span aria-hidden className="puff-shape puff-star right-[42%] bottom-[16%] hidden size-12 [animation-delay:-1s] lg:block" />
           <div className="container-page relative grid items-center gap-10 py-12 md:py-20 lg:grid-cols-[1.05fr_1fr]">

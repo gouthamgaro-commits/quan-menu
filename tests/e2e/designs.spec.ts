@@ -1,4 +1,4 @@
-// Store designs: each of the eleven builds the storefront its own way and stays accessible;
+// Store designs: each of the fourteen builds the storefront its own way and stays accessible;
 // "Preview on the store" shows an unsaved look only in the browser that opens the signed
 // link; the home page follows the store's own section order; the WhatsApp chat button and
 // each store's own icon; a film in the opening banner; a product's 360° view.
@@ -164,6 +164,48 @@ const DESIGNS: { name: string; key: string; home: (p: Page) => Promise<void>; sh
       await expect(line).toContainText("01");
       await expect(line).toContainText("₹");
       await expect(line.getByRole("link")).toHaveAttribute("href", /^\/products\//);
+    },
+  },
+  {
+    name: "Orbit",
+    key: "orbit",
+    home: async (p) => {
+      // The coverflow: the arrows bring the next piece to the front.
+      const flow = p.getByRole("region", { name: "In orbit" });
+      const count = flow.getByText(/^\d+ \/ \d+$/);
+      const before = (await count.textContent())!;
+      await flow.getByRole("button", { name: "Next piece" }).click();
+      await expect(count).not.toHaveText(before);
+      await expect(flow.locator(".coverflow-item.is-front").getByRole("link")).toHaveAttribute("href", /^\/products\//);
+      // Departments on cubes, and cards that lean toward the pointer.
+      await expect(p.locator(".cube").first()).toBeVisible();
+      await expect(p.locator("[data-design]")).toHaveAttribute("data-card", "depth");
+    },
+  },
+  {
+    name: "Puff",
+    key: "puff",
+    home: async (p) => {
+      // Flip cards: the round button turns a card over, and back.
+      const flip = p.getByRole("region", { name: "Flip it" });
+      const turn = flip.getByRole("button", { name: /^Turn over / }).first();
+      await turn.click();
+      await expect(turn).toHaveAttribute("aria-pressed", "true");
+      await expect(flip.locator(".flip-card.is-turned")).toHaveCount(1);
+      await turn.click();
+      await expect(turn).toHaveAttribute("aria-pressed", "false");
+      await expect(flip.getByRole("listitem").first().getByRole("link").last()).toHaveAttribute("href", /^\/products\//);
+    },
+  },
+  {
+    name: "Prism",
+    key: "prism",
+    home: async (p) => {
+      // The showroom: pieces on podiums, each a way to the piece.
+      const room = p.getByRole("region", { name: "The showroom" });
+      await expect(room.locator(".podium").first()).toBeVisible();
+      await expect(room.getByRole("listitem").first().getByRole("link")).toHaveAttribute("href", /^\/products\//);
+      await expect(p.locator(".pane").first()).toHaveAttribute("data-tilt", /\d+/);
     },
   },
 ];

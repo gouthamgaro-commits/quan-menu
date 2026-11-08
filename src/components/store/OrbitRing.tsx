@@ -32,7 +32,7 @@ export default function OrbitRing({ pictures }: { pictures: string[] }) {
         type="button"
         aria-pressed={paused}
         onClick={() => setPaused((p) => !p)}
-        className="orbit-pause absolute right-0 bottom-3 inline-flex h-9 items-center gap-2 rounded-full border border-line bg-paper/80 px-3.5 text-[12px] font-semibold backdrop-blur motion-reduce:hidden"
+        className="orbit-pause absolute bottom-2 left-1/2 inline-flex -translate-x-1/2 sm:right-0 sm:bottom-3 sm:left-auto sm:translate-x-0 h-9 items-center gap-2 rounded-full border border-line bg-paper/80 px-3.5 text-[12px] font-semibold backdrop-blur motion-reduce:hidden"
       >
         <span aria-hidden>{paused ? "▶" : "❚❚"}</span>
         {paused ? "Turn the photos" : "Stop the photos"}

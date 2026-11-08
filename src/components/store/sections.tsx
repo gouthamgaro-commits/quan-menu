@@ -224,7 +224,7 @@ export function Departments({ departments, variant, browse = "Find your fit", ea
                     <span className="cube">
                       <span className="cube-face cube-front">{image(d, "(min-width: 640px) 11rem, 9rem", "", i < 4)}</span>
                       <span className="cube-face cube-side">
-                        <span className="font-serif text-lg leading-tight">{d.name}</span>
+                        <span className="font-serif text-[13px] leading-tight sm:text-base lg:text-lg">{d.name}</span>
                       </span>
                       <span className="cube-face cube-top" />
                     </span>
