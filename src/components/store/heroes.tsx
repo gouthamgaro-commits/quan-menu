@@ -715,8 +715,10 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
     }
 
     case "deck": {
-      const cards = [image, ...gallery, ...extras].filter((x, i, all): x is string => !!x && all.indexOf(x) === i).slice(0, 5);
-      const top = Math.floor((cards.length - 1) / 2);
+      const picked = [image, ...gallery, ...extras].filter((x, i, all): x is string => !!x && all.indexOf(x) === i).slice(0, 5);
+      const top = Math.floor((picked.length - 1) / 2);
+      // The banner's own photo (the first) goes in the middle, on top of the fan.
+      const cards = [...picked.slice(1, top + 1), ...picked.slice(0, 1), ...picked.slice(top + 1)];
       return (
         <section className="deck-hero relative overflow-hidden">
           <div className="container-page relative grid items-center gap-12 py-12 md:py-20 lg:grid-cols-2">
@@ -737,7 +739,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
                   return (
                     <div key={`${src}-${i}`} className="deck-card" style={{ "--o": off, "--a": Math.abs(off), zIndex: 10 - Math.abs(off) } as CSSProperties}>
                       <span className="relative block h-full w-full overflow-hidden rounded-[14px]">
-                        {i === 0 ? (
+                        {src === picked[0] ? (
                           <HeroMedia image={src} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 15rem, 45vw" className="object-cover" />
                         ) : (
                           <CatalogImage src={src} alt="" fill sizes="(min-width: 1024px) 15rem, 45vw" className="object-cover" />

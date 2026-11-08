@@ -1,4 +1,4 @@
-// Store designs: each of the fourteen builds the storefront its own way and stays accessible;
+// Store designs: each of the twenty builds the storefront its own way and stays accessible;
 // "Preview on the store" shows an unsaved look only in the browser that opens the signed
 // link; the home page follows the store's own section order; the WhatsApp chat button and
 // each store's own icon; a film in the opening banner; a product's 360° view.
@@ -206,6 +206,77 @@ const DESIGNS: { name: string; key: string; home: (p: Page) => Promise<void>; sh
       await expect(room.locator(".podium").first()).toBeVisible();
       await expect(room.getByRole("listitem").first().getByRole("link")).toHaveAttribute("href", /^\/products\//);
       await expect(p.locator(".pane").first()).toHaveAttribute("data-tilt", /\d+/);
+    },
+  },
+  {
+    name: "Arcade",
+    key: "arcade",
+    home: async (p) => {
+      await expect(p.locator("h1").first()).toHaveCSS("text-transform", "uppercase");
+      // High scores: best sellers ranked, the leader first.
+      const scores = p.getByRole("region", { name: "High scores" });
+      const leader = scores.getByRole("listitem").first();
+      await expect(leader).toContainText("1st");
+      await expect(leader.getByRole("link")).toHaveAttribute("href", /^\/products\//);
+      // Departments as levels, and products as game cartridges.
+      await expect(p.getByText("Level 01")).toBeVisible();
+      await expect(p.locator("[data-design]")).toHaveAttribute("data-card", "cartridge");
+    },
+  },
+  {
+    name: "Gallery",
+    key: "museum",
+    home: async (p) => {
+      // The banner's piece framed in a gallery room, the exhibition wall, departments as rooms.
+      await expect(p.locator(".room-frame")).toBeVisible();
+      const wall = p.getByRole("region", { name: "The exhibition" });
+      await expect(wall.getByRole("listitem").first().getByRole("link")).toHaveAttribute("href", /^\/products\//);
+      await expect(p.getByText("Room 01").first()).toBeAttached();
+    },
+  },
+  {
+    name: "Pop-up",
+    key: "popup",
+    home: async (p) => {
+      await expect(p.locator(".popup-card")).toBeVisible();
+      // The book: its pieces standing up off the pages.
+      const book = p.getByRole("region", { name: "Pop-up picks" });
+      await expect(book.getByRole("listitem").first().getByRole("link")).toHaveAttribute("href", /^\/products\//);
+      await expect(p.locator("[data-design]")).toHaveAttribute("data-card", "folded");
+    },
+  },
+  {
+    name: "Iso",
+    key: "iso",
+    home: async (p) => {
+      // Menu links on keyboard keys, and the newest pieces on isometric blocks.
+      await expect(p.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "New In" })).toHaveClass(/keycap/);
+      const blocks = p.getByRole("region", { name: "Stacked up" });
+      await expect(blocks.locator(".iso-box").first()).toBeVisible();
+      await expect(blocks.getByRole("listitem").first().getByRole("link")).toHaveAttribute("href", /^\/products\//);
+    },
+  },
+  {
+    name: "Deck",
+    key: "deck",
+    home: async (p) => {
+      // The stack: the arrows deal the next card.
+      const stack = p.getByRole("region", { name: "Swipe the stack" });
+      await expect(stack.getByText(/^1 of \d+:/)).toBeVisible();
+      await stack.getByRole("button", { name: "Next card" }).click();
+      await expect(stack.getByText(/^2 of \d+:/)).toBeVisible();
+      await expect(stack.getByRole("link", { name: "See this piece" })).toHaveAttribute("href", /^\/products\//);
+    },
+  },
+  {
+    name: "Liquid",
+    key: "liquid",
+    home: async (p) => {
+      await expect(p.locator(".chrome-ring")).toBeVisible();
+      // The pool: pieces standing in liquid chrome.
+      const pool = p.getByRole("region", { name: "Make a splash" });
+      await expect(pool.getByRole("listitem").first().getByRole("link")).toHaveAttribute("href", /^\/products\//);
+      await expect(p.locator("[data-design]")).toHaveAttribute("data-card", "metal");
     },
   },
 ];
