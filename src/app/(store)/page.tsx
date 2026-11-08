@@ -12,6 +12,9 @@ import Rack from "@/components/store/Rack";
 import RecentlyViewed from "@/components/store/RecentlyViewed";
 import Reel from "@/components/store/Reel";
 import Scrapbook from "@/components/store/Scrapbook";
+import Coverflow from "@/components/store/Coverflow";
+import FlipCards from "@/components/store/FlipCards";
+import Showroom from "@/components/store/Showroom";
 import Showcase from "@/components/store/Showcase";
 import Hero from "@/components/store/heroes";
 import Spotlight, { type Chapter } from "@/components/store/Spotlight";
@@ -144,6 +147,7 @@ export default async function Home() {
         storeName={settings.store_name}
         tagline={settings.tagline}
         extras={[...(home.promos ?? []).map((p) => p.image_url), ...data.departments.map((d) => d.image_url)]}
+        gallery={showcase.map((p) => p.image_url)}
         text={kind.words.heroText}
       />
     ),
@@ -219,6 +223,9 @@ export default async function Home() {
     drop: () => <Drop products={newest} />,
     vibes: () => <Vibes vibes={vibes} />,
     scrapbook: () => <Scrapbook products={newest} />,
+    coverflow: () => <Coverflow products={newest} />,
+    flip: () => <FlipCards products={chosen} />,
+    showroom: () => <Showroom products={showcase} />,
     story: () => <StorySection settings={settings} variant={design.key} />,
     recommended: () => <RecentlyViewed title="Recommended for you" mode="recommend" />,
     newsletter: () => <NewsletterSection variant={design.key} title={kind.words.newsletter} text={kind.words.newsletterText} />,

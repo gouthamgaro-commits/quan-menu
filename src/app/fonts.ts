@@ -11,12 +11,14 @@ import {
   DM_Serif_Display,
   Figtree,
   Fraunces,
+  Fredoka,
   Instrument_Serif,
   Inter,
   Italiana,
   Josefin_Sans,
   Jost,
   Karla,
+  Krona_One,
   Lora,
   Manrope,
   Marcellus,
@@ -24,6 +26,7 @@ import {
   Outfit,
   Playfair_Display,
   Silkscreen,
+  Sora,
   Space_Grotesk,
   Space_Mono,
   Syne,
@@ -65,6 +68,9 @@ const anton = Anton({ subsets: ["latin"], weight: "400", variable: "--font-anton
 const bagel = Bagel_Fat_One({ subsets: ["latin"], weight: "400", variable: "--font-bagel", display: "swap", preload: false });
 const instrument = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-instrument", display: "swap", preload: false });
 const spaceMono = Space_Mono({ subsets: ["latin"], weight: ["400", "700"], style: ["normal", "italic"], variable: "--font-space-mono", display: "swap", preload: false });
+const fredoka = Fredoka({ subsets: ["latin"], variable: "--font-fredoka", display: "swap", preload: false });
+const sora = Sora({ subsets: ["latin"], variable: "--font-sora", display: "swap", preload: false });
+const krona = Krona_One({ subsets: ["latin"], weight: "400", variable: "--font-krona", display: "swap", preload: false });
 // Not for the admin to choose: the pixel letters of Y2K's windows and the handwriting of Zine's notes.
 const pixel = Silkscreen({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-pixel-face", display: "swap", preload: false });
 const hand = Caveat({ subsets: ["latin"], variable: "--font-hand-face", display: "swap", preload: false });
@@ -72,7 +78,7 @@ const hand = Caveat({ subsets: ["latin"], variable: "--font-hand-face", display:
 const fonts = {
   cormorant, playfair, bodoni, "dm-serif": dmSerif, fraunces, cinzel, italiana, marcellus, syne, "space-grotesk": spaceGrotesk, unbounded, bricolage, archivo,
   outfit, josefin, tenor, jost, inter, manrope, "dm-sans": dmSans, karla, "work-sans": workSans, figtree, nunito, lora,
-  anton, bagel, instrument, "space-mono": spaceMono, pixel, hand,
+  anton, bagel, instrument, "space-mono": spaceMono, fredoka, sora, krona, pixel, hand,
 };
 
 export const fontVariables = Object.values(fonts).map((f) => f.variable).join(" ");

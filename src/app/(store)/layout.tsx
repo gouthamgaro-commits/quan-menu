@@ -5,6 +5,7 @@ import Footer from "@/components/store/Footer";
 import Header from "@/components/store/Header";
 import Intro from "@/components/store/Intro";
 import Motion from "@/components/store/Motion";
+import Tilt from "@/components/store/Tilt";
 import SetupNotice from "@/components/store/SetupNotice";
 import StoreProvider from "@/components/store/StoreProvider";
 import { getDepartments, searchProducts } from "@/lib/catalog";
@@ -116,6 +117,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         <Footer settings={settings} departments={departments} variant={design.footer} />
         {contact.chat_button && contact.whatsapp && <ChatButton number={contact.whatsapp} storeName={settings.store_name} />}
         <Motion level={design.motion} />
+        <Tilt />
       </StoreProvider>
     </div>
   );

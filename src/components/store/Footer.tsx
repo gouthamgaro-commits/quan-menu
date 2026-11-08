@@ -243,6 +243,53 @@ export default function Footer({ settings, departments, variant = "columns" }: {
         </footer>
       );
 
+    case "horizon":
+      return (
+        <footer className="horizon relative mt-28 overflow-hidden">
+          <span aria-hidden className="horizon-planet" />
+          <div className="container-page relative grid gap-12 pt-24 pb-14 lg:grid-cols-[1.3fr_repeat(3,1fr)]">
+            <div className="max-w-sm">
+              <h2 className="extrude-text font-serif text-3xl leading-tight">{join}</h2>
+              <p className="mt-3 text-sm leading-relaxed text-taupe">{pitch}</p>
+              <NewsletterForm boxed />
+            </div>
+            {columns}
+          </div>
+          <div className="container-page relative">{legal}</div>
+        </footer>
+      );
+
+    case "cloud":
+      return (
+        <footer className="cloud-top mt-32 bg-sand">
+          <div className="container-page grid gap-12 pt-16 pb-14 lg:grid-cols-[1.3fr_repeat(3,1fr)]">
+            <div className="clay-panel max-w-sm rounded-[32px] p-6 md:p-7">
+              <h2 className="puffy-text font-serif text-3xl leading-tight">{join}</h2>
+              <p className="mt-3 text-sm leading-relaxed text-taupe">{pitch}</p>
+              <NewsletterForm boxed />
+            </div>
+            {columns}
+          </div>
+          <div className="container-page">{legal}</div>
+        </footer>
+      );
+
+    case "grid":
+      return (
+        <footer className="grid-footer relative mt-28 overflow-hidden">
+          <span aria-hidden className="grid-floor" />
+          <div className="container-page relative grid gap-12 pt-16 pb-32 lg:grid-cols-[1.3fr_repeat(3,1fr)]">
+            <div className="frost-panel max-w-sm rounded-card p-6 md:p-7">
+              <h2 className="holo-text font-serif text-3xl leading-tight">{join}</h2>
+              <p className="mt-3 text-sm leading-relaxed text-taupe">{pitch}</p>
+              <NewsletterForm boxed />
+            </div>
+            {columns}
+          </div>
+          <div className="container-page relative">{legal}</div>
+        </footer>
+      );
+
     case "collage":
       return (
         <footer className="torn-top mt-24 bg-sand">

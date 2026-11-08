@@ -6,6 +6,7 @@ import CatalogImage from "../ui/CatalogImage";
 import { buttonClass, cx } from "../ui/controls";
 import { ArrowRight } from "../ui/icons";
 import HeroMedia from "./HeroMedia";
+import OrbitRing from "./OrbitRing";
 import RansomWords from "./RansomWords";
 import Rise from "./Rise";
 
@@ -22,6 +23,8 @@ interface HeroProps {
   tagline: string;
   /** More pictures for styles that use several (promotions, departments). */
   extras?: (string | null | undefined)[];
+  /** Product photos, for styles that show many at once (Orbit's ring). */
+  gallery?: (string | null | undefined)[];
   /** A line under the heading while the store has no banner yet, in the words of what it sells. */
   text?: string;
 }
@@ -76,7 +79,7 @@ function Mandala({ className }: { className?: string }) {
   );
 }
 
-export default function Hero({ variant, slide, storeName, tagline, extras = [], text = "New pieces every season, made to be worn for many more." }: HeroProps) {
+export default function Hero({ variant, slide, storeName, tagline, extras = [], gallery = [], text = "New pieces every season, made to be worn for many more." }: HeroProps) {
   const image = slide?.image_url || null;
   const video = slide?.video_url || null;
   const heading = slide?.heading || tagline || storeName;
@@ -469,6 +472,110 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
               )}
               <span aria-hidden className="absolute bottom-[8%] left-[3%] z-30 -rotate-6 font-hand text-3xl text-accent">wear it loud ♡</span>
             </div>
+          </div>
+        </section>
+      );
+    }
+
+    case "orbit": {
+      // The banner's own picture first, then the store's pieces, each once.
+      const ring = [image, ...gallery, ...extras].filter((x, i, all): x is string => !!x && all.indexOf(x) === i).slice(0, 8);
+      return (
+        <section className="orbit-hero relative overflow-hidden">
+          <span aria-hidden className="orbit-glow" />
+          <div className="container-page relative text-center">
+            <div className="relative z-10 mx-auto max-w-4xl pt-12 md:pt-16">
+              <p className="inline-flex items-center gap-2 rounded-full border border-line bg-paper/70 px-3.5 py-1 text-[12px] font-semibold tracking-wide backdrop-blur">
+                <span aria-hidden className="orbit-dot" /> {slide?.eyebrow || "New season"}
+              </p>
+              <h1 className="extrude-text mt-5 font-serif text-[clamp(2.2rem,6vw,5.25rem)] leading-[1.04]">{heading}</h1>
+              {slide?.subheading && <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-taupe">{slide.subheading}</p>}
+              {slide ? (
+                <Ctas slide={slide} className="mt-8 justify-center" primary={buttonClass("primary", "lg", "font-semibold")} secondary={buttonClass("secondary", "lg", "font-semibold")} />
+              ) : (
+                <Link href="/shop?sort=newest" className={buttonClass("primary", "lg", "mt-8 font-semibold")}>Shop new arrivals</Link>
+              )}
+            </div>
+            {ring.length >= 4 ? (
+              <OrbitRing pictures={ring} />
+            ) : (
+              ring[0] && (
+                <div className="relative mx-auto mt-10 mb-12 aspect-[4/5] w-full max-w-xs overflow-hidden rounded-card shadow-2xl">
+                  <HeroMedia image={ring[0]} video={video} alt={slide?.image_alt || ""} priority sizes="20rem" className="object-cover" />
+                </div>
+              )
+            )}
+          </div>
+        </section>
+      );
+    }
+
+    case "inflated": {
+      const picture = image ?? extras.find((x): x is string => !!x) ?? null;
+      return (
+        <section className="puff-hero relative overflow-hidden">
+          <span aria-hidden className="puff-shape puff-ball top-[10%] left-[3%] size-14 md:top-[16%] md:size-20" />
+          <span aria-hidden className="puff-shape puff-ring top-[6%] right-[4%] size-16 [animation-delay:-2s] md:size-24" />
+          <span aria-hidden className="puff-shape puff-pill bottom-[8%] left-[38%] hidden h-10 w-24 [animation-delay:-4s] md:block" />
+          <span aria-hidden className="puff-shape puff-star right-[42%] bottom-[16%] hidden size-12 [animation-delay:-1s] lg:block" />
+          <div className="container-page relative grid items-center gap-10 py-12 md:py-20 lg:grid-cols-[1.05fr_1fr]">
+            <div className="relative z-10 text-center lg:text-left">
+              <p className="clay-chip inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[13px] font-bold">
+                <span aria-hidden className="text-accent">✿</span> {slide?.eyebrow || "New in"}
+              </p>
+              <h1 className="puffy-text mt-6 font-serif text-[clamp(2.7rem,7vw,6rem)] leading-[1.02]">{heading}</h1>
+              {slide?.subheading && <p className="mx-auto mt-6 max-w-md text-lg leading-relaxed text-taupe lg:mx-0">{slide.subheading}</p>}
+              {slide ? (
+                <Ctas slide={slide} className="mt-8 justify-center lg:justify-start" primary={buttonClass("primary", "lg", "puff-btn font-bold")} secondary={buttonClass("secondary", "lg", "puff-btn font-bold")} />
+              ) : (
+                <Link href="/shop?sort=newest" className={buttonClass("primary", "lg", "puff-btn mt-8 font-bold")}>Shop new arrivals</Link>
+              )}
+            </div>
+            {picture && (
+              <div className="relative mx-auto w-full max-w-[22rem] sm:max-w-md">
+                <div className="blob blob-shadow relative aspect-square overflow-hidden">
+                  <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 28rem, 85vw" className="object-cover" />
+                </div>
+                <span aria-hidden className="clay-chip absolute -bottom-3 left-1/2 -translate-x-1/2 -rotate-3 rounded-full px-5 py-2 font-serif text-lg whitespace-nowrap">
+                  {storeName} <span className="text-accent">♥</span>
+                </span>
+              </div>
+            )}
+          </div>
+        </section>
+      );
+    }
+
+    case "podium": {
+      const picture = image ?? extras.find((x): x is string => !!x) ?? null;
+      return (
+        <section className="podium-hero relative overflow-hidden">
+          <span aria-hidden className="grid-floor" />
+          <div className="container-page relative grid items-center gap-12 pt-12 pb-16 md:pt-16 lg:grid-cols-2 lg:pb-24">
+            <div className="relative z-10 text-center lg:text-left">
+              <p className="holo-pill inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-[12px] font-semibold tracking-wide">
+                <span aria-hidden>◆</span> {slide?.eyebrow || "New season"}
+              </p>
+              <h1 className="holo-text mt-5 font-serif text-[clamp(2.5rem,6.2vw,5.5rem)] leading-[1.04]">{heading}</h1>
+              {slide?.subheading && <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-taupe lg:mx-0">{slide.subheading}</p>}
+              {slide ? (
+                <Ctas slide={slide} className="mt-8 justify-center lg:justify-start" primary={buttonClass("primary", "lg", "font-semibold")} secondary={buttonClass("secondary", "lg", "frost-btn font-semibold")} />
+              ) : (
+                <Link href="/shop?sort=newest" className={buttonClass("primary", "lg", "mt-8 font-semibold")}>Shop new arrivals</Link>
+              )}
+            </div>
+            {picture && (
+              <div className="podium-stage relative mx-auto w-full max-w-[19rem] sm:max-w-sm">
+                <span aria-hidden className="podium-beam" />
+                <div className="podium-float relative aspect-[4/5] overflow-hidden rounded-card">
+                  <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 24rem, 80vw" className="object-cover" />
+                </div>
+                <span aria-hidden className="podium">
+                  <span className="podium-top" />
+                  <span className="podium-body" />
+                </span>
+              </div>
+            )}
           </div>
         </section>
       );

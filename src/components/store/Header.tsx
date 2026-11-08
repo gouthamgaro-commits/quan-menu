@@ -46,9 +46,12 @@ const WORDMARK: Record<HeaderStyle, string> = {
   utility: "text-2xl tracking-[0.02em] uppercase",
   window: "text-xl sm:text-2xl",
   tape: "text-2xl italic",
+  slab: "extrude-text text-xl tracking-tight sm:text-2xl",
+  pillow: "puffy-text text-2xl",
+  frost: "text-xl tracking-[0.08em] uppercase",
 };
 const LOGO_HEIGHT: Record<HeaderStyle, string> = {
-  classic: "h-8", inline: "h-7", bold: "h-9", centered: "h-10", heritage: "h-10", overlay: "h-8", floating: "h-7", glass: "h-8", utility: "h-7", window: "h-8", tape: "h-8",
+  classic: "h-8", inline: "h-7", bold: "h-9", centered: "h-10", heritage: "h-10", overlay: "h-8", floating: "h-7", glass: "h-8", utility: "h-7", window: "h-8", tape: "h-8", slab: "h-8", pillow: "h-9", frost: "h-8",
 };
 
 export function Logo({ settings, variant = "classic", className }: { settings: Settings; variant?: HeaderStyle; className?: string }) {
@@ -412,6 +415,92 @@ export default function Header({ settings, departments, announcement, design, ov
                         {i.label}
                       </Link>
                       {hasChildren(i) && <DropList item={i} className="left-1/2 -translate-x-1/2 pt-3" panelClassName="paper-note p-5 font-sans text-[15px]" />}
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <div className="ml-auto lg:ml-0"><HeaderActions /></div>
+            </div>
+          </header>
+        </>
+      );
+
+    case "slab":
+      return (
+        <>
+          {bar}
+          <header className="sticky top-0 z-40 px-2 pt-2 sm:px-4 sm:pt-3">
+            <div className="slab mx-auto flex h-14 max-w-7xl items-center gap-3 rounded-[18px] px-3 sm:h-16 sm:px-5">
+              <div className="lg:hidden">{menu}</div>
+              <Logo settings={settings} variant="slab" />
+              <nav aria-label="Main" className="hidden flex-1 lg:block">
+                <ul className="flex items-center justify-center gap-0.5 text-[13px] font-semibold">
+                  {items.map((i) => (
+                    <li key={i.key} className="group relative">
+                      <Link
+                        href={i.href}
+                        aria-haspopup={hasChildren(i) ? "true" : undefined}
+                        className={cx("lift-link inline-flex h-10 items-center rounded-full px-3 whitespace-nowrap xl:px-3.5", i.sale && "text-sale")}
+                      >
+                        {i.label}
+                      </Link>
+                      {hasChildren(i) && <DropList item={i} className="left-1/2 -translate-x-1/2 pt-3" panelClassName="slab rounded-card p-5" />}
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <div className="ml-auto lg:ml-0"><HeaderActions /></div>
+            </div>
+          </header>
+        </>
+      );
+
+    case "pillow":
+      return (
+        <>
+          {bar}
+          <header className="sticky top-0 z-40 px-2 pt-2 sm:px-4 sm:pt-3">
+            <div className="pillow mx-auto flex h-14 max-w-7xl items-center gap-3 rounded-full px-4 sm:h-16 sm:px-6">
+              <div className="lg:hidden">{menu}</div>
+              <Logo settings={settings} variant="pillow" />
+              <nav aria-label="Main" className="hidden flex-1 lg:block">
+                <ul className="flex items-center justify-center gap-1 text-[14px] font-bold">
+                  {items.map((i) => (
+                    <li key={i.key} className="group relative">
+                      <Link
+                        href={i.href}
+                        aria-haspopup={hasChildren(i) ? "true" : undefined}
+                        className={cx("puff-chip inline-flex h-10 items-center rounded-full px-3.5 whitespace-nowrap", i.sale && "text-sale")}
+                      >
+                        {i.label}
+                      </Link>
+                      {hasChildren(i) && <DropList item={i} className="left-1/2 -translate-x-1/2 pt-3" panelClassName="clay-panel rounded-[28px] p-5" />}
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <div className="ml-auto lg:ml-0"><HeaderActions /></div>
+            </div>
+          </header>
+        </>
+      );
+
+    case "frost":
+      return (
+        <>
+          {bar}
+          <header className="frost sticky top-0 z-40">
+            <div className="container-page flex h-16 items-center gap-4 lg:h-[4.5rem]">
+              <div className="lg:hidden">{menu}</div>
+              <Logo settings={settings} variant="frost" />
+              <nav aria-label="Main" className="hidden flex-1 lg:block">
+                <ul className="flex items-center justify-center gap-5 text-[13px] font-medium tracking-wide xl:gap-7">
+                  {items.map((i) => (
+                    <li key={i.key} className="group relative">
+                      <Link href={i.href} aria-haspopup={hasChildren(i) ? "true" : undefined} className={cx("beam-link inline-block py-2", i.sale && "text-sale")}>
+                        {i.label}
+                      </Link>
+                      {hasChildren(i) && <DropList item={i} className="left-1/2 -translate-x-1/2 pt-3" panelClassName="frost-panel rounded-card p-5" />}
                     </li>
                   ))}
                 </ul>

@@ -15,12 +15,12 @@ import {
   type ThemeColors,
 } from "./theme";
 
-export const DESIGN_KEYS = ["atelier", "nordic", "bazaar", "boutique", "heritage", "noir", "cinema", "neon", "drop", "y2k", "zine"] as const;
+export const DESIGN_KEYS = ["atelier", "nordic", "bazaar", "boutique", "heritage", "noir", "cinema", "neon", "drop", "y2k", "zine", "orbit", "puff", "prism"] as const;
 export type DesignKey = (typeof DESIGN_KEYS)[number];
 
-export const HEADER_STYLES = ["classic", "inline", "bold", "centered", "heritage", "overlay", "floating", "glass", "utility", "window", "tape"] as const;
-export const HERO_STYLES = ["split", "full", "type", "framed", "arch", "cinema", "film", "glow", "drop", "desktop", "collage"] as const;
-export const CARD_STYLES = ["classic", "minimal", "sticker", "soft", "framed", "overlay", "gallery", "glow", "spec", "window", "polaroid"] as const;
+export const HEADER_STYLES = ["classic", "inline", "bold", "centered", "heritage", "overlay", "floating", "glass", "utility", "window", "tape", "slab", "pillow", "frost"] as const;
+export const HERO_STYLES = ["split", "full", "type", "framed", "arch", "cinema", "film", "glow", "drop", "desktop", "collage", "orbit", "inflated", "podium"] as const;
+export const CARD_STYLES = ["classic", "minimal", "sticker", "soft", "framed", "overlay", "gallery", "glow", "spec", "window", "polaroid", "depth", "clay", "holo"] as const;
 export const CORNER_STYLES = ["sharp", "soft", "round"] as const;
 export const BUTTON_STYLES = ["square", "soft", "pill"] as const;
 /** How much the store moves: not at all, sections easing in as they scroll into view, or that plus parallax and scroll-driven scenes. */
@@ -34,16 +34,16 @@ export type CornerStyle = (typeof CORNER_STYLES)[number];
 export type ButtonStyle = (typeof BUTTON_STYLES)[number];
 export type MotionStyle = (typeof MOTION_STYLES)[number];
 export type IntroStyle = (typeof INTRO_STYLES)[number];
-export type DepartmentStyle = "tiles" | "list" | "chips" | "circles" | "arches" | "mosaic" | "panels" | "lineup" | "tags" | "folders" | "stamps";
-export type TitleStyle = "editorial" | "minimal" | "bold" | "soft" | "ornament" | "giant" | "statement" | "glow" | "mono" | "chrome" | "scribble";
-export type FooterStyle = "columns" | "minimal" | "bold" | "soft" | "heritage" | "wordmark" | "grand" | "neon" | "receipt" | "taskbar" | "collage";
+export type DepartmentStyle = "tiles" | "list" | "chips" | "circles" | "arches" | "mosaic" | "panels" | "lineup" | "tags" | "folders" | "stamps" | "cubes" | "blobs" | "panes";
+export type TitleStyle = "editorial" | "minimal" | "bold" | "soft" | "ornament" | "giant" | "statement" | "glow" | "mono" | "chrome" | "scribble" | "extrude" | "puffy" | "holo";
+export type FooterStyle = "columns" | "minimal" | "bold" | "soft" | "heritage" | "wordmark" | "grand" | "neon" | "receipt" | "taskbar" | "collage" | "horizon" | "cloud" | "grid";
 export type AnnouncementStyle = "band" | "slim" | "marquee";
 export type GalleryStyle = "thumbs" | "stack" | "grid";
 
 /** Homepage sections, in the order a design shows them unless the store reorders them. */
 export const SECTION_KEYS = [
   "hero", "trust", "departments", "new", "promos", "best", "seasonal", "collections", "brands", "campaign", "spotlight", "statement", "showcase", "rack", "aisle",
-  "marquee", "numbers", "lookbook", "index", "bento", "moodboard", "doors", "reel", "drop", "vibes", "scrapbook", "story", "recommended", "newsletter",
+  "marquee", "numbers", "lookbook", "index", "bento", "moodboard", "doors", "reel", "drop", "vibes", "scrapbook", "coverflow", "flip", "showroom", "story", "recommended", "newsletter",
 ] as const;
 export type SectionKey = (typeof SECTION_KEYS)[number];
 
@@ -74,6 +74,9 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
   drop: "The drop: your newest pieces as a numbered drop, with when it landed and what's running low",
   vibes: "Shop by vibe: your featured collections as tabs in a retro window, their pieces inside",
   scrapbook: "Scrapbook: your newest pieces cut out and taped onto a page, with a typed price list",
+  coverflow: "Coverflow: your newest pieces in a 3D carousel, the one in front facing the shopper",
+  flip: "Flip cards: your pieces on cards that turn over to show their other side",
+  showroom: "Showroom: your featured pieces standing on podiums above a glowing floor",
   story: "Your story (from Policies › About)",
   recommended: "Recommended for each shopper",
   newsletter: "Newsletter sign-up",
@@ -393,6 +396,81 @@ export const DESIGNS: Record<DesignKey, Design> = {
     bodies: ["work-sans", "karla", "dm-sans", "space-mono"],
     italic: true,
   },
+  orbit: {
+    key: "orbit",
+    name: "Orbit",
+    summary: "Built in depth: a raised header, a ring of photos turning around the headline, cards that tilt toward the pointer, departments on 3D cubes, a coverflow of new pieces and a planet's horizon for a footer.",
+    header: "slab",
+    hero: "orbit",
+    card: "depth",
+    corners: "round",
+    buttons: "pill",
+    departments: "cubes",
+    title: "extrude",
+    footer: "horizon",
+    announcement: "band",
+    gallery: "thumbs",
+    filters: "drawer",
+    headingCase: "none",
+    headingTracking: "-0.02em",
+    motion: "subtle",
+    intro: "none",
+    sections: ["hero", "coverflow", "departments", "best", "promos", "new", "collections", "numbers", "recommended"],
+    palettes: ["lunar", "nebula", "solar", "glacier"],
+    headings: ["krona", "space-grotesk", "unbounded", "syne"],
+    bodies: ["inter", "manrope", "dm-sans"],
+    italic: false,
+  },
+  puff: {
+    key: "puff",
+    name: "Puff",
+    summary: "Soft, squishy 3D: an inflated header, puffy headlines, a photo in a wobbling blob among floating shapes, clay cards that press in, departments as blobs, cards that flip over and a cloud for a footer.",
+    header: "pillow",
+    hero: "inflated",
+    card: "clay",
+    corners: "round",
+    buttons: "pill",
+    departments: "blobs",
+    title: "puffy",
+    footer: "cloud",
+    announcement: "slim",
+    gallery: "grid",
+    filters: "drawer",
+    headingCase: "none",
+    headingTracking: "-0.01em",
+    motion: "subtle",
+    intro: "none",
+    sections: ["hero", "departments", "flip", "new", "promos", "best", "trust", "collections", "recommended"],
+    palettes: ["candy", "mint-cream", "grape", "lilac"],
+    headings: ["fredoka", "bagel", "unbounded", "outfit"],
+    bodies: ["nunito", "figtree", "dm-sans"],
+    italic: false,
+  },
+  prism: {
+    key: "prism",
+    name: "Prism",
+    summary: "Glass and light in 3D: a frosted header with a shimmering edge, the banner's piece on a podium above a glowing grid floor, holographic cards that catch the light, departments on glass panes, a showroom of podiums and a grid horizon for a footer.",
+    header: "frost",
+    hero: "podium",
+    card: "holo",
+    corners: "soft",
+    buttons: "soft",
+    departments: "panes",
+    title: "holo",
+    footer: "grid",
+    announcement: "marquee",
+    gallery: "thumbs",
+    filters: "sidebar",
+    headingCase: "none",
+    headingTracking: "-0.02em",
+    motion: "subtle",
+    intro: "none",
+    sections: ["hero", "showroom", "departments", "new", "best", "marquee", "collections", "brands", "recommended"],
+    palettes: ["pearl", "aurora", "obsidian", "lagoon"],
+    headings: ["sora", "syne", "space-grotesk", "unbounded"],
+    bodies: ["sora", "inter", "manrope"],
+    italic: false,
+  },
 };
 
 export const DESIGN_LIST: Design[] = DESIGN_KEYS.map((k) => DESIGNS[k]);
@@ -426,6 +504,7 @@ export const OPTION_LABELS: { [K in keyof DesignOptions]-?: { label: string; nam
       classic: "Centred name, large menu", inline: "Slim, name on the left", bold: "Search bar and category chips", centered: "Centred name, round menu",
       heritage: "Ornamented, with a contact bar", overlay: "See-through, menu button", floating: "Floating capsule", glass: "Dark glass with a shop button",
       utility: "Monospace utility bar", window: "Retro window with a menu bar", tape: "Name on masking tape, handwritten links",
+      slab: "Raised slab with lifting links", pillow: "Puffy inflated bar", frost: "Frosted glass with a shimmering edge",
     },
   },
   hero: {
@@ -434,13 +513,14 @@ export const OPTION_LABELS: { [K in keyof DesignOptions]-?: { label: string; nam
       split: "Photo beside the words", full: "Full-width photo", type: "Big words and a photo collage", framed: "Rounded photo with a card",
       arch: "Arched photo", cinema: "Full-screen photo", film: "Full-screen film, centred title", glow: "Glowing product, giant words",
       drop: "Giant capitals and a spec-sheet photo", desktop: "Chrome words and a photo in a retro window", collage: "Taped polaroids and a ransom-note title",
+      orbit: "A ring of photos turning around the words", inflated: "Puffy 3D words and a photo in a squishy blob", podium: "The piece on a podium above a glowing floor",
     },
   },
   card: {
     label: "Product cards",
     names: {
       classic: "Classic", minimal: "Minimal", sticker: "Outlined, with stickers", soft: "Soft and rounded", framed: "Framed", overlay: "Words on the photo", gallery: "Tall gallery prints", glow: "Glowing tiles",
-      spec: "Ruled spec sheets", window: "Retro windows", polaroid: "Taped polaroids",
+      spec: "Ruled spec sheets", window: "Retro windows", polaroid: "Taped polaroids", depth: "Tilting 3D cards", clay: "Soft clay cards", holo: "Holographic glass",
     },
   },
   corners: { label: "Corners", names: { sharp: "Sharp", soft: "Softened", round: "Round" } },

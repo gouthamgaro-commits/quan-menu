@@ -212,6 +212,72 @@ export function Departments({ departments, variant, browse = "Find your fit", ea
         </section>
       );
 
+    case "cubes":
+      return (
+        <section className="container-page mt-16 md:mt-24">
+          <SectionHeader eyebrow="Departments" title={browse} />
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-12 sm:grid-cols-4 md:gap-x-8">
+            {departments.map((d, i) => (
+              <li key={d.id} data-reveal>
+                <Link href={`/category/${d.slug}`} className="cube-link group grid justify-items-center gap-6 text-center">
+                  <span aria-hidden className="cube-scene">
+                    <span className="cube">
+                      <span className="cube-face cube-front">{image(d, "(min-width: 640px) 11rem, 9rem", "", i < 4)}</span>
+                      <span className="cube-face cube-side">
+                        <span className="font-serif text-lg leading-tight">{d.name}</span>
+                      </span>
+                      <span className="cube-face cube-top" />
+                    </span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold">
+                    {d.name} <ArrowRight size={14} className="transition group-hover:translate-x-0.5" />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+
+    case "blobs":
+      return (
+        <section className="container-page mt-16 md:mt-24">
+          <SectionHeader eyebrow="Departments" title={browse} />
+          <ul className="grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-4 md:gap-x-8">
+            {departments.map((d, i) => (
+              <li key={d.id} data-reveal>
+                <Link href={`/category/${d.slug}`} className="blob-link group grid justify-items-center gap-4 text-center">
+                  <span className="blob blob-shadow relative block aspect-square w-full max-w-[13rem] overflow-hidden" style={{ animationDelay: `${i * -2.5}s` }}>
+                    {image(d, "(min-width: 640px) 13rem, 42vw", "", i < 4)}
+                  </span>
+                  <span className="clay-chip rounded-full px-4 py-1.5 text-[15px] font-bold transition group-hover:-translate-y-0.5">{d.name}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+
+    case "panes":
+      return (
+        <section className="container-page mt-16 md:mt-24">
+          <SectionHeader eyebrow="Departments" title={browse} />
+          <ul className="panes grid grid-cols-2 gap-4 sm:grid-cols-4 md:gap-6">
+            {departments.map((d, i) => (
+              <li key={d.id} data-reveal>
+                <Link href={`/category/${d.slug}`} data-tilt="9" className="pane group relative block aspect-[3/4] overflow-hidden rounded-card bg-bone">
+                  {image(d, "(min-width: 640px) 24vw, 46vw", "group-hover:scale-105", i < 4)}
+                  <span className="pane-glass absolute inset-x-2.5 bottom-2.5 rounded-[calc(var(--radius-card)-2px)] px-3.5 py-3 sm:inset-x-3 sm:bottom-3">
+                    <span className="block font-serif text-lg leading-tight sm:text-xl">{d.name}</span>
+                    <span className="mt-0.5 inline-flex items-center gap-1 text-[12px] font-medium">Shop now <ArrowRight size={12} /></span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+
     case "mosaic":
       if (departments.length >= 3) {
         return (

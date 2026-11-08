@@ -18,8 +18,9 @@ export interface ThemeColors {
 export const HEADING_FONT_KEYS = [
   "cormorant", "playfair", "bodoni", "dm-serif", "fraunces", "cinzel", "italiana", "marcellus",
   "syne", "space-grotesk", "unbounded", "bricolage", "archivo", "outfit", "josefin", "tenor", "anton", "bagel", "instrument",
+  "fredoka", "sora", "krona",
 ] as const;
-export const BODY_FONT_KEYS = ["jost", "inter", "manrope", "dm-sans", "karla", "work-sans", "figtree", "nunito", "lora", "outfit", "space-mono"] as const;
+export const BODY_FONT_KEYS = ["jost", "inter", "manrope", "dm-sans", "karla", "work-sans", "figtree", "nunito", "lora", "outfit", "space-mono", "sora"] as const;
 export type HeadingFont = (typeof HEADING_FONT_KEYS)[number];
 export type BodyFont = (typeof BODY_FONT_KEYS)[number];
 
@@ -59,6 +60,9 @@ export const HEADING_FONTS: Record<HeadingFont, FontInfo> = {
   anton: font("Anton", "anton", "sans", false, 400),
   bagel: font("Bagel Fat One", "bagel", "sans", false, 400),
   instrument: font("Instrument Serif", "instrument", "serif", true, 400),
+  fredoka: font("Fredoka", "fredoka", "sans", false, 600, 300, 700),
+  sora: font("Sora", "sora", "sans", false, 600, 100, 800),
+  krona: font("Krona One", "krona", "sans", false, 400),
 };
 
 export const BODY_FONTS: Record<BodyFont, FontInfo> = {
@@ -73,6 +77,7 @@ export const BODY_FONTS: Record<BodyFont, FontInfo> = {
   lora: font("Lora", "lora", "serif", true, 400, 400, 700),
   outfit: font("Outfit", "outfit", "sans", false, 400, 100, 900),
   "space-mono": font("Space Mono", "space-mono", "mono", true, 400, 400, 700),
+  sora: font("Sora", "sora", "sans", false, 400, 100, 800),
 };
 
 export const isHeadingFont = (k: unknown): k is HeadingFont => typeof k === "string" && k in HEADING_FONTS;
@@ -163,6 +168,21 @@ export const PALETTES: Palette[] = [
   palette("riso", "Riso pink and blue", "#1a1a2e", "#e8338f", "#0a6fb5", "#fbf6ec"),
   palette("newsprint", "Newsprint", "#151515", "#151515", "#e23d75", "#f3f0e8"),
   palette("highlighter", "Highlighter yellow", "#111111", "#111111", "#b89b00", "#fffdf3"),
+  // Orbit
+  palette("lunar", "Lunar silver and indigo", "#12141f", "#3b3fd9", "#ff6a3d", "#eceef4"),
+  palette("nebula", "Nebula", "#efedff", "#8b7bff", "#3fe0ff", "#0c0a1d"),
+  palette("solar", "Solar orange", "#1f150b", "#e8470f", "#2947ff", "#fff5e8"),
+  palette("glacier", "Glacier teal", "#0d1e23", "#0b7a8a", "#ff4f8b", "#e8f5f7"),
+  // Puff
+  palette("candy", "Candy pink", "#2b1630", "#ec2f90", "#6b5bff", "#ffeef6"),
+  palette("mint-cream", "Mint cream", "#10281f", "#0f9268", "#ff7a59", "#e7faf1"),
+  palette("grape", "Grape and butter", "#2a1f06", "#7a4dff", "#ffb300", "#fff6d8"),
+  palette("lilac", "Lilac and peach", "#1f1640", "#7a5cff", "#ff8a65", "#f1ecff"),
+  // Prism
+  palette("pearl", "Pearl", "#15142a", "#5b4dff", "#00a8bd", "#f4f3fb"),
+  palette("aurora", "Aurora", "#e9f1ff", "#4dd2ff", "#b06bff", "#070b1a"),
+  palette("obsidian", "Obsidian glass", "#f2f2f5", "#c9c9ff", "#59ffd8", "#0b0b10"),
+  palette("lagoon", "Lagoon", "#08202a", "#0a95ab", "#ff5c8a", "#eaf7fa"),
 ];
 
 export const paletteByKey = (key: string) => PALETTES.find((p) => p.key === key);
