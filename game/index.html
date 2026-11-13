@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crows of Ravenmoor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #05070d; --parch: #e8dfc6; --parch-dim: #a99f86; --gold: #e9b84a; --blood: #b3261e; --amber: #ffb347;
+  --panel: rgba(8, 10, 16, 0.62); --line: rgba(233, 184, 74, 0.35);
+  --display: "Cinzel", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --body: "IM Fell English", "Palatino Linotype", Palatino, Georgia, serif;
+}
+:root:not([data-theme="light"]) { color-scheme: dark; }
+:root[data-theme="dark"] { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #05070d; color: var(--parch); font-family: var(--body); }
+body { user-select: none; -webkit-user-select: none; }
+#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+.hidden { display: none !important; }
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; inset: 0; pointer-events: none; text-shadow: 0 1px 3px #000, 0 0 10px rgba(0, 0, 0, 0.7); }
+#shade { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.85) 100%); transition: opacity 0.4s; }
+#vig { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 35%, rgba(150, 10, 5, 0.8) 100%); opacity: 0; }
+
+#obj { position: absolute; top: 16px; left: 16px; max-width: min(340px, 44vw); padding: 10px 14px; background: var(--panel); border-left: 2px solid var(--gold); }
+#obj .k { font: 500 10px var(--display); letter-spacing: 0.22em; color: var(--gold); }
+#objT { font: 700 15px/1.25 var(--display); margin: 3px 0 4px; }
+#objH { font-style: italic; font-size: 14px; line-height: 1.3; color: var(--parch-dim); }
+#objX { margin-top: 7px; padding-top: 6px; border-top: 1px solid var(--line); font-size: 13px; color: var(--parch-dim); }
+#objX b { color: var(--parch); font-weight: normal; }
+
+#top { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); text-align: center; }
+#compass { position: relative; width: 300px; height: 22px; margin: 0 auto; overflow: hidden; border-bottom: 1px solid var(--line);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent); mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent); }
+.cm { position: absolute; left: 50%; top: 2px; width: 20px; margin-left: -10px; font: 700 13px var(--display); color: var(--parch-dim); }
+.cm.north { color: var(--parch); }
+.cm.objm { color: var(--gold); font-size: 12px; top: 4px; }
+#objD { font: 500 10px var(--display); letter-spacing: 0.12em; color: var(--gold); margin-top: 3px; }
+#eye { margin: 8px auto 0; width: 150px; }
+#eyeT { font: 700 11px var(--display); letter-spacing: 0.3em; margin-right: -0.3em; }
+#eyeB { height: 3px; margin-top: 4px; background: rgba(255, 255, 255, 0.12); }
+#eyeF { height: 100%; width: 0; background: var(--parch); transition: width 0.12s linear; }
+#eye.ok #eyeT { color: var(--parch-dim); }
+#eye.warn #eyeT { color: var(--amber); } #eye.warn #eyeF { background: var(--amber); }
+#eye.bad #eyeT { color: #ff5a4d; } #eye.bad #eyeF { background: #ff5a4d; }
+
+#purse { position: absolute; top: 16px; right: 16px; text-align: right; padding: 8px 14px; background: var(--panel); border-right: 2px solid var(--gold); }
+#purse .g { font: 700 22px var(--display); color: var(--gold); font-variant-numeric: tabular-nums; }
+#purse .g small { font: 500 10px var(--display); letter-spacing: 0.2em; color: var(--parch-dim); margin-left: 6px; }
+#purse .it { font-size: 13px; color: var(--parch-dim); margin-top: 2px; font-variant-numeric: tabular-nums; }
+#purse .it b { color: var(--parch); font-weight: normal; }
+#purse .tag { display: none; margin: 5px 0 0 6px; padding: 1px 7px; font: 700 10px var(--display); letter-spacing: 0.14em; color: var(--ink); background: var(--gold); text-shadow: none; }
+
+#cross { position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; background: rgba(232, 223, 198, 0.85); box-shadow: 0 0 3px #000; }
+#draw { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; border: 1.5px solid rgba(232, 223, 198, 0.8); border-radius: 50%; opacity: 0; transform: translate(-50%, -50%); }
+#dets { position: absolute; left: 50%; top: 50%; }
+.det { position: absolute; display: none; left: -17px; top: -3px; width: 34px; height: 6px; border-radius: 3px; background: var(--parch); box-shadow: 0 0 8px rgba(0, 0, 0, 0.9); }
+#prompt { position: absolute; left: 50%; top: 58%; transform: translateX(-50%); padding: 6px 16px; background: var(--panel); border: 1px solid var(--line); font: 500 13px var(--display); letter-spacing: 0.08em; white-space: nowrap; opacity: 0; transition: opacity 0.12s; }
+#sub { position: absolute; left: 50%; bottom: 128px; transform: translateX(-50%); max-width: 80vw; font-size: 18px; font-style: italic; text-align: center; opacity: 0; transition: opacity 0.3s; }
+#toasts { position: absolute; left: 16px; top: 190px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; max-width: min(380px, 60vw); }
+.toast { padding: 6px 12px; background: var(--panel); border-left: 2px solid var(--parch-dim); font-size: 15px; line-height: 1.25; animation: tin 0.25s ease-out; transition: opacity 0.6s; }
+.toast.gold { border-color: var(--gold); color: #ffe6a8; } .toast.bad { border-color: var(--blood); color: #ffb3a8; } .toast.dim { color: var(--parch-dim); }
+.toast.out { opacity: 0; }
+@keyframes tin { from { opacity: 0; transform: translateX(-12px); } }
+
+#vitals { position: absolute; left: 16px; bottom: 18px; width: min(240px, 36vw); }
+.bar { height: 9px; margin-top: 6px; background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.16); }
+.bar i { display: block; height: 100%; transition: width 0.12s linear; }
+#hpF { background: linear-gradient(90deg, #7d1410, #c8362b); width: 100%; }
+#stF { background: linear-gradient(90deg, #4c6b34, #9cbf58); width: 100%; }
+#st { height: 5px; }
+#slots { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; gap: 6px; }
+.slot { min-width: 82px; padding: 5px 9px 6px; background: var(--panel); border: 1px solid rgba(255, 255, 255, 0.12); text-align: center; opacity: 0.6; }
+.slot.on { opacity: 1; border-color: var(--gold); box-shadow: inset 0 -2px 0 var(--gold); }
+.slot .n { font: 500 9px var(--display); letter-spacing: 0.2em; color: var(--parch-dim); }
+.slot .w { font: 700 12px var(--display); letter-spacing: 0.06em; }
+.slot .a { font-size: 12px; color: var(--gold); font-variant-numeric: tabular-nums; }
+#gem { position: absolute; left: 50%; bottom: 76px; width: 22px; height: 22px; margin-left: -11px; transform: rotate(45deg); border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(0, 0, 0, 0.6); }
+#gemF { position: absolute; inset: 2px; background: radial-gradient(circle at 35% 35%, #fff6d8, #f0b34a 60%, #b7651a); }
+#keys { position: absolute; right: 16px; bottom: 18px; text-align: right; font-size: 12.5px; line-height: 1.5; color: var(--parch-dim); }
+#keys b { color: var(--parch); font: 500 10.5px var(--display); letter-spacing: 0.06em; }
+
+/* ---------- overlays ---------- */
+.overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto;
+  background: radial-gradient(ellipse at 50% 40%, rgba(5, 7, 13, 0.35), rgba(5, 7, 13, 0.9) 78%); }
+.card { width: min(720px, 100%); margin: auto; text-align: center; }
+h1 { margin: 0; font: 900 clamp(34px, 7.4vw, 76px)/0.98 var(--display); letter-spacing: 0.04em; color: var(--parch); text-shadow: 0 2px 0 #000, 0 0 40px rgba(233, 184, 74, 0.35); }
+h1 span { display: block; font: 500 clamp(11px, 1.7vw, 15px) var(--display); letter-spacing: 0.5em; margin: 0 -0.5em 10px 0; color: var(--gold); }
+.lede { margin: 16px auto 22px; max-width: 520px; font-size: clamp(16px, 2.2vw, 19px); line-height: 1.4; font-style: italic; color: var(--parch-dim); }
+button { font: 700 16px var(--display); letter-spacing: 0.24em; color: var(--ink); background: var(--gold); border: 0; padding: 14px 34px 13px; cursor: pointer; box-shadow: 0 0 0 1px #000, 0 0 30px rgba(233, 184, 74, 0.3); transition: transform 0.12s, background 0.12s; }
+button:hover, button:focus-visible { background: #ffd775; transform: translateY(-1px); outline: none; }
+.ctl { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 4px 22px; margin: 26px auto 0; padding: 14px 18px; text-align: left; background: var(--panel); border-top: 1px solid var(--line); font-size: 14px; color: var(--parch-dim); }
+.ctl div { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px dotted rgba(255, 255, 255, 0.1); padding: 2px 0; }
+.ctl b { font: 500 11px var(--display); letter-spacing: 0.06em; color: var(--parch); white-space: nowrap; }
+.note { margin-top: 12px; font-size: 13px; color: var(--parch-dim); }
+#pause h2, #end h2 { margin: 0 0 8px; font: 900 clamp(30px, 6vw, 56px) var(--display); letter-spacing: 0.06em; }
+#end p { font-size: 18px; font-style: italic; color: var(--parch-dim); }
+#end .rank { font-style: normal; font-family: var(--display); letter-spacing: 0.12em; color: var(--parch); }
+#end .rank b { color: var(--gold); }
+#end table { margin: 12px auto; border-collapse: collapse; font-size: 16px; text-align: left; }
+#end td { padding: 4px 14px; border-bottom: 1px dotted rgba(255, 255, 255, 0.14); }
+#end td:first-child { color: var(--parch-dim); }
+#end .total { font: 700 22px var(--display); font-style: normal; color: var(--gold); margin: 14px 0 20px; }
+@media (max-width: 760px) { #keys, #toasts { display: none; } .slot { min-width: 62px; padding: 4px 5px; } #obj { max-width: 46vw; } #objH { display: none; } }
+</style>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud" class="hidden">
+  <div id="shade"></div><div id="vig"></div>
+  <div id="obj">
+    <div class="k">OBJECTIVE</div>
+    <div id="objT"></div>
+    <div id="objH"></div>
+    <div id="objX"><b>Contract:</b> the Lord Marshal's death pays 500 gold.</div>
+  </div>
+  <div id="top">
+    <div id="compass"></div>
+    <div id="objD"></div>
+    <div id="eye" class="ok"><div id="eyeT">UNSEEN</div><div id="eyeB"><div id="eyeF"></div></div></div>
+  </div>
+  <div id="purse">
+    <div class="g"><span id="gold">0</span><small>GOLD</small></div>
+    <div class="it">Draughts <b id="potN">0</b> · Smoke <b id="smkN">0</b></div>
+    <span class="tag" id="keyI">KEY</span><span class="tag" id="crownI">CROWN</span>
+  </div>
+  <div id="toasts"></div>
+  <div id="dets"></div>
+  <div id="draw"></div><div id="cross"></div>
+  <div id="prompt"></div>
+  <div id="sub"></div>
+  <div id="vitals">
+    <div class="bar"><i id="hpF"></i></div>
+    <div class="bar" id="st"><i id="stF"></i></div>
+  </div>
+  <div id="gem"><div id="gemF"></div></div>
+  <div id="slots">
+    <div class="slot" id="slot0"><div class="n">1</div><div class="w">SWORD</div><div class="a">&nbsp;</div></div>
+    <div class="slot" id="slot1"><div class="n">2</div><div class="w">BOW</div><div class="a" id="a1">0</div></div>
+    <div class="slot" id="slot2"><div class="n">3</div><div class="w">CROSSBOW</div><div class="a" id="a2">0</div></div>
+    <div class="slot" id="slot3"><div class="n">4</div><div class="w">KNIVES</div><div class="a" id="a3">0</div></div>
+  </div>
+  <div id="keys">
+    <b>C</b> crouch · <b>SPACE</b> jump / climb<br>
+    <b>F</b> assassinate · <b>E</b> use / steal<br>
+    <b>Q</b> smoke · <b>H</b> heal · <b>V</b> whistle
+  </div>
+</div>
+
+<div id="menu" class="overlay">
+  <div class="card">
+    <h1><span>A TALE OF BLADE AND SHADOW</span>Crows of Ravenmoor</h1>
+    <p class="lede">The Ember Crown sleeps in the keep's treasury. Lord Marshal Varek holds the key. You have a sword, a bow, and the dark.</p>
+    <button id="startBtn">ENTER THE NIGHT</button>
+    <div class="ctl">
+      <div><span>Move</span><b>W A S D</b></div>
+      <div><span>Look</span><b>MOUSE</b></div>
+      <div><span>Sprint</span><b>SHIFT</b></div>
+      <div><span>Crouch / sneak</span><b>C</b></div>
+      <div><span>Jump, climb ledges</span><b>SPACE</b></div>
+      <div><span>Attack / draw / shoot</span><b>LEFT CLICK</b></div>
+      <div><span>Block, parry, aim</span><b>RIGHT CLICK</b></div>
+      <div><span>Sword, bow, crossbow, knives</span><b>1 2 3 4</b></div>
+      <div><span>Assassinate from behind</span><b>F</b></div>
+      <div><span>Loot, pick pockets</span><b>E</b></div>
+      <div><span>Smoke bomb</span><b>Q</b></div>
+      <div><span>Healing draught</span><b>H</b></div>
+      <div><span>Whistle to lure</span><b>V</b></div>
+      <div><span>Pause / mute</span><b>P / M</b></div>
+    </div>
+    <p class="note">Keyboard and mouse. Torchlight betrays you; bushes and darkness hide you when you crouch.</p>
+  </div>
+</div>
+
+<div id="pause" class="overlay hidden"><div class="card"><h2>Paused</h2><p class="lede">Click anywhere to return to the night.</p></div></div>
+<div id="end" class="overlay hidden"><div class="card"><h2 id="endT"></h2><div id="endB"></div><button id="endBtn"></button></div></div>
+
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
