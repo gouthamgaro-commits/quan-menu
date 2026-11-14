@@ -1,5 +1,7 @@
 # Quán
 
+> This repository also holds a second, separate app: **[project-store/](project-store/)**, a store where engineering students buy ready-made projects or get a price for their own idea. See its README.
+
 **Live demo:** https://quan-menu-indol.vercel.app · example menu: https://quan-menu-indol.vercel.app/m/demo
 
 Photo-to-QR menus for Ho Chi Minh City street-food stalls. A vendor photographs their menu, AI reads the dishes and prices, the vendor checks them, and Quán prints a QR sticker. Customers scan it and see every dish in English, Korean, Chinese or Japanese, with allergens, an approximate price in their own currency, a "say it" button, and an order screen they can show the vendor.

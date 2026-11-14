@@ -1,0 +1,9 @@
+node_modules
+.next
+.env*
+!.env.example
+*.tsbuildinfo
+next-env.d.ts
+
+# Local database used when DATABASE_URL is not set (npm run dev)
+/.data
