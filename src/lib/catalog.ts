@@ -79,7 +79,7 @@ export async function departmentsOf(ids: string[]): Promise<Map<string, string>>
   return new Map(await getDepartmentsOfIn(await contextStoreId(), [...new Set(ids)].sort()));
 }
 
-export { alternateDepartments } from "./departments";
+export { alternateDepartments, distinctPicks } from "./departments";
 
 const getFacetsIn = unstable_cache(
   async (store: string | null, q: string | null, category: string | null, collection: string | null): Promise<Facets | null> => {

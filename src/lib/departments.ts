@@ -14,3 +14,18 @@ export function alternateDepartments<T extends { id: string }>(items: T[], depar
   for (let i = 0; out.length < items.length; i++) for (const list of lists) if (list[i]) out.push(list[i]);
   return out;
 }
+
+/**
+ * A few pieces from each of several lists (the chapters of a style guide), departments in turn,
+ * leaving out the pieces an earlier list already showed: a piece in two styles appears once, in
+ * the first. A list with too few others tops up with the pieces shown before.
+ */
+export function distinctPicks<T extends { id: string }>(lists: T[][], departments: Map<string, string>, count: number): T[][] {
+  const shown = new Set<string>();
+  return lists.map((list) => {
+    const picks = alternateDepartments(list.filter((p) => !shown.has(p.id)), departments).slice(0, count);
+    if (picks.length < count) picks.push(...alternateDepartments(list.filter((p) => shown.has(p.id)), departments).slice(0, count - picks.length));
+    for (const p of picks) shown.add(p.id);
+    return picks;
+  });
+}

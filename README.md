@@ -115,11 +115,11 @@ payment account and web address, and the platform's administrators create them f
   chrome (Liquid) and a style guide in numbered chapters (Library).
 - A **style guide** any store can show: its collections as the chapters of a guide, each a
   full-length look beside a big title, a few words and four pieces to shop it, taken in turn from
-  each department (a woman's piece, a man's, a necklace), with contents at the top. The owner
-  picks the chapters and their order, and the words, in Settings › Homepage (until then it shows
-  the featured collections). The sample catalog has one ready: the world of style in six styles,
-  each for her and for him (Old Money, Rockstar Chic, Smart Casual, Japanese Workwear, Avant-Garde
-  and Old Hollywood).
+  each department (a woman's piece, a man's, a necklace) and none shown twice, with contents at
+  the top. The owner picks the chapters and their order, and the words, in Settings › Homepage
+  (until then it shows the featured collections). The sample catalog has one ready: the world of
+  style in six styles, each for her and for him (Old Money, Rockstar Chic, Smart Casual, Japanese
+  Workwear, Avant-Garde and Old Hollywood).
 - An announcement bar whose messages take turns (or scroll past), an add-to-bag bar that stays in
   reach on phones, free-delivery progress in the bag, an optional WhatsApp "Chat with us" button,
   and each store's own icon in browser tabs.
@@ -1041,7 +1041,7 @@ a film and a product page with a 360° view. Automated checks
 don't replace testing with a keyboard and a screen reader.
 
 Latest local run, against a freshly reset local database with the sample catalog for women and
-men: typecheck clean, unit 163/163, integration 99/99, Playwright 44/44 against the production build
+men: typecheck clean, unit 165/165, integration 99/99, Playwright 44/44 against the production build
 (`next build`), and Library's home, shop, product and collection pages checked at 360, 390, 768,
 1024 and 1280 px wide without horizontal scrolling, as the other twenty designs' pages were in
 the run before. The accessibility checks

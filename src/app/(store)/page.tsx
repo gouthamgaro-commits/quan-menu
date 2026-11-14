@@ -43,7 +43,7 @@ import {
   TrustStrip,
   trustPoints,
 } from "@/components/store/sections";
-import { alternateDepartments, departmentsOf, getCollections, getHomeData, searchProducts, type Collection } from "@/lib/catalog";
+import { departmentsOf, distinctPicks, getCollections, getHomeData, searchProducts, type Collection } from "@/lib/catalog";
 import { homeSections, type SectionKey } from "@/lib/designs";
 import { storefrontLook } from "@/lib/look";
 import { formatMoney } from "@/lib/money";
@@ -59,7 +59,7 @@ import type { StyleGuideSettings } from "@/lib/types";
  * The Style guide's chapters: the collections the store chose in Settings › Homepage, in its
  * order, or else its featured collections; each with four of its pieces, its chosen ones first
  * and taken in turn from each department (a woman's piece, a man's, a pair of earrings...), so a
- * collection for everyone shows everyone.
+ * collection for everyone shows everyone. A piece in two chapters shows only in the first.
  */
 async function styleChapters(guide: StyleGuideSettings, featured: Collection[]): Promise<StyleChapter[]> {
   const chosen = guide.collections?.length ? await getCollections() : [];
@@ -67,14 +67,14 @@ async function styleChapters(guide: StyleGuideSettings, featured: Collection[]):
     guide.collections?.length ? guide.collections.map((slug) => chosen.find((c) => c.slug === slug)).filter((c): c is Collection => !!c) : featured
   ).slice(0, 6);
   const pieces = await Promise.all(picked.map(async (c) => (await searchProducts({ collection: c.slug, sort: "featured", limit: 12 })).items));
-  const departments = await departmentsOf(pieces.flat().map((p) => p.id));
+  const picks = distinctPicks(pieces, await departmentsOf(pieces.flat().map((p) => p.id)), 4);
   return picked
     .map((c, i) => ({
       slug: c.slug,
       title: c.title,
       text: c.description ? excerpt(c.description, 220) : null,
       image: c.image_url || c.banner_url,
-      products: alternateDepartments(pieces[i], departments).slice(0, 4),
+      products: picks[i],
     }))
     .filter((c) => c.image || c.products.length);
 }
