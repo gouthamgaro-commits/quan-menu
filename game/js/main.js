@@ -853,7 +853,7 @@ function hurtPlayer(dmg, from, attacker) {
 // ---------------------------------------------------------------- player movement
 function tryMantle() {
   if (P.st < 6) return false;
-  const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), reach = P.onGround ? 2.9 : 2.3;
+  const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), reach = P.onGround ? 3.2 : 2.7;
   for (const dist of [0.6, 1.0]) {
     const px = P.pos.x + fx * dist, pz = P.pos.z + fz * dist;
     let top = -1e9, tooTall = false;
@@ -976,10 +976,16 @@ function updatePlayer(dt) {
 }
 
 // ---------------------------------------------------------------- weapons
-const camDir = new V3();
+const camDir = new V3(), eyePos = new V3();
+// Where the player is looking, from the eye; independent of when the camera was last rendered.
+function aim() {
+  const cp = Math.cos(P.pitch);
+  camDir.set(-Math.sin(P.yaw) * cp, Math.sin(P.pitch), -Math.cos(P.yaw) * cp);
+  eyePos.set(P.pos.x, P.pos.y + P.eye, P.pos.z);
+}
 function fireShot(kind, speed, dmg) {
-  camera.getWorldDirection(camDir);
-  const o = camera.position.clone().addScaledVector(camDir, 0.45);
+  aim();
+  const o = eyePos.clone().addScaledVector(camDir, 0.45);
   o.y -= 0.06;
   spawnShot(kind, o, camDir, speed, dmg, null);
 }
@@ -1004,8 +1010,8 @@ function swordHit(heavy) {
     hurtGuard(g, dmg);
   }
   if (any) { makeNoise(P.pos, 12); return; }
-  camera.getWorldDirection(camDir);
-  const o = camera.position, t = rayWorld(o.x, o.y, o.z, camDir.x, camDir.y, camDir.z, 2.3);
+  aim();
+  const o = eyePos, t = rayWorld(o.x, o.y, o.z, camDir.x, camDir.y, camDir.z, 2.3);
   if (t < 2.3) { sfx.clang(0.45); burst('spark', o.x + camDir.x * t, o.y + camDir.y * t, o.z + camDir.z * t, 5, 2, 0.12, 0.3); makeNoise(P.pos, 9); }
 }
 function switchWeapon(i) {
@@ -1119,23 +1125,23 @@ function updateVM(dt) {
   const k = 1 - Math.exp(-22 * dt);
 
   if (vmSword.visible) {
-    let px = 0.36, py = -0.4, pz = -0.6, rx = -0.35, ry = -0.1, rz = 0.3, snap = false;
+    let px = 0.4, py = -0.52, pz = -0.8, rx = -0.62, ry = -0.15, rz = 0.42, snap = false;
     if (P.swing) {
       const u = P.swing.t / P.swing.dur, e = ease(Math.min(1, u / 0.5)), back = ease(clamp((u - 0.55) / 0.45, 0, 1));
-      let sx, sy2, sz = -0.52, srx, srz;
-      if (P.swing.dir === 0) { sx = lerp(0.52, -0.34, e); sy2 = -0.26; srx = -1.3; srz = lerp(-1.35, 1.75, e); }
-      else if (P.swing.dir === 1) { sx = lerp(-0.4, 0.52, e); sy2 = -0.24; srx = -1.3; srz = lerp(1.75, -1.35, e); }
-      else { sx = 0.14; sy2 = lerp(-0.08, -0.5, e); srx = lerp(0.75, -2.05, e); srz = 0.12; sz = -0.5; }
+      let sx, sy2, sz = -0.7, srx, srz;
+      if (P.swing.dir === 0) { sx = lerp(0.6, -0.4, e); sy2 = -0.3; srx = -1.3; srz = lerp(-1.35, 1.75, e); }
+      else if (P.swing.dir === 1) { sx = lerp(-0.45, 0.6, e); sy2 = -0.28; srx = -1.3; srz = lerp(1.75, -1.35, e); }
+      else { sx = 0.16; sy2 = lerp(-0.1, -0.55, e); srx = lerp(0.6, -2.05, e); srz = 0.12; sz = -0.68; }
       px = lerp(sx, px, back); py = lerp(sy2, py, back); pz = lerp(sz, pz, back); rx = lerp(srx, rx, back); rz = lerp(srz, rz, back); ry = 0;
       snap = true;
-    } else if (P.blocking) { px = 0.04; py = -0.2; pz = -0.44; rx = -0.12; ry = 0.25; rz = 1.22; }
+    } else if (P.blocking) { px = 0.1; py = -0.26; pz = -0.62; rx = -0.12; ry = 0.25; rz = 1.22; }
     const q = snap ? 1 : k;
     vmSword.position.set(lerp(vmSword.position.x, px, q), lerp(vmSword.position.y, py, q), lerp(vmSword.position.z, pz, q));
     vmSword.rotation.set(lerp(vmSword.rotation.x, rx, q), lerp(vmSword.rotation.y, ry, q), lerp(vmSword.rotation.z, rz, q));
   }
   if (vmBow.visible) {
     const d = P.draw, has = P.arrows > 0 && P.cd <= 0.15;
-    vmBow.position.set(lerp(vmBow.position.x, lerp(0.2, 0.09, d), k), lerp(vmBow.position.y, lerp(-0.2, -0.12, d), k), lerp(vmBow.position.z, lerp(-0.72, -0.66, d), k));
+    vmBow.position.set(lerp(vmBow.position.x, lerp(0.3, 0.12, d), k), lerp(vmBow.position.y, lerp(-0.24, -0.13, d), k), lerp(vmBow.position.z, lerp(-0.95, -0.82, d), k));
     vmBow.rotation.set(0.04, lerp(0.28, 0.1, d), lerp(-0.5, -0.24, d));
     const nz = 0.345 + d * 0.3 + (P.cd > 0.25 ? Math.sin(G.t * 90) * 0.01 : 0);
     setString(vmBow.userData.string, 0, 0.475, 0.345, 0, 0, has ? nz : 0.345, 0, -0.475, 0.345);
@@ -1297,13 +1303,7 @@ window.addEventListener('resize', resize);
 
 // ---------------------------------------------------------------- main loop
 let last = performance.now(), tensionT = 0, fpsT = 0, fpsN = 0, lowFps = 0;
-function frame(now) {
-  requestAnimationFrame(frame);
-  const dt = Math.min(0.05, (now - last) / 1000);
-  last = now;
-  if (G.state === 'pause') return;
-  G.t += dt;
-
+function logic(dt) {
   if (G.state === 'play') {
     G.stats.time += dt;
     updatePlayer(dt);
@@ -1318,6 +1318,16 @@ function frame(now) {
     updateShots(dt);
   }
   updateParts(dt);
+  input.firePressed = false;
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  if (G.state === 'pause') return;
+  G.t += dt;
+
+  logic(dt);
   for (const c of W.chests) if (c.opened && c.openT < 1) { c.openT = Math.min(1, c.openT + dt * 3); c.lid.rotation.x = -ease(c.openT) * 1.9; }
   if (G.doorOpen && door.position.y < 4.85) door.position.y = Math.min(4.85, door.position.y + dt * 2.2);
   crown.rotation.y = G.t * 0.8; crown.position.y = W.crown.y + Math.sin(G.t * 1.7) * 0.05;
@@ -1343,7 +1353,6 @@ function frame(now) {
   tensionT -= dt;
   if (tensionT <= 0) { tensionT = 0.4; sfx.setTension(G.state === 'play' && G.alertN ? 1 : 0); }
   if (G.state !== 'menu') { updateVM(dt); if (G.state === 'play') updateHUD(dt); }
-  input.firePressed = false;
 
   renderer.clear();
   renderer.render(scene, camera);
@@ -1362,5 +1371,5 @@ buildChests();
 resetGame();
 resize();
 show('hud', false);
-window.__game = { G, P, W, guards, shots, camera, renderer, startGame, findPath, blocked, C };
+window.__game = { G, P, W, guards, shots, camera, renderer, startGame, findPath, blocked, C, keys, input, logic, stealthTarget, assassinate, navH, pickpocket, findInteract, los, alertGuard };
 requestAnimationFrame(frame);

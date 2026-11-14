@@ -246,8 +246,8 @@ export function buildWorld(scene) {
     clothRed: std(T.cloth, 0xb23a2e), clothBlue: std(T.cloth, 0x3c5f9a), clothTan: std(T.cloth, 0xb9a57e),
     iron: std(null, 0x2a2c30, { roughness: 0.6, metalness: 0.7 }),
     gold: std(null, 0xffc94a, { roughness: 0.3, metalness: 1, emissive: 0x6a4500 }),
-    winLit: new THREE.MeshBasicMaterial({ color: new THREE.Color(2.4, 1.45, 0.55) }),
-    winBlue: new THREE.MeshBasicMaterial({ color: new THREE.Color(0.7, 1.2, 2.4) }),
+    winLit: new THREE.MeshBasicMaterial({ color: new THREE.Color(1.5, 0.78, 0.24) }),
+    winBlue: new THREE.MeshBasicMaterial({ color: new THREE.Color(0.3, 0.6, 1.5) }),
     winDark: std(null, 0x0a0e16, { roughness: 0.25, metalness: 0.4 }),
   };
   for (const k of ['winLit', 'winBlue', 'winDark']) M[k].userData.noShadow = true;
@@ -341,7 +341,7 @@ export function buildWorld(scene) {
   scene.fog = new THREE.FogExp2(fogCol, 0.0062);
   scene.background = fogCol;
 
-  scene.add(new THREE.HemisphereLight(0x6f86c9, 0x1c1712, 0.75));
+  scene.add(new THREE.HemisphereLight(0x6f86c9, 0x1c1712, 0.95));
   const moon = new THREE.DirectionalLight(0x9fb7ff, 1.5);
   moon.castShadow = true;
   moon.shadow.mapSize.set(2048, 2048);
@@ -499,11 +499,11 @@ export function buildWorld(scene) {
   // courtyard
   box(-21, 0, -45, 8, 3, 9, M.wood);
   roof(-21, 3, -45, 8, 9, 1.9, 'z', M.thatch, M.wood);
-  box(-24.8, 0, -30, 2.2, 1.1, 3.2, M.hay, { c: { soft: true } });
+  box(-23.7, 0, -30.2, 4.4, 1.1, 4, M.hay, { c: { soft: true } });
   box(-16.6, 0, -43, 0.5, 0.9, 2.6, M.hay, { col: false });
   for (const z of [-27, -30.5]) { box(21, 0, z, 0.22, 1.7, 0.22, M.darkwood); box(21, 1.1, z, 1.3, 0.2, 0.2, M.darkwood, { col: false }); box(21, 1.7, z, 0.42, 0.42, 0.42, M.hay, { col: false }); }
   crate(15.2, 0, -24); crate(16.4, 0, -24); crate(15.8, 1.1, -24, 1); barrel(24.6, 0, -24); barrel(24.7, 0, -25.1);
-  barrel(-15, 0, -31); crate(-25, 0, -37.5);
+  barrel(-15, 0, -31); crate(-25, 0, -36.5);
   chest(-21, 0, -52.2, { gold: 110, arrows: 5 }); chest(15.5, 0, -52, { gold: 100, smoke: 1 }, 1);
   torch(-4.2, 3.4, -20.25); torch(4.2, 3.4, -20.25);
   torch(-5, 3.4, -31.85); torch(5, 3.4, -31.85);
@@ -538,17 +538,20 @@ export function buildWorld(scene) {
       }
     }
     // something to climb on
+    // something to climb on, always under the eaves (the low edge of the roof)
     if (rnd() < 0.7 || h < 4) {
-      const side = ci === 0 ? -Math.sign(cx) : ci === 2 ? -Math.sign(cx) : Math.sign(cx);
-      const zo = ci === 1 ? -d / 2 + 0.7 : ci === 2 ? d / 2 - 0.7 : (rnd() < 0.5 ? -1 : 1) * (d / 2 - 0.8);
-      const px = cx + side * (w / 2 + 0.6);
-      if (rnd() < 0.75) crate(px, 0, cz + zo); else { barrel(px - side * 0.12, 0, cz + zo); }
+      let px, pz;
+      if (axis === 'z') {
+        const side = ci === 0 || ci === 2 ? -Math.sign(cx) : Math.sign(cx);
+        px = cx + side * (w / 2 + 0.6); pz = cz + (ci === 1 ? -1 : ci === 2 ? 1 : rnd() < 0.5 ? -1 : 1) * (d / 2 - 0.8);
+      } else { px = cx + (rnd() - 0.5) * (w - 1.8); pz = cz + d / 2 + 0.6; }
+      if (h < 4 || rnd() < 0.7) crate(px, 0, pz); else barrel(px, 0, pz);
     }
   }
   const cols = [11.5, 23, 35.5, 47], rows = [-12, -0.5, 11, 22.5, 34, 45.5];
   for (const sx of [-1, 1]) cols.forEach((cxa, ci) => rows.forEach((cz) => {
     const cx = sx * cxa;
-    const w = 7 + rnd() * 2, d = 7 + rnd() * 2.4, h = rnd() < 0.42 ? 3.2 + rnd() * 0.75 : 4.9 + rnd() * 1.3, rh = 2.2 + rnd() * 1.3;
+    const w = 7 + rnd() * 2, d = 7 + rnd() * 2.4, h = rnd() < 0.45 ? 3.1 + rnd() * 0.6 : 4.9 + rnd() * 1.3, rh = 2.2 + rnd() * 1.3;
     if (Math.abs(cx) - w / 2 < 17 && cz + d / 2 > 5 && cz - d / 2 < 25) return;            // market square
     if (cx - w / 2 < -31 && cx + w / 2 > -51 && cz - d / 2 < 14 && cz + d / 2 > -20) return; // church close
     house(cx, cz, w, d, h, rh, ci);
@@ -596,7 +599,7 @@ export function buildWorld(scene) {
   }
   for (let i = 0; i < 9; i++) box(34 + (i % 3) * 3.2, 0, -38 - (i / 3 | 0) * 3.4, 0.5, 0.9, 0.14, M.stoneDark, { col: false });
   // hay to land in under the east wall, wall chest above the stairs
-  box(55.3, 0, 19.5, 1.3, 1.1, 3.4, M.hay, { c: { soft: true } });
+  box(54.2, 0, 19.5, 3.5, 1.1, 4.4, M.hay, { c: { soft: true } });
   chest(42, 7, 57.2, { gold: 70, arrows: 6 });
 
   // scaffolding on the outside of the east wall: the quiet way in
@@ -697,7 +700,7 @@ export function buildWorld(scene) {
   }
   // bushes: crouch in them to vanish
   const hideSpots = [[-7.5, 66], [7.5, 69], [-12, 61.8], [12.5, 61.6], [62.6, 8.5], [63.2, 25], [-62.5, 40], [-36, -27], [-45, -44],
-    [40.5, -27], [50, -50], [33, -52], [23, -37], [-16.5, -24.6], [-31.6, -9], [-31.6, 4], [0, 101], [-9, 112], [20, 96]];
+    [40.5, -27], [50, -50], [33, -52], [23, -37], [-16.5, -24.6], [-31.6, -9], [-31.6, 4], [9.5, 103], [-9, 112], [20, 96]];
   for (const [x, z] of hideSpots) W.hide.push({ x, z, r: 2.3 });
   {
     const g = new THREE.IcosahedronGeometry(1, 1);
@@ -775,7 +778,7 @@ export function buildWorld(scene) {
   G({ type: 'guard', path: [[0, 48], [0, 27], [0, -15], [0, 27]] });
   G({ type: 'guard', path: [[-13, 7.4], [13, 7.4], [13, 23.6], [-13, 23.6]] });
   G({ type: 'guard', path: [[-29.3, -18.4], [-29.3, 52.4]] }); G({ type: 'guard', path: [[29.3, 52.4], [29.3, -18.4]] });
-  G({ type: 'guard', path: [[-53.8, -18.4], [-53.8, 52.4]] }); G({ type: 'guard', path: [[53.6, 52.4], [53.6, -18.4]] });
+  G({ type: 'guard', path: [[-53.8, -18.4], [-53.8, 52.4]] }); G({ type: 'guard', path: [[53.6, 13], [53.6, -18.4]] });
   G({ type: 'guard', post: [-2.6, -18.4], yaw: 0 }); G({ type: 'guard', post: [2.6, -18.4], yaw: 0 });
   G({ type: 'guard', path: [[-20, -27], [20, -27]] }); G({ type: 'guard', path: [[20, -30], [20, -43], [15.5, -43]] });
   G({ type: 'guard', path: [[-10, -36], [10, -36], [10, -45], [-10, -45]] });
