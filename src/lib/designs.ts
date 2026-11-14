@@ -631,7 +631,7 @@ export const DESIGNS: Record<DesignKey, Design> = {
   library: {
     key: "library",
     name: "Library",
-    summary: "A gentleman's library: a club header with a crest, the banner in a gilt frame against a wall of books, departments as book spines, chapter titles in roman numerals, lookbook-page cards, a style guide in chapters and an ex libris footer.",
+    summary: "A private library: a club header with a crest, the banner in a gilt frame against a wall of books, departments as book spines, chapter titles in roman numerals, lookbook-page cards, a style guide in chapters and an ex libris footer.",
     header: "club",
     hero: "library",
     card: "studio",

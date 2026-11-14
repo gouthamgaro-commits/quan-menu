@@ -849,7 +849,7 @@ const products = [
     care: "Brush with a suede brush. Protect with suede spray.",
     d: "Soft sand suede loafers on a light rubber sole: the easiest way to make jeans look considered." },
   // Rockstar Chic
-  { t: "Quilted Leather Racer Jacket", b: "sable-row", c: "men-outerwear", p: 16990, sizes: ["S", "M", "L", "XL"],
+  { t: "Quilted Leather Racer Jacket", b: "sable-row", c: "men-outerwear", p: 16990, sizes: ["S", "M", "L", "XL"], featured: true,
     colors: [["Black", "#1B1B1B", ["1553591589-2e96ef7eca65"]]],
     tags: ["rockstar", "outerwear", "aw26"], fabric: "Lambskin leather with quilted shoulders and a cotton lining.",
     fit: "Close fit with an offset zip and a snap collar.",
@@ -904,7 +904,7 @@ const products = [
     fit: "Relaxed overshirt with two flap chest pockets.",
     care: "Specialist suede clean only.",
     d: "A chocolate suede overshirt, washed so it feels worn-in from the first day. Wear it open over a black tee." },
-  { t: "Knitted Camp-Collar Polo", b: "northloom", c: "men-tshirts", p: 2990, sizes: M,
+  { t: "Knitted Camp-Collar Polo", b: "northloom", c: "men-tshirts", p: 2990, sizes: M, featured: true,
     colors: [["Camel", "#B68E5E", ["1761956261160-5219e7d7fd52@faces", "1761956255550-e1d6d12e94be@faces"]]],
     tags: ["smart-casual", "knitwear", "summer"], fabric: "Textured cotton knit.",
     fit: "Regular fit with an open camp collar.",
@@ -929,7 +929,7 @@ const products = [
     fit: "Boxy, with three patch pockets and a point collar.",
     care: "Machine wash cold. It softens with every wash.",
     d: "The chore jacket in undyed ecru canvas: three patch pockets, a point collar and dark corozo buttons. It looks better the more you wear it." },
-  { t: "Boxy Cotton Work Jacket", b: "sumi-atelier", c: "men-outerwear", p: 7490, sizes: ["S", "M", "L", "XL"],
+  { t: "Boxy Cotton Work Jacket", b: "sumi-atelier", c: "men-outerwear", p: 7490, sizes: ["S", "M", "L", "XL"], featured: true,
     colors: [["Stone", "#C9B89B", ["1743764252758-3935c61bcdbd@top", "1743764252813-386dedce1a8d@top"]]],
     tags: ["japanese-workwear", "avant-garde", "outerwear"], fabric: "Dense cotton drill.",
     fit: "Cropped and boxy, with full rounded sleeves and an inverted pleat at the back.",
@@ -966,7 +966,7 @@ const products = [
     fit: "Boxy single-breasted jacket with matching straight trousers.",
     care: "Dry clean only.",
     d: "A black suit scattered with tiny embroidered flowers. With a crossed scarf and a cap instead of a tie, it is tailoring that breaks the rules." },
-  { t: "Long Black Overcoat", b: "sumi-atelier", c: "men-outerwear", p: 15990, sizes: M,
+  { t: "Long Black Overcoat", b: "sumi-atelier", c: "men-outerwear", p: 15990, sizes: M, featured: true,
     colors: [["Black", "#151515", ["1585820122150-3a0909e77e20"]]],
     tags: ["avant-garde", "old-hollywood", "aw26", "outerwear"], fabric: "Wool and cashmere blend.",
     fit: "Long and loose, below the knee, with a notch lapel.",
@@ -985,7 +985,7 @@ const products = [
     fit: "One-button jacket with black satin peak lapels; slim trousers.",
     care: "Dry clean only.",
     d: "A midnight navy tuxedo with black satin peak lapels. Under evening light, navy reads blacker than black." },
-  { t: "Black Double-Breasted Suit", b: "sable-row", c: "men-outerwear", guide: "blazer", p: 20900, sizes: SUIT,
+  { t: "Black Double-Breasted Suit", b: "sable-row", c: "men-outerwear", guide: "blazer", p: 20900, sizes: SUIT, featured: true,
     colors: [["Black", "#171717", ["1768696082783-4313d98341ae"]]],
     tags: ["old-hollywood", "occasion"], fabric: "Wool and mohair blend with a gentle sheen.",
     fit: "Six-button double-breasted jacket with peak lapels; straight trousers with turn-ups.",
@@ -1021,36 +1021,141 @@ const products = [
     fit: "Double-breasted with peak lapels; slim trousers.",
     care: "Dry clean only.",
     d: "A plum double-breasted suit for the man who would rather be remembered. Add a pocket square and a lapel chain." },
+  // The six styles, for her: womenswear in each, so every chapter mixes women's and men's pieces.
+  { t: "Beige Tailored Suit", b: "atelier-mira", c: "women-outerwear", p: 12990, sizes: W, featured: true,
+    colors: [["Beige", "#D9C8B4", ["1779406166699-662a041a12a9"]]],
+    tags: ["old-money", "smart-casual", "tailoring", "occasion"], fabric: "Wool blend with a soft drape.",
+    fit: "Relaxed single-breasted blazer with matching high-rise straight trousers.",
+    care: "Dry clean only.",
+    d: "A beige two-piece cut loose and long, worn open over a crisp white shirt. Tailoring that looks like it was always in the family." },
+  { t: "Ivory Pleated Maxi Skirt", b: "atelier-mira", c: "women-skirts", p: 3990, sizes: W, featured: true,
+    colors: [["Ivory", "#EFE9DD", ["1762343039071-fb52623712a5", "1762343038913-2d0b726c291e"]]],
+    tags: ["old-money", "summer"], fabric: "Pleated crepe with a soft lining.",
+    fit: "High waist, falling to the ankle in fine sunray pleats.",
+    care: "Hand wash cold. Hang to dry; the pleats hold.",
+    d: "An ivory maxi skirt in fine pleats that move with the sea breeze. With a black vest and slingbacks, it is the Riviera in one outfit." },
+  { t: "Pearl Drop Necklace", b: "kaari-studio", c: "accessories-jewellery", p: 4490, sizes: ONE, featured: true,
+    colors: [["Pearl", "#EDE6DA", ["1785744556873-bfa4e74ff7e0", "1595345705177-ffe090eb0784"]]],
+    tags: ["old-money", "occasion", "handcrafted"], fabric: "Freshwater pearls on a gold-plated chain with a pearl drop.",
+    fit: "42 cm, sitting just below the collarbone.",
+    care: "Wipe with a soft cloth. Keep away from perfume.",
+    d: "Freshwater pearls strung by hand, meeting in a fine gold V and a single drop. With a cardigan, a white shirt or nothing else at all." },
+  { t: "Camel Pleated Midi Skirt", b: "atelier-mira", c: "women-skirts", p: 3490, sizes: W, featured: true,
+    colors: [["Camel", "#B98E62", ["1603659752441-8b43d7f49f2c"]]],
+    tags: ["old-money", "aw26"], fabric: "Knife-pleated satin crepe.",
+    fit: "High waist, midi length, with an elasticated back.",
+    care: "Hand wash cold. Hang to dry.",
+    d: "A camel midi skirt in knife pleats, made for an ivory roll neck and a walk by the lake." },
+  { t: "Pleated Grey Mini Skirt", b: "atelier-mira", c: "women-skirts", p: 2490, sizes: W,
+    colors: [["Grey", "#6E6E70", ["1714205901142-fb9be5d548b4"]]],
+    tags: ["old-money", "prep"], fabric: "Brushed cotton twill.",
+    fit: "High waist with a flat front and a pleated hem.",
+    care: "Machine wash cold.",
+    d: "A grey mini with a pleated hem, prep school by way of a Sunday in town. With a ruffled knit top or a cable cardigan." },
+  { t: "Chocolate Wool Coat", b: "atelier-mira", c: "women-outerwear", p: 13990, sizes: W,
+    colors: [["Chocolate", "#6B4A2E", ["1709145255317-91dea122a88f"]]],
+    tags: ["old-money", "aw26", "outerwear"], fabric: "Wool and cashmere blend.",
+    fit: "Oversized, double-breasted, falling below the knee.",
+    care: "Dry clean only.",
+    d: "A chocolate coat in wool and cashmere, long, roomy and double-breasted. Over everything, all winter." },
+  { t: "Black Satin Evening Dress", b: "atelier-mira", c: "women-dresses", p: 6990, sizes: W, featured: true,
+    colors: [["Black", "#151515", ["1765870973567-454d2476114c", "1765870972591-31948b3cdcab"]]],
+    tags: ["old-hollywood", "occasion"], fabric: "Heavy satin with a little stretch.",
+    fit: "Off the shoulder, fitted to the hip, with a thigh-high slit.",
+    care: "Dry clean only.",
+    d: "A black satin dress worn off the shoulder, with a slit that shows itself only when you walk. Red lips optional, but recommended." },
+  { t: "Strapless Column Gown", b: "atelier-mira", c: "women-dresses", p: 11990, sizes: W, featured: true,
+    colors: [["Black", "#1A1A1A", ["1764593827458-9345bf5fe251"]]],
+    tags: ["old-hollywood", "occasion"], fabric: "Crepe with a satin finish, boned bodice.",
+    fit: "Strapless and fitted, flaring into a short train.",
+    care: "Dry clean only.",
+    d: "A strapless black column gown that pools into a little train. With opera gloves and waves in your hair, it is pure golden-age glamour." },
+  { t: "Black Lambskin Biker", b: "sable-row", c: "women-outerwear", p: 15990, sizes: W, featured: true,
+    colors: [["Black", "#161616", ["1594803617043-2a5a0829fcd9"]]],
+    tags: ["rockstar", "outerwear", "aw26"], fabric: "Lambskin leather with a cotton lining.",
+    fit: "Cropped and close, with an asymmetric zip and a belted hem.",
+    care: "Specialist leather clean only.",
+    d: "A cropped black biker in soft lambskin with silver zips and a belted hem. Over a white crop top and baggy black trousers, it is loud enough." },
+  { t: "Grey Wide-Leg Trousers", b: "atelier-mira", c: "women-trousers", p: 3990, sizes: W, featured: true,
+    colors: [["Taupe Grey", "#8F857C", ["1741605037162-b1f475a4a4d3"]]],
+    tags: ["smart-casual", "workwear"], fabric: "Fluid wool-feel twill.",
+    fit: "High waist, wide and full length, with a soft elastic back.",
+    care: "Machine wash cold on a gentle cycle.",
+    d: "Taupe-grey trousers with a long, wide leg that falls straight from a high waist. With a white shirt tied at the front, they are dinner-ready." },
+  { t: "Sand Relaxed Blazer", b: "atelier-mira", c: "women-outerwear", p: 7990, sizes: W, featured: true,
+    colors: [["Sand", "#CDB8A4", ["1590873802674-55bb8f947bc5"]]],
+    tags: ["smart-casual", "tailoring", "workwear"], fabric: "Crepe with a light lining.",
+    fit: "Relaxed and slightly long, with a single button.",
+    care: "Dry clean, or hand wash cold.",
+    d: "A sand blazer cut easy, worn over a black cami with its matching trousers, or with jeans on the weekend." },
+  { t: "Wide Linen Trousers", b: "sumi-atelier", c: "women-trousers", p: 3490, sizes: W, featured: true,
+    colors: [["Natural", "#D6CCBA", ["1621767527621-ecdea6e1c522"]], ["Grey", "#A9A8A3", ["1779400204601-8e0f6a2d38ed"]]],
+    tags: ["japanese-workwear", "linen", "summer"], fabric: "Washed linen.",
+    fit: "High waist with pleats, wide through the leg.",
+    care: "Machine wash cold. Wear them creased.",
+    d: "Washed linen trousers with deep pleats and a wide, easy leg, in natural or grey. Tuck in a wrap top, or wear them with a vest." },
+  { t: "Long Black Robe Coat", b: "sumi-atelier", c: "women-outerwear", p: 12990, sizes: W, featured: true,
+    colors: [["Black", "#141414", ["1750190321700-62c70974ef9f"]]],
+    tags: ["avant-garde", "outerwear"], fabric: "Matte crepe with horn buttons.",
+    fit: "Floor-length and loose, with a stand collar and wide sleeves.",
+    care: "Dry clean only.",
+    d: "A floor-length black coat that falls like a robe, with a stand collar and four horn buttons. It changes the room when you walk in." },
+  { t: "Black Cape Coat", b: "sumi-atelier", c: "women-outerwear", p: 13990, sizes: W, featured: true,
+    colors: [["Black", "#171717", ["1707303294967-d0ccd0809cf2"]]],
+    tags: ["avant-garde", "aw26", "outerwear"], fabric: "Heavy wool blend.",
+    fit: "Oversized, with a cape back, falling to mid-calf.",
+    care: "Dry clean only.",
+    d: "A heavy black coat with a cape back and nothing to fasten. With a knitted headscarf and lace-up boots, it is quietly dramatic." },
 ];
 /** The first of the newest products, which `--pack` adds to a store that already has the others. */
 const FIRST_ADDED = "Ribbed Asymmetric Crop Top";
-/** The first of the World of Menswear pieces: `--pack <store> --since` starts here. */
-const MENSWEAR_FIRST = "Navy Double-Breasted Blazer";
+/** The first of the World of Style pieces: `--pack <store> --since` starts here. */
+const STYLES_FIRST = "Navy Double-Breasted Blazer";
 
 /**
- * The six menswear styles. Each is an automated collection of the products carrying its tag; the
- * pieces listed here were in the catalog before the styles and get the tag added.
+ * The six styles, for her and for him. Each is an automated collection of the products carrying
+ * its tag; the pieces listed here were in the catalog before the styles and get the tag added.
+ * The looks alternate between women's and men's photographs down the style guide.
  */
 const styles = [
-  { tag: "old-money", title: "Old Money", look: "1775680978532-fd71173a381a", banner: "1766104804285-66867659f8a3", featured: true,
-    description: "Navy blazers, cream pleats, knit polos and penny loafers. Quiet clothes that look inherited, not bought.",
-    existing: ["Oxford Button-Down Shirt", "Poplin Dress Shirt", "Merino Crew Sweater", "Tailored Wool-Blend Blazer", "Tipped Knit Polo", "Argyle Sweater Vest", "Washed Linen Shirt", "Navy Slim-Fit Suit", "Single-Breasted Overcoat"] },
-  { tag: "rockstar", slug: "rockstar-chic", title: "Rockstar Chic", look: "1675877879221-871aa9f7c314", banner: "1605268845395-15828acd992e",
-    description: "Leather jackets, satin shirts and jacquard blazers: dressed for the after-party with the volume turned up.",
-    existing: ["Leather Biker Jacket", "Black Two-Piece Suit", "Satin Bomber Jacket", "Tapered Stretch Jeans"] },
-  { tag: "smart-casual", title: "Smart Casual", look: "1617114919297-3c8ddb01f599", banner: "1620228922597-cca58f177310", bannerCrop: "faces",
-    description: "Suede jackets, knit polos and good chinos: polished enough for dinner, easy enough for every day.",
-    existing: ["Charcoal Brushed Blazer", "Oxford Button-Down Shirt", "Merino Crew Sweater", "Washed Linen Shirt", "Heavyweight Crew-Neck Tee", "Tapered Stretch Jeans"] },
+  { tag: "old-money", title: "Old Money", look: "1603659752441-8b43d7f49f2c", banner: "1775340060294-78ec68658add", featured: true,
+    description: "Navy blazers, cream pleats, cable knits, pearls and penny loafers, for her and for him. Quiet clothes that look inherited, not bought.",
+    existing: ["Oxford Button-Down Shirt", "Poplin Dress Shirt", "Merino Crew Sweater", "Tailored Wool-Blend Blazer", "Tipped Knit Polo", "Argyle Sweater Vest", "Washed Linen Shirt", "Navy Slim-Fit Suit", "Single-Breasted Overcoat",
+      "Classic Cotton Trench Coat", "Belted Wool Wrap Coat", "Cream Fisherman Cardigan", "Cable Knit Cardigan", "Forest Cable-Knit Jumper", "Glen Check Double-Breasted Blazer", "Wide-Leg Pleated Trousers", "Tie-Neck Georgette Blouse", "Pleated Chiffon Midi Skirt"] },
+  { tag: "rockstar", slug: "rockstar-chic", title: "Rockstar Chic", look: "1675877879221-871aa9f7c314", banner: "1594803617043-2a5a0829fcd9", bannerCrop: "faces",
+    description: "Leather jackets, corsets, satin shirts and jacquard blazers: dressed for the after-party with the volume turned up.",
+    existing: ["Leather Biker Jacket", "Black Two-Piece Suit", "Satin Bomber Jacket", "Tapered Stretch Jeans", "Cropped Moto Jacket", "Faux Leather Corset Top", "Lace-Up Corset Top"] },
+  { tag: "smart-casual", title: "Smart Casual", look: "1741605037162-b1f475a4a4d3", banner: "1620228922597-cca58f177310", bannerCrop: "faces",
+    description: "Easy blazers, suede jackets, knit polos and good trousers: polished enough for dinner, easy enough for every day.",
+    existing: ["Charcoal Brushed Blazer", "Oxford Button-Down Shirt", "Merino Crew Sweater", "Washed Linen Shirt", "Heavyweight Crew-Neck Tee", "Tapered Stretch Jeans",
+      "Pinstripe Tailored Blazer", "Linen Drawstring Trousers", "High-Rise Wide-Leg Jeans", "Open-Knit Cotton Sweater", "Chunky Rib Sweater"] },
   { tag: "japanese-workwear", title: "Japanese Workwear", look: "1743764252813-386dedce1a8d", banner: "1724335141947-a63578d5d118", bannerCrop: "faces",
-    description: "Chore jackets, boxy cuts, balloon trousers and selvedge denim: built like workwear, worn like art.",
-    existing: ["Straight-Leg Selvedge Jeans", "Denim Trucker Jacket", "Indigo Linen Shirt", "Band-Collar Linen Shirt", "Utility Cargo Pants", "Plaid Flannel Overshirt"] },
-  { tag: "avant-garde", title: "Avant-Garde", look: "1777969382035-88ff5ad401d2", banner: "1603189343302-e603f7add05a",
-    description: "Liquid satin, sculpted volume and all-black layers, for days when the rules are optional.",
-    existing: [] },
-  { tag: "old-hollywood", title: "Old Hollywood", look: "1767372274086-1c4f41f9f4c3", banner: "1748914451679-4c996574a75f",
-    description: "Tuxedos, double-breasted suits, waistcoats and wide trousers: the glamour of the golden age of film.",
-    existing: ["Pinstripe Double-Breasted Blazer", "Navy Slim-Fit Suit", "Poplin Dress Shirt", "Black Two-Piece Suit"] },
+    description: "Chore jackets, boxy cuts, wide linen trousers and selvedge denim: built like workwear, worn like art.",
+    existing: ["Straight-Leg Selvedge Jeans", "Denim Trucker Jacket", "Indigo Linen Shirt", "Band-Collar Linen Shirt", "Utility Cargo Pants", "Plaid Flannel Overshirt",
+      "Linen Drawstring Trousers", "Belted Linen Shirt Dress"] },
+  { tag: "avant-garde", title: "Avant-Garde", look: "1750190321700-62c70974ef9f", banner: "1603189343302-e603f7add05a",
+    description: "Robe coats, liquid satin, sculpted volume and all-black layers, for days when the rules are optional.",
+    existing: ["Scarlet Tailored Blazer", "Satin Jogger Pants"] },
+  { tag: "old-hollywood", title: "Old Hollywood", look: "1781212211159-34cfbc7681de", banner: "1764593822295-c6cfbf079298",
+    description: "Evening gowns, black satin, tuxedos and double-breasted suits: the glamour of the golden age of film.",
+    existing: ["Pinstripe Double-Breasted Blazer", "Navy Slim-Fit Suit", "Poplin Dress Shirt", "Black Two-Piece Suit",
+      "Liquid Satin Maxi Dress", "Pleated Georgette Gown", "Bias-Cut Satin Slip Dress", "Ruffled Off-Shoulder Dress"] },
 ].map((x) => ({ ...x, slug: x.slug ?? x.tag }));
+
+/**
+ * The order the World of Style pieces arrive in, newest first: women's and men's in turn, so the
+ * new arrivals mix both and each style's chapter leads with a woman's piece, then a man's. A
+ * store taking them with `--pack` gets them in this order; the others follow, five hours apart.
+ */
+const ARRIVALS = [
+  "Beige Tailored Suit", "Navy Double-Breasted Blazer", "Ivory Pleated Maxi Skirt", "Pleated Cream Trousers",
+  "Black Satin Evening Dress", "Midnight Navy Tuxedo", "Black Lambskin Biker", "Quilted Leather Racer Jacket",
+  "Grey Wide-Leg Trousers", "Suede Western Jacket", "Long Black Robe Coat", "Oversized Satin Suit",
+  "Wide Linen Trousers", "Ecru Chore Jacket", "Pearl Drop Necklace", "Sand Knit Polo",
+  "Camel Pleated Midi Skirt", "Camel Cable-Knit Sweater", "Strapless Column Gown", "Black Double-Breasted Suit",
+  "Black Cape Coat", "Long Black Overcoat", "Sand Relaxed Blazer", "Knitted Camp-Collar Polo",
+  "Pleated Grey Mini Skirt", "Boxy Cotton Work Jacket", "Chocolate Wool Coat", "Leather Penny Loafers",
+];
 for (const style of styles) {
   for (const title of style.existing) {
     const product = products.find((p) => p.t === title);
@@ -1077,9 +1182,10 @@ const collections = [
     banner: wide("1617733401065-c7bdf0b33417"), image: tall("1617733401065-c7bdf0b33417"),
     description: "Trench coats, merino and heavy rib knits in a palette of camel, rust and oat. Layers for the cooler months." },
   { slug: "the-occasion-edit", title: "The Occasion Edit", kind: "manual", featured: true, sort: 5,
-    products: ["Cut-Out Halter Dress", "Bias-Cut Satin Slip Dress", "Off-Shoulder Mini Dress", "Liquid Satin Maxi Dress", "Pleated Georgette Gown", "Puff-Sleeve Tiered Dress", "Tailored Wool-Blend Blazer", "Gold Teardrop Earrings"],
+    products: ["Cut-Out Halter Dress", "Midnight Navy Tuxedo", "Bias-Cut Satin Slip Dress", "Black Double-Breasted Suit", "Off-Shoulder Mini Dress", "Black Velvet Smoking Jacket",
+      "Liquid Satin Maxi Dress", "Black Satin Evening Dress", "Pleated Georgette Gown", "Strapless Column Gown", "Puff-Sleeve Tiered Dress", "Tailored Wool-Blend Blazer", "Gold Teardrop Earrings"],
     banner: wide("1790802243983-e6de0e275f59"), image: tall("1790802243983-e6de0e275f59"),
-    description: "Satin, cut-outs and sharp tailoring for weddings, parties and nights out." },
+    description: "Satin, cut-outs, tuxedos and sharp tailoring for weddings, parties and nights out, for her and for him." },
   { slug: "linen-and-light", title: "Linen & Light", kind: "automated", seasonal: true, season: "Summer", sort: 6,
     rules: { match: "any", conditions: [{ field: "tag", op: "equals", value: "linen" }, { field: "tag", op: "equals", value: "summer" }] },
     banner: wide("1792007194806-72a27dd975b0"), image: tall("1792007194806-72a27dd975b0"),
@@ -1204,14 +1310,26 @@ update public.store_settings set
   free_shipping_threshold = 299900,
   homepage = ${json({
     announcement: "Complimentary delivery on orders over ₹2,999 · Easy 15-day returns",
-    // The Style guide section's chapters: the world of menswear, in its six styles.
+    // The Style guide section's chapters: six styles, each for her and for him.
     style_guide: {
       eyebrow: "Style guide",
-      title: "The world of menswear",
-      intro: "Six ways to dress, from old money to old Hollywood. Find yours, then shop the look.",
+      title: "The world of style",
+      intro: "Six ways to dress, for her and for him, from old money to old Hollywood. Find yours, then shop the look.",
       collections: styles.map((x) => x.slug),
     },
     hero: [
+      {
+        sample: true,
+        eyebrow: "The world of style",
+        heading: "Old money hits different",
+        subheading: "Cream pleats, navy blazers, cable knits and pearls, for her and for him. Quiet clothes that look inherited, not bought.",
+        cta_label: "Shop Old Money",
+        cta_href: "/collections/old-money",
+        secondary_label: "New arrivals",
+        secondary_href: "/shop?sort=newest",
+        image_url: img("1789457261730-4e693fadfeb7", "4:5"),
+        image_alt: "A woman in a white suit and a man in white linen standing on a lawn",
+      },
       {
         sample: true,
         eyebrow: "Just dropped",
@@ -1249,7 +1367,7 @@ update public.store_settings set
     ],
     promos: [
       { sample: true, eyebrow: "Vintage Prep", heading: "Varsity, argyle and pleats", cta_label: "Shop the prep edit", cta_href: "/collections/vintage-prep", image_url: img("1682354163828-d1d56c380431", "4:5"), image_alt: "Woman in a forest-green varsity jacket and a white crop top" },
-      { sample: true, eyebrow: "Going out", heading: "Dressed for after dark", cta_label: "Shop occasionwear", cta_href: "/collections/the-occasion-edit", image_url: img("1779400203195-8906eec4b645", "4:5"), image_alt: "Black cut-out halter dress" },
+      { sample: true, eyebrow: "Going out", heading: "Dressed for after dark", cta_label: "Shop occasionwear", cta_href: "/collections/the-occasion-edit", image_url: img("1791721008749-267fa21ab242", "4:5"), image_alt: "A man in a fedora and braces with a woman in a pink evening dress" },
       { sample: true, eyebrow: "Under ₹3,000", heading: "Everyday essentials", cta_label: "Shop now", cta_href: "/collections/under-3000", image_url: img("1562157873-818bc0726f68", "4:5"), image_alt: "Folded cotton t-shirts in six colours" },
     ],
   })},
@@ -1270,7 +1388,7 @@ if (packAt > -1) {
     process.exit(1);
   }
   const sinceAt = process.argv.indexOf("--since");
-  const first = sinceAt > -1 ? process.argv[sinceAt + 1] || MENSWEAR_FIRST : FIRST_ADDED;
+  const first = sinceAt > -1 ? process.argv[sinceAt + 1] || STYLES_FIRST : FIRST_ADDED;
   const from = products.findIndex((p) => p.t === first);
   if (from < 0) {
     console.error(`--since: no product "${first}"`);
@@ -1345,7 +1463,8 @@ if (packAt > -1) {
           variants.push([q(slug), q(sku), q(size), q(color), q(hex), String(stockFor(sku)), String(vpos++)]);
         }
       }
-      return [q(p.t), q(slug), q(p.b), q(p.c), guideName(p.guide), q(p.d), q(p.fabric), q(p.fit), q(p.care), arr(p.tags), String(k * 5), String(!!p.featured), String(p.p * 100), p.cmp ? String(p.cmp * 100) : "null::int", String(p.returnable !== false)];
+      const age = ARRIVALS.includes(p.t) ? ARRIVALS.indexOf(p.t) * 3 : ARRIVALS.length * 3 + k * 5;
+      return [q(p.t), q(slug), q(p.b), q(p.c), guideName(p.guide), q(p.d), q(p.fabric), q(p.fit), q(p.care), arr(p.tags), String(age), String(!!p.featured), String(p.p * 100), p.cmp ? String(p.cmp * 100) : "null::int", String(p.returnable !== false)];
     })),
     "  ) as p(title, slug, brand, category, guide, description, fabric, fit, care, tags, age, featured, price, compare_at, returnable)",
     "  where not exists (select 1 from public.products x where x.store_id = s and x.slug = p.slug);",
@@ -1367,7 +1486,7 @@ if (packAt > -1) {
   process.exit(0);
 }
 
-// --styles <store id>: prints the SQL that gives a store the six menswear style collections and
+// --styles <store id>: prints the SQL that gives a store the six style collections and
 // adds each style's tag to the sample pieces it already had. Run it after `--pack <store> --since`
 // (which adds the new pieces); running it again changes nothing.
 const stylesAt = process.argv.indexOf("--styles");
@@ -1384,7 +1503,7 @@ if (stylesAt > -1) {
   const tagged = [...bySlug].map(([slug, tags]) => [q(slug), arr(tags)]);
   const own = collections.filter((c) => styles.some((x) => x.slug === c.slug));
   const sql = [
-    `-- The six menswear styles for store ${store}: collections by tag, and the tags on the pieces it already had.`,
+    `-- The six styles for store ${store}: collections by tag, and the tags on the pieces it already had.`,
     "-- Generated by scripts/generate-seed.mjs --styles. Safe to run more than once.",
     "do $styles$",
     "declare",
@@ -1405,6 +1524,40 @@ if (stylesAt > -1) {
     "    kind = excluded.kind, rules = excluded.rules, is_published = true",
     "  where public.collections.is_sample;",
     "end $styles$;",
+  ];
+  process.stdout.write(sql.join("\n") + "\n");
+  process.exit(0);
+}
+
+// --arrivals <store id>: prints the SQL that makes the World of Style pieces a store already has its
+// newest arrivals again, in ARRIVALS order (a woman's piece, then a man's), three hours apart from
+// now, and features the ones the sample catalog features. For a store that took the pieces before
+// the order was set; running it later moves them to the top of New In again.
+const arrivalsAt = process.argv.indexOf("--arrivals");
+if (arrivalsAt > -1) {
+  const store = process.argv[arrivalsAt + 1] ?? "";
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(store)) {
+    console.error("--arrivals takes a store id, like 6bf8ac76-bb65-4994-b630-e9eda2c7a357");
+    process.exit(1);
+  }
+  const rows = ARRIVALS.map((title, i) => {
+    const p = products.find((x) => x.t === title);
+    return `    (${q(slugify(title))}, ${i * 3}, ${!!p.featured})`;
+  });
+  const sql = [
+    `-- The World of Style pieces as store ${store}'s newest arrivals, women's and men's in turn.`,
+    "-- Generated by scripts/generate-seed.mjs --arrivals.",
+    "do $arrivals$",
+    "declare",
+    `  s uuid := ${q(store)};`,
+    "begin",
+    "  if not exists (select 1 from public.stores where id = s) then raise exception 'No store %', s; end if;",
+    "  perform set_config('app.cross_store', 'on', true);",
+    "  update public.products p set published_at = now() - make_interval(hours => a.age), is_featured = p.is_featured or a.featured from (values",
+    rows.join(",\n"),
+    "  ) as a(slug, age, featured)",
+    "  where p.store_id = s and p.is_sample and p.status = 'active' and p.slug = a.slug;",
+    "end $arrivals$;",
   ];
   process.stdout.write(sql.join("\n") + "\n");
   process.exit(0);
