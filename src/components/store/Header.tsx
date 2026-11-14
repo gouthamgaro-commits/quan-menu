@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Department } from "@/lib/catalog";
-import type { Design, HeaderStyle } from "@/lib/designs";
+import { monogram, type Design, type HeaderStyle } from "@/lib/designs";
 import { contactOf, type Settings } from "@/lib/settings";
 import CatalogImage from "../ui/CatalogImage";
 import { cx } from "../ui/controls";
@@ -55,10 +55,11 @@ const WORDMARK: Record<HeaderStyle, string> = {
   keycaps: "text-lg font-bold tracking-tight",
   segmented: "text-xl font-bold tracking-tight",
   metal: "liquid-text text-xl font-bold tracking-tight sm:text-2xl",
+  club: "text-xl tracking-[0.3em] uppercase sm:text-[1.6rem]",
 };
 const LOGO_HEIGHT: Record<HeaderStyle, string> = {
   classic: "h-8", inline: "h-7", bold: "h-9", centered: "h-10", heritage: "h-10", overlay: "h-8", floating: "h-7", glass: "h-8", utility: "h-7", window: "h-8", tape: "h-8", slab: "h-8", pillow: "h-9", frost: "h-8",
-  cabinet: "h-8", letterhead: "h-9", fold: "h-8", keycaps: "h-7", segmented: "h-8", metal: "h-8",
+  cabinet: "h-8", letterhead: "h-9", fold: "h-8", keycaps: "h-7", segmented: "h-8", metal: "h-8", club: "h-10",
 };
 
 export function Logo({ settings, variant = "classic", className }: { settings: Settings; variant?: HeaderStyle; className?: string }) {
@@ -698,6 +699,51 @@ export default function Header({ settings, departments, announcement, design, ov
           </header>
         </>
       );
+
+    case "club": {
+      // The menu split around a centred crest, between gilt rules, like a club's letterhead.
+      const half = Math.ceil(items.length / 2);
+      const link = (i: NavItem) => (
+        <li key={i.key} className="group relative">
+          <Link
+            href={i.href}
+            aria-haspopup={hasChildren(i) ? "true" : undefined}
+            className={cx("club-link inline-block py-2 whitespace-nowrap", i.sale && "text-sale")}
+          >
+            {i.label}
+          </Link>
+          {hasChildren(i) && <DropList item={i} className="left-1/2 -translate-x-1/2 pt-3" panelClassName="club-panel p-5 normal-case tracking-normal" />}
+        </li>
+      );
+      return (
+        <>
+          {bar}
+          <header className="club-bar sticky top-0 z-40 bg-ivory/95 backdrop-blur supports-[backdrop-filter]:bg-ivory/90">
+            <div className="container-page grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-4 lg:h-[4.75rem]">
+              <div className="flex items-center gap-4">
+                <div className="lg:hidden">{menu}</div>
+                <div className="hidden items-center gap-5 text-[10px] tracking-[0.26em] text-taupe uppercase lg:flex">
+                  <Link href="/orders/lookup" className="hover:text-ink">Track order</Link>
+                  <Link href="/contact" className="hover:text-ink">Help</Link>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 justify-self-center">
+                {!settings.logo_url && <span aria-hidden className="club-crest hidden font-serif sm:grid">{monogram(settings.store_name)}</span>}
+                <Logo settings={settings} variant="club" />
+              </div>
+              <HeaderActions />
+            </div>
+            <nav aria-label="Main" className="club-nav hidden lg:block">
+              <div className="container-page flex items-center justify-center gap-8 text-[11px] tracking-[0.24em] uppercase xl:gap-10">
+                <ul className="flex items-center gap-7 xl:gap-9">{items.slice(0, half).map(link)}</ul>
+                <span aria-hidden className="club-fleuron text-accent">❦</span>
+                <ul className="flex items-center gap-7 xl:gap-9">{items.slice(half).map(link)}</ul>
+              </div>
+            </nav>
+          </header>
+        </>
+      );
+    }
 
     case "overlay":
       return (

@@ -272,8 +272,9 @@ describe("new stores", () => {
     // The new store's shoppers see the copies that are on sale (the samples include a draft and a scheduled product).
     const [onSale] = await sql<{ n: string }>(
       "select count(*) as n from public.products where store_id = $1 and is_sample and status = 'active' and published_at <= now()", [home]);
+    // Counted by the search's own total: a page holds at most 100, and the samples are more.
     const shop = await storeClient(fresh.id).rpc("search_products", { p_limit: 100, p_offset: 0 });
-    expect((shop.data as unknown[]).length).toBe(Number(onSale.n));
+    expect(Number((shop.data as { total_count: number }[])[0]?.total_count)).toBe(Number(onSale.n));
     // Copying twice is refused.
     expect((await platformAdmin.client.rpc("platform_add_samples", { p_store_id: fresh.id })).error?.message).toBe("samples_exist");
     expect((await platformAdmin.client.rpc("platform_add_samples", { p_store_id: home })).error?.message).toBe("home_store");

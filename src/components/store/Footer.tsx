@@ -406,6 +406,33 @@ export default function Footer({ settings, departments, variant = "columns" }: {
         </footer>
       );
 
+    case "colophon":
+      return (
+        <footer className="colophon-footer mt-28 border-t border-line">
+          {/* A bookplate with the store's name, as pasted inside the cover of a library's books. */}
+          <div className="container-page py-16 md:py-20">
+            <div className="ex-libris mx-auto max-w-md px-8 py-10 text-center" data-reveal>
+              <p className="text-[10px] tracking-[0.42em] text-accent uppercase">Ex libris</p>
+              <p className="mt-4 font-serif text-3xl tracking-[0.12em] uppercase md:text-4xl">{settings.store_name}</p>
+              <span aria-hidden className="ex-libris-rule mx-auto mt-5 block" />
+              {settings.tagline && <p className="mt-4 text-sm leading-relaxed text-taupe">{settings.tagline}</p>}
+            </div>
+          </div>
+          <div className="container-page grid gap-12 border-t border-line py-14 lg:grid-cols-[1.3fr_repeat(3,1fr)]">
+            <div className="max-w-sm">
+              <h2 className="font-serif text-2xl tracking-[0.06em] uppercase">{join}</h2>
+              <p className="mt-3 text-sm leading-relaxed text-taupe">{pitch}</p>
+              <NewsletterForm />
+            </div>
+            {columns}
+          </div>
+          <div className="container-page border-t border-line">
+            <p aria-hidden className="pt-6 text-center text-[10px] tracking-[0.34em] text-taupe uppercase">Colophon · {settings.store_name} · Catalogued {year}</p>
+            {legal}
+          </div>
+        </footer>
+      );
+
     case "collage":
       return (
         <footer className="torn-top mt-24 bg-sand">

@@ -83,11 +83,11 @@ payment account and web address, and the platform's administrators create them f
 - Policy pages, FAQ, contact form, maintenance page, sitemap and robots.
 - Until a store has something on sale, its homepage says it is opening soon and takes email
   sign-ups for launch day.
-- Twenty designs, each built differently: its header and menu, home page layout, product
+- Twenty-one designs, each built differently: its header and menu, home page layout, product
   cards, section titles, buttons, product photos and footer (Atelier, Nordic, Bazaar, Boutique,
-  Heritage, Noir, Cinema, Neon; three made for Gen Z shoppers: Drop, Y2K and Zine; and nine in 3D
-  and play: Orbit, Puff, Prism, Arcade, Gallery, Pop-up, Iso, Deck and Liquid), in 86 palettes,
-  light and dark, and 33 fonts. New stores start with a look no other store has (see
+  Heritage, Noir, Cinema, Neon; three made for Gen Z shoppers: Drop, Y2K and Zine; nine in 3D
+  and play: Orbit, Puff, Prism, Arcade, Gallery, Pop-up, Iso, Deck and Liquid; and Library, a
+  gentleman's library made for menswear), in 90 palettes, light and dark, and 33 fonts. New stores start with a look no other store has (see
   [Appearance](#appearance)).
 - Movement, as the design chooses: sections that ease in as the shopper scrolls, headlines that
   rise into place line by line, an opening banner that zooms in as the page slides over it,
@@ -111,8 +111,14 @@ payment account and web address, and the platform's administrators create them f
   pieces (Orbit), cards that flip over to show their other side (Puff), a showroom of podiums
   above a glowing floor (Prism), a high-score table of best sellers (Arcade), an exhibition wall
   under spotlights (Gallery), an open book whose pieces pop up (Pop-up), pieces standing on
-  isometric blocks (Iso), a stack of cards to swipe through (Deck) and a reflecting pool of liquid
-  chrome (Liquid).
+  isometric blocks (Iso), a stack of cards to swipe through (Deck), a reflecting pool of liquid
+  chrome (Liquid) and a style guide in numbered chapters (Library).
+- A **style guide** any store can show: its collections as the chapters of a guide, each a
+  full-length look beside a big title, a few words and four pieces to shop it, with contents at
+  the top. The owner picks the chapters and their order, and the words, in Settings › Homepage
+  (until then it shows the featured collections). The sample catalog has one ready: the world of
+  menswear in six styles (Old Money, Rockstar Chic, Smart Casual, Japanese Workwear, Avant-Garde
+  and Old Hollywood).
 - An announcement bar whose messages take turns (or scroll past), an add-to-bag bar that stays in
   reach on phones, free-delivery progress in the bag, an optional WhatsApp "Chat with us" button,
   and each store's own icon in browser tabs.
@@ -294,12 +300,19 @@ recognised by a column or function each update added). Keep that line when addin
 Money is stored as integer paise everywhere (`bigint` with a non-negative check). Generated
 TypeScript types are in `src/lib/database.types.ts` (`npm run db:types`).
 
-`supabase/seed.sql` adds **sample data**: 45 fictional products from six made-up labels with
-240 variants, categories, size guides, collections, discount codes (`WELCOME10`, `FLAT500`,
+`supabase/seed.sql` adds **sample data**: 144 fictional products from nine made-up labels with
+691 variants, categories (menswear has shirts, tees, knitwear, trousers, coats and shoes), size
+guides, 15 collections (six of them menswear styles), discount codes (`WELCOME10`, `FLAT500`,
 `FREESHIP`, `CRAFT15`), a metro shipping zone and homepage banners. Product photos are loaded from
 Unsplash. Every sample row is flagged `is_sample` and labelled "Sample" in the admin; remove it
 all from **Settings › Maintenance and data** before launch (sample products that appear in orders
 are archived instead of deleted). `scripts/generate-seed.mjs` regenerates the file.
+
+A store that took its samples before newer ones were added catches up from the same script:
+`node scripts/generate-seed.mjs --pack <store id>` prints the SQL that adds the pieces it lacks
+(`--since "<product title>"` to start from a later one; it skips what the store has), and
+`--styles <store id>` the six menswear collections with their tags on the pieces the store
+already had. Both are safe to run twice; paste them into Supabase › SQL Editor.
 
 ## Run it locally
 
@@ -715,7 +728,7 @@ can be read at `http://localhost:4014/__test/messages`.
 
 **Admin › Settings › Appearance** sets how the whole storefront looks and is laid out:
 
-- **Design:** how the store is built. Each of the twenty has its own header and menu, home page
+- **Design:** how the store is built. Each of the twenty-one has its own header and menu, home page
   (banner, departments and the order of sections), product cards, section titles, buttons,
   product photos, shop filters and footer, and suits its own colours and fonts:
 
@@ -741,8 +754,9 @@ can be read at `http://localhost:4014/__test/messages`.
   | Iso | Isometric 3D: menu links on keyboard keys, the banner's piece on a stack of isometric blocks, cards as thick 3D tiles, departments as towers, the newest pieces on blocks of different heights, a keyboard footer |
   | Deck | A deck of cards: a segmented menu, the banner as a fanned hand of cards, products as trading cards, departments fanned like a hand, a stack to swipe through, a pile of cards for a footer |
   | Liquid | Liquid chrome: a polished metal header, the banner's piece in a chrome ring among molten blobs, cards with metal bevels, departments in liquid droplets, pieces in a reflecting pool, a dripping footer |
+  | Library | A gentleman's library: a club header with a crest between gilt rules, the banner's photo in a gilt frame against a wall of books, Didone capitals, section titles as chapters in roman numerals, the pieces on numbered ivory lookbook pages, departments as leather-bound books on a shelf, the style guide in chapters, an ex libris footer |
 
-- **Colours:** 86 palettes, four to six made for each design (any works with any), or your own
+- **Colours:** 90 palettes, four to six made for each design (any works with any), or your own
   four colours: text; buttons and bands; accent; background (light or dark). Everything else
   the store paints with (panels, borders, secondary text, the words on buttons, sale and error
   colours, form fields) is derived from those four in `src/lib/theme.ts`, keeping every pairing
@@ -848,6 +862,9 @@ bring the next one forward; the stage's colours always keep words readable, from
   piece.
 - **The pool** (`Pool.tsx`, Liquid's): the pieces standing in a pool of liquid chrome, reflected in
   its surface with a ripple at each one's foot (no reflection where the browser can't draw one).
+- **Style guide** (`StyleGuide.tsx`, Library's, and any store's from Settings › Homepage): the
+  chosen collections as numbered chapters, each look on its own page (an ivory lookbook page in
+  Library) with the pieces to shop it, the looks alternating sides down the page.
 
 The 3D designs' cards, Prism's panes and the showroom lean toward a mouse and catch the light
 where it points (`Tilt.tsx`); on touch screens and for shoppers who ask for less motion they sit
@@ -964,10 +981,10 @@ checklist and the dashboard's pointer to it, a shopper's order showing only in t
 admin, a payment going to the store's own Razorpay account with its own webhook secret, and
 suspending and reopening the store.
 
-**Theme and design tests (116 unit, 4 database, 9 Playwright)** cover the colour arithmetic; that
-every one of the 86 palettes keeps text, labels, secondary text, sale and error colours, fields
+**Theme and design tests (120 unit, 4 database, 10 Playwright)** cover the colour arithmetic; that
+every one of the 90 palettes keeps text, labels, secondary text, sale and error colours, fields
 and the words on buttons readable on every surface, and on the Spotlight's and the Showcase's
-changing backgrounds too, whatever colour a product is; fonts' weights; that the twenty designs differ in every part and suggest real palettes,
+changing backgrounds too, whatever colour a product is; fonts' weights; that the twenty-one designs differ in every part and suggest real palettes,
 fonts and sections; mixed-in parts, motion, openings and defaults; that new stores get different looks
 until the designs and palettes run out, and Shuffle always shows something new; the home page's
 own section order; store icons' initials; figures counting up in their own format (prefix,
@@ -975,7 +992,7 @@ grouping, decimals and suffix kept); the database saving a new store's design an
 rejecting malformed names, taking banner films only from staff and nothing but pictures and
 videos, and the 360° switch (staff only) reaching the product page; and, in the browser, every
 design built its own way and accessible on its home, product and shop pages through **Preview on
-the store** (Neon's Showcase turned with its arrows and dots, Drop's numbered drop, Y2K's vibe tabs moved with the arrow keys, Zine's price list, Orbit's coverflow turned with its arrows, Puff's cards turned over and back, Prism's showroom, Arcade's high scores, Gallery's room and exhibition, Pop-up's book, Iso's keys and blocks, Deck's stack dealt with its arrows and Liquid's pool), a forged preview link doing nothing and customers seeing the saved look meanwhile,
+the store** (Neon's Showcase turned with its arrows and dots, Drop's numbered drop, Y2K's vibe tabs moved with the arrow keys, Zine's price list, Orbit's coverflow turned with its arrows, Puff's cards turned over and back, Prism's showroom, Arcade's high scores, Gallery's room and exhibition, Pop-up's book, Iso's keys and blocks, Deck's stack dealt with its arrows, Liquid's pool and Library's style guide and bookshelf), a forged preview link doing nothing and customers seeing the saved look meanwhile, an owner's own style guide (chapters chosen and reordered),
 a cinematic store's opening curtain (once a visit, lifted by a tap, never for shoppers who ask
 for less motion), its banner zooming as the page scrolls, headlines rising line by line and the
 Spotlight's dots, Neon's moving bands, a piece brought forward from its rail (turned to its back,
@@ -1016,14 +1033,15 @@ its words changing when it sells instruments instead.
 **Accessibility checks (2, Playwright + axe-core)** scan 13 storefront pages (including the
 checkout) and 20 admin pages for WCAG 2.1 A/AA problems and fail on anything serious or critical;
 the mobile sign-in tests run the same check on the number and code forms and the settings tab,
-and the design tests on the home, product and shop pages of all twenty designs, a home page with
+and the design tests on the home, product and shop pages of all twenty-one designs, a home page with
 a film and a product page with a 360° view. Automated checks
 don't replace testing with a keyboard and a screen reader.
 
-Latest local run, against the local database with the Gen Z sample catalog: typecheck clean,
-unit 157/157, integration 99/99, Playwright 43/43 against the production build (`next build`),
-and the home, shop, product, bag, sign-in and collections pages of all twenty designs checked
-at 360, 390, 768, 1024 and 1280 px wide without horizontal scrolling. The accessibility checks
+Latest local run, against a freshly reset local database with the menswear sample catalog:
+typecheck clean, unit 161/161, integration 99/99, Playwright 44/44 against the production build
+(`next build`), and Library's home, shop, product and collection pages checked at 360, 390, 768,
+1024 and 1280 px wide without horizontal scrolling, as the other twenty designs' pages were in
+the run before. The accessibility checks
 wait for sections still easing in, so colours are measured as shoppers see them.
 
 ## Running the store

@@ -347,10 +347,26 @@ function sectionList(design: Design, saved: Homepage["sections"]): { key: Sectio
   return list;
 }
 
-export function HomepageForm({ s, design }: { s: StoreSettings; design: Design }) {
+/** A collection the Style guide can show, for Settings › Homepage. */
+export interface GuideCollection {
+  slug: string;
+  title: string;
+  is_featured: boolean;
+}
+
+export function HomepageForm({ s, design, collections = [] }: { s: StoreSettings; design: Design; collections?: GuideCollection[] }) {
   const { pending, error, save } = useSave("homepage");
   const initial = (s.homepage ?? {}) as Homepage;
-  const [v, setV] = useState<Omit<Required<Homepage>, "sections">>({ announcement: initial.announcement ?? "", hero: initial.hero ?? [], promos: initial.promos ?? [], stats: initial.stats ?? [] });
+  const [v, setV] = useState<Omit<Required<Homepage>, "sections" | "style_guide">>({ announcement: initial.announcement ?? "", hero: initial.hero ?? [], promos: initial.promos ?? [], stats: initial.stats ?? [] });
+  const [guide, setGuide] = useState({
+    eyebrow: initial.style_guide?.eyebrow ?? "",
+    title: initial.style_guide?.title ?? "",
+    intro: initial.style_guide?.intro ?? "",
+    // Only collections the store still has.
+    collections: (initial.style_guide?.collections ?? []).filter((slug) => collections.some((c) => c.slug === slug)),
+  });
+  const guideTitle = (slug: string) => collections.find((c) => c.slug === slug)?.title ?? slug;
+  const unchosen = collections.filter((c) => !guide.collections.includes(c.slug));
   const setStat = (i: number, p: Partial<{ value: string; label: string }>) => setV({ ...v, stats: v.stats.map((x, j) => (j === i ? { ...x, ...p } : x)) });
   // null: the design's own order (it changes with the design); a list once the store arranges its own.
   const [order, setOrder] = useState<{ key: SectionKey; on: boolean }[] | null>(initial.sections?.length ? sectionList(design, initial.sections) : null);
@@ -366,7 +382,7 @@ export function HomepageForm({ s, design }: { s: StoreSettings; design: Design }
   const valid = () => [...v.hero, ...v.promos].every((x) => x.image_url && x.heading.trim()) && v.stats.every((x) => x.value.trim() && x.label.trim());
   return (
     <Form
-      onSubmit={() => (valid() ? save({ homepage: { ...v, ...(order ? { sections: order } : {}) } }) : undefined)}
+      onSubmit={() => (valid() ? save({ homepage: { ...v, style_guide: guide, ...(order ? { sections: order } : {}) } }) : undefined)}
       pending={pending}
       error={error ?? (valid() ? null : "Every banner needs an image and a heading, and every number a figure and what it counts.")}
       note="Departments, new arrivals, best sellers, brands and collections fill in from your catalog."
@@ -425,6 +441,58 @@ export function HomepageForm({ s, design }: { s: StoreSettings; design: Design }
             </div>
           ))}
         </div>
+      </Card>
+      <Card title="Style guide">
+        <p className="mb-3 text-sm text-taupe">
+          For the Style guide section: your collections as the numbered chapters of a guide, each with its photograph, its description and four of its
+          pieces. {guide.collections.length ? "Your chapters, in order." : "Until you choose, it shows your featured collections."}
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <TextField label="Small heading" value={guide.eyebrow} onChange={(e) => setGuide({ ...guide, eyebrow: e.target.value })} maxLength={60} placeholder="Style guide" />
+          <TextField label="Title" value={guide.title} onChange={(e) => setGuide({ ...guide, title: e.target.value })} maxLength={120} placeholder="Find your style" />
+        </div>
+        <TextArea
+          label="Introduction (optional)"
+          className="mt-3"
+          value={guide.intro}
+          onChange={(e) => setGuide({ ...guide, intro: e.target.value })}
+          maxLength={400}
+          rows={2}
+          placeholder="Six ways to dress, from old money to old Hollywood. Find yours."
+        />
+        {guide.collections.length > 0 && (
+          <ol className="mt-4 grid gap-1.5">
+            {guide.collections.map((slug, i) => (
+              <li key={slug} className="flex items-center gap-3 rounded-md border border-black/10 bg-white px-3 py-2">
+                <span className="w-6 text-sm text-stone tabular-nums">{i + 1}.</span>
+                <span className="flex-1 text-sm">{guideTitle(slug)}</span>
+                <button type="button" className="grid size-7 place-items-center rounded hover:bg-black/5 disabled:opacity-30" disabled={i === 0} onClick={() => setGuide({ ...guide, collections: move(guide.collections, i, -1) })} aria-label={`Move ${guideTitle(slug)} up`}>
+                  <ArrowUp size={14} />
+                </button>
+                <button type="button" className="grid size-7 place-items-center rounded hover:bg-black/5 disabled:opacity-30" disabled={i === guide.collections.length - 1} onClick={() => setGuide({ ...guide, collections: move(guide.collections, i, 1) })} aria-label={`Move ${guideTitle(slug)} down`}>
+                  <ArrowDown size={14} />
+                </button>
+                <button type="button" className="grid size-7 place-items-center rounded hover:bg-black/5" onClick={() => setGuide({ ...guide, collections: guide.collections.filter((x) => x !== slug) })} aria-label={`Remove ${guideTitle(slug)}`}>
+                  <CloseIcon size={14} />
+                </button>
+              </li>
+            ))}
+          </ol>
+        )}
+        {guide.collections.length < 6 && unchosen.length > 0 && (
+          <SelectField
+            label={guide.collections.length ? "Add a chapter" : "Choose the chapters"}
+            className="mt-3 max-w-sm"
+            value=""
+            onChange={(e) => e.target.value && setGuide({ ...guide, collections: [...guide.collections, e.target.value] })}
+          >
+            <option value="">Add a collection…</option>
+            {unchosen.map((c) => (
+              <option key={c.slug} value={c.slug}>{c.title}{c.is_featured ? " (featured)" : ""}</option>
+            ))}
+          </SelectField>
+        )}
+        {collections.length === 0 && <p className="mt-3 text-sm text-stone">You have no collections yet. Make some in Catalog › Collections.</p>}
       </Card>
       <Card title="Hero campaign" actions={v.hero.length < 6 && <button type="button" className="inline-flex items-center gap-1 text-xs underline" onClick={() => setV({ ...v, hero: [...v.hero, { ...blankSlide }] })}><PlusIcon size={11} /> Add slide</button>}>
         {v.hero.length === 0 && <p className="text-sm text-stone">No hero slides. The homepage starts with your departments.</p>}

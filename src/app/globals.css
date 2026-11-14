@@ -1389,6 +1389,104 @@
   outline-color: var(--color-on-brand);
 }
 
+/*
+ * Library: a gentleman's library. Dark wood and leather-bound books, gilt rules and Didone
+ * capitals, with the pieces shown on ivory lookbook pages. Cards and headings first (they follow
+ * data-card and data-title), then its pieces in the components layer.
+ */
+/* Cards: numbered lookbook pages. They stay ivory on any palette, so they carry their own ink. */
+[data-card="studio"] :has(> .pc) { counter-reset: look; }
+[data-card="studio"] .pc {
+  counter-increment: look;
+  --color-ink: #1d1410; --color-taupe: #5a4c42; --color-stone: #66584c; --color-line: rgb(29 20 16 / 0.14);
+  --color-paper: #fbf8f2; --color-bone: #ece5d8; --color-sand: #e2d8c6; --color-field: #ffffff;
+  --color-brand: #1d1410; --color-on-brand: #fbf8f2; --color-accent: #7d5a1e; --color-sale: #9b2c2c;
+  padding: 0.7rem 0.7rem 0.95rem; background: #fbf8f2; color: var(--color-ink);
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.05), 0 18px 30px -22px rgb(0 0 0 / 0.7);
+  transition: transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.45s;
+}
+[data-card="studio"] .pc:hover { transform: translateY(-4px); box-shadow: 0 1px 0 rgb(0 0 0 / 0.05), 0 28px 38px -24px rgb(0 0 0 / 0.75); }
+[data-card="studio"] .pc-info { margin-top: 0.8rem; padding-top: 0.55rem; border-top: 1px solid var(--color-line); }
+[data-card="studio"] .pc-info::before { content: "No. " counter(look, decimal-leading-zero); font-family: var(--font-serif); font-size: 0.7rem; letter-spacing: 0.14em; color: var(--color-accent); }
+[data-card="studio"] .pc-brand { letter-spacing: 0.24em; }
+[data-card="studio"] .pc-title { font-family: var(--font-serif); font-size: 0.98rem; letter-spacing: 0.02em; }
+
+/* Headings: chapters in roman numerals (the style guide's own are numbered 1, 2, 3), a big
+   Didone numeral beside the title, under a double gilt rule. */
+main { counter-reset: chapter; }
+[data-title="chapter"] .sh { counter-increment: chapter; position: relative; padding-top: 1.1rem; border-top: 1px solid color-mix(in oklab, var(--color-accent) 55%, transparent); }
+[data-title="chapter"] .sh::before { content: ""; position: absolute; top: 3px; right: 0; left: 0; border-top: 1px solid color-mix(in oklab, var(--color-accent) 30%, transparent); }
+[data-title="chapter"] .sh-text { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 1rem; align-items: end; }
+[data-title="chapter"] .sh-text::before { content: counter(chapter, upper-roman) "."; grid-row: span 2; font-family: var(--font-serif); font-size: clamp(3rem, 7vw, 5.25rem); line-height: 0.82; color: var(--color-accent); }
+[data-title="chapter"] .sh-eyebrow { color: var(--color-taupe); letter-spacing: 0.34em; }
+[data-title="chapter"] .sh-title { font-size: clamp(2rem, 4.6vw, 3.5rem); line-height: 1; }
+[data-title="chapter"] .sh-link { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; }
+
+@layer components {
+  /* The club header: the name with a crest, the menu split by a fleuron, between gilt rules. */
+  .club-bar { border-bottom: 1px solid color-mix(in oklab, var(--color-accent) 60%, transparent); box-shadow: 0 3px 0 -2px var(--color-ivory), 0 4px 0 -2px color-mix(in oklab, var(--color-accent) 40%, transparent); }
+  .club-crest { width: 2.4rem; height: 2.9rem; place-items: center; border: 1px solid var(--color-accent); border-radius: 50%; outline: 1px solid color-mix(in oklab, var(--color-accent) 45%, transparent); outline-offset: 2px; color: var(--color-accent); font-size: 0.95rem; letter-spacing: 0.04em; }
+  .club-nav { border-top: 1px solid var(--color-line); }
+  .club-link { position: relative; }
+  .club-link::after { content: ""; position: absolute; right: 50%; bottom: 0.3rem; left: 50%; height: 1px; background: var(--color-accent); transition: left 0.3s, right 0.3s; }
+  .club-link:hover::after,
+  .club-link:focus-visible::after { right: 0; left: 0; }
+  .club-panel { border: 1px solid color-mix(in oklab, var(--color-accent) 50%, transparent); background: var(--color-paper); box-shadow: 0 22px 40px -24px rgb(0 0 0 / 0.6); }
+  .club-fleuron { font-size: 1rem; line-height: 1; }
+
+  /* The banner: a wall of leather-bound books on shelves, lit by a reading lamp. */
+  .library-hero { --wood: color-mix(in oklab, var(--color-ivory) 55%, #2a170d); background: var(--color-ivory); isolation: isolate; }
+  .library-shelves {
+    position: absolute; inset: -12% 0; z-index: -2; translate: 0 var(--drift, 0);
+    background:
+      repeating-linear-gradient(180deg, transparent 0 9.5rem, var(--wood) 9.5rem 10.25rem, rgb(0 0 0 / 0.35) 10.25rem 10.5rem),
+      repeating-linear-gradient(90deg,
+        #4a1519 0 1.4rem, #2b1a12 1.4rem 1.55rem, #1d3326 1.55rem 2.6rem, #6b4428 2.6rem 3.1rem, #2b1a12 3.1rem 3.2rem,
+        #1b2740 3.2rem 4.5rem, #5b1a1f 4.5rem 5.2rem, #3b2a1c 5.2rem 6.3rem, #2b1a12 6.3rem 6.4rem, #7a5a2a 6.4rem 6.8rem,
+        #1d3326 6.8rem 7.9rem, #4a1519 7.9rem 8.6rem, #2b1a12 8.6rem 8.7rem, #263147 8.7rem 9.6rem);
+    opacity: 0.55;
+    -webkit-mask: radial-gradient(120% 90% at 70% 45%, #000 30%, transparent 85%);
+    mask: radial-gradient(120% 90% at 70% 45%, #000 30%, transparent 85%);
+  }
+  .library-shelves::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, rgb(255 255 255 / 0.05) 0 1px, transparent 1px 0.7rem), repeating-linear-gradient(180deg, transparent 0 1.1rem, rgb(201 162 74 / 0.12) 1.1rem 1.18rem, transparent 1.18rem 7.9rem, rgb(201 162 74 / 0.12) 7.9rem 7.98rem, transparent 7.98rem 10.5rem); }
+  .library-lamp { position: absolute; inset: 0; z-index: -1; background: radial-gradient(60% 70% at 24% 40%, color-mix(in oklab, var(--color-ivory) 92%, transparent) 25%, transparent 75%), radial-gradient(30% 40% at 78% 18%, rgb(255 196 120 / 0.16), transparent 70%), linear-gradient(90deg, var(--color-ivory) 0 18%, transparent 70%); }
+  @media (max-width: 1023px) { .library-lamp { background: radial-gradient(90% 60% at 50% 32%, color-mix(in oklab, var(--color-ivory) 94%, transparent) 30%, transparent 85%), linear-gradient(180deg, transparent 40%, var(--color-ivory) 90%); } }
+  .library-kicker { color: var(--color-accent); }
+  .library-title { text-wrap: balance; }
+  .library-frame { padding: 0.85rem; background: linear-gradient(135deg, #f3dc8f, #a37a2c 28%, #f6e3a1 46%, #8a6522 64%, #e9cd7f 82%, #9a7430); box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.35), 0 30px 50px -26px rgb(0 0 0 / 0.75); }
+  .library-frame > span { box-shadow: 0 0 0 0.35rem #1a120c, 0 0 0 calc(0.35rem + 1px) rgb(243 220 143 / 0.6); }
+  .library-plaque { border: 1px solid #a37a2c; background: linear-gradient(180deg, #e9cd7f, #b48a3a); color: #2a1a0c; box-shadow: 0 6px 10px -6px rgb(0 0 0 / 0.6); }
+  .library-volume { color: var(--color-taupe); }
+
+  /* Departments: leather-bound books standing on a shelf. */
+  .spine { --leather: #4a1519; width: 5.25rem; height: var(--h, 22rem); padding: 0 0.6rem; border-radius: 4px 4px 2px 2px; background: linear-gradient(90deg, rgb(0 0 0 / 0.35), transparent 14%, rgb(255 255 255 / 0.08) 50%, transparent 86%, rgb(0 0 0 / 0.4)), var(--leather); color: #e3c77a; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.4), 4px 0 10px -6px rgb(0 0 0 / 0.6); transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  @media (min-width: 768px) { .spine { width: 6.5rem; padding: 0 0.75rem; } }
+  .library-books > li:nth-child(4n + 2) .spine { --leather: #1d3326; }
+  .library-books > li:nth-child(4n + 3) .spine { --leather: #1b2740; }
+  .library-books > li:nth-child(4n + 4) .spine { --leather: #5a3a22; }
+  .spine:hover,
+  .spine:focus-visible { transform: translateY(-0.9rem); }
+  .spine-band { display: block; width: 100%; height: 0.55rem; margin-top: 0.9rem; border-block: 1px solid #c9a24a; background: repeating-linear-gradient(90deg, transparent 0 4px, rgb(201 162 74 / 0.5) 4px 5px); }
+  .spine-band:last-child { margin: 0 0 0.9rem; }
+  .spine-medallion { width: 78%; aspect-ratio: 4 / 5; border: 1px solid #c9a24a; border-radius: 999px; box-shadow: 0 0 0 3px var(--leather), 0 0 0 4px rgb(201 162 74 / 0.6); }
+  .spine-title { writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #ecd28a; }
+  .spine-vol { color: #d9bd74; }
+  .library-plank { height: 0.9rem; margin-top: -1px; border-radius: 2px; background: linear-gradient(180deg, #8a5a32, #5a3a1f 60%, #3b2614); box-shadow: 0 14px 18px -12px rgb(0 0 0 / 0.65); }
+
+  /* The footer's bookplate. */
+  .ex-libris { position: relative; border: 1px solid var(--color-accent); outline: 1px solid color-mix(in oklab, var(--color-accent) 45%, transparent); outline-offset: 5px; background: var(--color-paper); }
+  .ex-libris-rule { width: 6rem; height: 0.6rem; background: radial-gradient(circle, var(--color-accent) 0 2px, transparent 2.5px) center / 0.6rem 0.6rem no-repeat, linear-gradient(var(--color-accent), var(--color-accent)) left center / 2.5rem 1px no-repeat, linear-gradient(var(--color-accent), var(--color-accent)) right center / 2.5rem 1px no-repeat; }
+
+  /* The style guide, dressed as the library's lookbook: Didone capitals, gilt numerals, the
+     looks on ivory pages with a typed caption. */
+  [data-design="library"] .sg-heading,
+  [data-design="library"] .sg-title { text-transform: uppercase; letter-spacing: 0.02em; }
+  /* The page is ivory whatever the palette, so its caption takes a dark ink (as the cards do). */
+  [data-design="library"] .sg-page { --color-taupe: #5a4c42; padding: 0.9rem 0.9rem 0.2rem; background: #fbf8f2; box-shadow: 0 28px 40px -26px rgb(0 0 0 / 0.75); }
+  [data-design="library"] .sg-caption { padding-bottom: 0.55rem; }
+  [data-design="library"] .sg-chapter { padding-top: 2.5rem; border-top: 1px solid color-mix(in oklab, var(--color-accent) 45%, transparent); }
+}
+
 /* Admin: a quieter, denser look on white. */
 .admin-surface {
   --color-ivory: #f6f6f4;

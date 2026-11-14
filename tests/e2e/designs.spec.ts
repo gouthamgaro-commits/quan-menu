@@ -1,4 +1,4 @@
-// Store designs: each of the twenty builds the storefront its own way and stays accessible;
+// Store designs: each of the twenty-one builds the storefront its own way and stays accessible;
 // "Preview on the store" shows an unsaved look only in the browser that opens the signed
 // link; the home page follows the store's own section order; the WhatsApp chat button and
 // each store's own icon; a film in the opening banner; a product's 360° view.
@@ -279,6 +279,21 @@ const DESIGNS: { name: string; key: string; home: (p: Page) => Promise<void>; sh
       await expect(p.locator("[data-design]")).toHaveAttribute("data-card", "metal");
     },
   },
+  {
+    name: "Library",
+    key: "library",
+    home: async (p) => {
+      await expect(p.locator(".library-frame")).toBeVisible();
+      // The style guide: contents that jump to numbered chapters, each with its pieces to shop.
+      const guide = p.locator("section.styleguide");
+      await expect(guide.getByRole("navigation").getByRole("link").first()).toHaveAttribute("href", /^#style-/);
+      await expect(guide.getByRole("heading", { level: 3 }).first()).toContainText("Chapter 1:");
+      await expect(guide.getByRole("link", { name: /^Shop / }).first()).toHaveAttribute("href", /^\/collections\//);
+      // Departments as books on a shelf; the pieces on numbered lookbook pages.
+      await expect(p.locator(".spine").first()).toHaveAttribute("href", /^\/category\//);
+      await expect(p.locator("[data-design]")).toHaveAttribute("data-card", "studio");
+    },
+  },
 ];
 
 /** Picks a design in Settings › Appearance and opens "Preview on the store" in a new tab. */
@@ -291,7 +306,9 @@ async function preview(page: Page, context: BrowserContext, name: string) {
 
 test("each design builds the store its own way, and every one stays accessible", async ({ page, context, browser }) => {
   test.setTimeout(360_000);
-  const { data: product } = await db().from("products").select("slug").eq("status", "active").lte("published_at", new Date().toISOString()).limit(1).single();
+  // One of the home store's products (other tests add stores with products of their own).
+  const { data: home } = await db().from("stores").select("id").eq("is_home", true).single();
+  const { data: product } = await db().from("products").select("slug").eq("store_id", home!.id).eq("status", "active").lte("published_at", new Date().toISOString()).limit(1).single();
   await page.goto("/admin/settings?tab=appearance");
   for (const d of DESIGNS) {
     const tab = await preview(page, context, d.name);
@@ -523,6 +540,35 @@ test("the store's own numbers, set in Settings › Homepage", async ({ page }) =
   }
 });
 
+test("a style guide of the store's own collections, set in Settings › Homepage", async ({ page }) => {
+  const { data: before } = await db().from("store_settings").select("homepage").eq("id", 1).single();
+  try {
+    // From a store that hasn't chosen its chapters yet.
+    const { style_guide: _chosen, ...rest } = before!.homepage as Record<string, unknown>;
+    await db().from("store_settings").update({ homepage: rest as never }).eq("id", 1);
+    await page.goto("/admin/settings?tab=homepage");
+    await page.getByLabel(/^Show Style guide/).check();
+    await page.getByLabel("Title", { exact: true }).fill("The world of menswear");
+    await page.getByLabel("Choose the chapters").selectOption("old-money");
+    await page.getByLabel("Add a chapter").selectOption("old-hollywood");
+    await page.getByRole("button", { name: "Move Old Hollywood up" }).click();
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await expect(page.getByText("Settings saved.").first()).toBeVisible();
+
+    await page.goto("/");
+    const guide = page.getByRole("region", { name: "The world of menswear" });
+    await guide.scrollIntoViewIfNeeded();
+    // The chapters in the owner's order, each with pieces from its collection.
+    await expect(guide.getByRole("heading", { level: 3 })).toHaveText(["Chapter 1: Old Hollywood", "Chapter 2: Old Money"]);
+    await expect(guide.getByRole("navigation").getByRole("link", { name: /Old Money/ })).toHaveAttribute("href", "#style-old-money");
+    await expect(guide.getByRole("link", { name: "Shop Old Money" })).toHaveAttribute("href", "/collections/old-money");
+    await expect(guide.locator(".sg-pieces").first().getByRole("link").first()).toHaveAttribute("href", /^\/products\//);
+    await expectAccessible(page, "Style guide");
+  } finally {
+    await db().from("store_settings").update({ homepage: before!.homepage }).eq("id", 1);
+  }
+});
+
 test("the home page follows the store's own order of sections", async ({ page }) => {
   const { data: before } = await db().from("store_settings").select("homepage").eq("id", 1).single();
   try {
@@ -625,7 +671,8 @@ test("a film in the opening banner, and the picture for shoppers who ask for les
 
 test("a product shown as a 360° view, turned by dragging or with the arrow keys", async ({ page }) => {
   // A product of its own with nine photos taken all the way round.
-  const { data: photo } = await db().from("product_images").select("url, store_id").limit(1).single();
+  const { data: home } = await db().from("stores").select("id").eq("is_home", true).single();
+  const { data: photo } = await db().from("product_images").select("url, store_id").eq("store_id", home!.id).limit(1).single();
   const slug = `spin-${Date.now()}`;
   const { data: product } = await db()
     .from("products")

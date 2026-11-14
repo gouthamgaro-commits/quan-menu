@@ -46,6 +46,16 @@ export interface Homepage {
   sections?: { key: string; on: boolean }[];
   /** The Numbers section's figures ("12,000+", "happy customers"); without them, the store's own. */
   stats?: { value: string; label: string }[];
+  /** The Style guide section: its words, and the collections it shows as chapters (the featured ones until chosen). */
+  style_guide?: StyleGuideSettings;
+}
+
+export interface StyleGuideSettings {
+  eyebrow?: string;
+  title?: string;
+  intro?: string;
+  /** Collection slugs, in chapter order. */
+  collections?: string[];
 }
 
 export interface Policies {

@@ -787,6 +787,46 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
       );
     }
 
+    case "library": {
+      const picture = image ?? extras.find((x): x is string => !!x) ?? null;
+      return (
+        <section className="library-hero relative overflow-hidden">
+          {/* A wall of books (drawn in CSS) that drifts a little as the page scrolls, under a reading lamp. */}
+          <span aria-hidden className="library-shelves" data-drift="-0.1" />
+          <span aria-hidden className="library-lamp" />
+          <div className="container-page relative grid items-center gap-12 py-14 md:py-20 lg:grid-cols-[1.05fr_0.95fr]">
+            <div className="relative z-10 text-center lg:text-left">
+              <p className="library-kicker inline-flex items-center gap-4 text-[11px] tracking-[0.42em] uppercase">
+                <span aria-hidden className="h-px w-8 bg-current" />
+                {slide?.eyebrow || "The world of"}
+                <span aria-hidden className="h-px w-8 bg-current lg:hidden" />
+              </p>
+              <h1 data-rise="load" className="library-title mt-5 font-serif text-[clamp(2.8rem,7.2vw,6.4rem)] leading-[0.94]"><Rise text={heading} /></h1>
+              {slide?.subheading && <p className="mx-auto mt-6 max-w-md text-base leading-relaxed text-taupe lg:mx-0">{slide.subheading}</p>}
+              {slide ? (
+                <Ctas slide={slide} className="mt-9 justify-center lg:justify-start" primary={buttonClass("primary", "lg")} secondary={buttonClass("secondary", "lg")} />
+              ) : (
+                <Link href="/shop?sort=newest" className={buttonClass("primary", "lg", "mt-9")}>Enter the library</Link>
+              )}
+              <p aria-hidden className="library-volume mt-10 text-[10px] tracking-[0.34em] text-taupe uppercase">{storeName} · Volume I</p>
+            </div>
+            {picture && (
+              <figure className="relative mx-auto w-full max-w-[19rem] sm:max-w-sm">
+                <div className="library-frame relative aspect-[4/5]">
+                  <span className="relative block h-full w-full overflow-hidden">
+                    <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 24rem, 80vw" className="object-cover" />
+                  </span>
+                </div>
+                <figcaption aria-hidden className="library-plaque mx-auto mt-5 w-fit px-5 py-1.5 text-[10px] tracking-[0.3em] uppercase">
+                  {slide?.eyebrow || storeName}
+                </figcaption>
+              </figure>
+            )}
+          </div>
+        </section>
+      );
+    }
+
     default:
       if (!slide) {
         return (

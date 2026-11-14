@@ -12,7 +12,9 @@ async function audit(page: Page, path: string) {
 
 test.describe("storefront", () => {
   test("home, listing, product, cart, checkout and sign-in pages", async ({ page }) => {
-    const { data } = await db().from("products").select("slug").eq("status", "active").lte("published_at", new Date().toISOString()).limit(1).single();
+    // One of the home store's products (other tests add stores with products of their own).
+    const { data: home } = await db().from("stores").select("id").eq("is_home", true).single();
+    const { data } = await db().from("products").select("slug").eq("store_id", home!.id).eq("status", "active").lte("published_at", new Date().toISOString()).limit(1).single();
     for (const path of ["/", "/shop", "/category/women", `/products/${data!.slug}`, "/brands", "/collections", "/cart", "/login", "/signup", "/orders/lookup", "/contact", "/faq", "/pages/returns"]) {
       await audit(page, path);
     }

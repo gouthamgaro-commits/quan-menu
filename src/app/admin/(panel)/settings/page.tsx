@@ -49,7 +49,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const tabs = TABS.filter((t) => store.isHome || !HOME_ONLY.has(t.key));
   const tab = tabs.find((t) => t.key === raw)?.key ?? "general";
   const settingsQuery = supabase.from("store_settings").select("*");
-  const [{ data: s, error }, samples, waiting, signin, keys, savedKeys, taken] = await Promise.all([
+  const [{ data: s, error }, samples, waiting, signin, keys, savedKeys, taken, guideCollections] = await Promise.all([
     (store.id ? settingsQuery.eq("store_id", store.id) : settingsQuery.eq("id", 1)).single(),
     tab === "maintenance" ? supabase.from("products").select("id", { count: "exact", head: true }).eq("is_sample", true) : Promise.resolve({ count: 0 }),
     tab === "emails" ? supabase.from("stock_alerts").select("id", { count: "exact", head: true }).is("notified_at", null) : Promise.resolve({ count: 0 }),
@@ -57,6 +57,10 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     tab === "checkout" || tab === "payments" ? razorpayKeys(store) : Promise.resolve(null),
     tab === "payments" && store.id ? supabase.rpc("store_secret_status") : Promise.resolve({ data: [] }),
     tab === "appearance" ? takenLooks(store.id) : Promise.resolve([]),
+    // The collections the Style guide can show as chapters.
+    tab === "homepage"
+      ? supabase.from("collections").select("slug, title, is_featured").eq("is_published", true).order("sort_order").order("title")
+      : Promise.resolve({ data: [] }),
   ]);
   return (
     <>
@@ -76,7 +80,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <div className="min-w-0" key={KEEP_STATE.has(tab) ? tab : `${tab}-${s.updated_at}`}>
             {tab === "general" && <GeneralForm s={s} />}
             {tab === "appearance" && <AppearanceForm s={s} taken={taken} />}
-            {tab === "homepage" && <HomepageForm s={s} design={resolveDesign(s.design, s.design_options)} />}
+            {tab === "homepage" && <HomepageForm s={s} design={resolveDesign(s.design, s.design_options)} collections={guideCollections.data ?? []} />}
             {tab === "checkout" && <CheckoutForm s={s} razorpayReady={!!keys} stripeReady={stripeConfigured(store)} home={store.isHome} />}
             {tab === "payments" && (
               <PaymentAccounts

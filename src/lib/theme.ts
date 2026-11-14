@@ -214,6 +214,11 @@ export const PALETTES: Palette[] = [
   palette("liquid-gold", "Liquid gold", "#f5ecd7", "#d4a63a", "#f5d27a", "#0d0b08"),
   palette("aqua-chrome", "Aqua chrome", "#0b2229", "#0b6e8a", "#e03a7a", "#e7f5f8"),
   palette("rose-chrome", "Rose chrome", "#2b1218", "#9e2a4f", "#3a7bd5", "#fbeff2"),
+  // Library
+  palette("oxblood", "Oxblood and gilt", "#f1e7d6", "#eadcc2", "#c9a24a", "#2a0f12"),
+  palette("walnut", "Walnut and brass", "#efe5d3", "#e6d6b8", "#c0914f", "#211812"),
+  palette("club-green", "Club green and gold", "#ece4d2", "#e3d6b8", "#c5a253", "#10241c"),
+  palette("lookbook", "Lookbook ivory", "#22140f", "#5e1a22", "#8a6526", "#f6f0e4"),
 ];
 
 export const paletteByKey = (key: string) => PALETTES.find((p) => p.key === key);

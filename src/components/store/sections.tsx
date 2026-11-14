@@ -400,6 +400,32 @@ export function Departments({ departments, variant, browse = "Find your fit", ea
         </section>
       );
 
+    case "spines":
+      return (
+        <section className="container-page mt-16 md:mt-24">
+          <SectionHeader eyebrow="On the shelves" title={browse} />
+          {/* Each department a leather-bound book standing on a shelf, its picture in a medallion on the spine. */}
+          <ul className="library-books scrollbar-none -mx-4 flex snap-x items-end gap-2 overflow-x-auto px-4 pt-6 sm:mx-0 sm:justify-center sm:gap-3 sm:overflow-visible sm:px-0">
+            {departments.map((d, i) => (
+              <li key={d.id} data-reveal className="shrink-0 snap-start">
+                <Link
+                  href={`/category/${d.slug}`}
+                  className="spine group relative flex flex-col items-center"
+                  style={{ "--h": `${[22, 24.5, 21, 23.5, 22.5, 25][i % 6]}rem` } as CSSProperties}
+                >
+                  <span aria-hidden className="spine-band" />
+                  <span className="spine-medallion relative mt-4 block overflow-hidden">{image(d, "6rem", "group-hover:scale-110", i < 4)}</span>
+                  <span className="spine-title mt-4 flex-1 font-serif text-base leading-none tracking-[0.06em] uppercase md:text-lg">{d.name}</span>
+                  <span aria-hidden className="spine-vol mb-3 text-[9px] tracking-[0.24em] uppercase">Vol. {["I", "II", "III", "IV", "V", "VI", "VII", "VIII"][i % 8]}</span>
+                  <span aria-hidden className="spine-band" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <span aria-hidden className="library-plank block" />
+        </section>
+      );
+
     case "mosaic":
       if (departments.length >= 3) {
         return (

@@ -232,6 +232,20 @@ export default function DesignThumb({
             </div>
           </div>
         );
+      case "club":
+        return (
+          <div style={{ borderBottom: `1px solid ${c("accent")}`, boxShadow: `0 2px 0 -1px ${c("ivory")}, 0 3px 0 -1px ${c("accent")}` }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, height: 18 }}>
+              <span style={{ ...face, display: "grid", placeItems: "center", width: 9, height: 11, borderRadius: "50%", border: `1px solid ${c("accent")}`, fontSize: 5, color: c("accent") }}>A</span>
+              {logo(9)}
+            </div>
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 5, paddingBottom: 4 }}>
+              {dots(3)}
+              <span style={{ width: 3, height: 3, transform: "rotate(45deg)", background: c("accent") }} />
+              {dots(3)}
+            </div>
+          </div>
+        );
       default:
         return (
           <div style={{ borderBottom: `1px solid ${c("line")}` }}>
@@ -465,6 +479,18 @@ export default function DesignThumb({
             <span style={{ position: "relative", width: "32%", aspectRatio: "1", padding: 3, borderRadius: 99, background: "conic-gradient(from 210deg, #f5f7fa, #9aa3ad, #ffffff, #6b7480, #e9edf2, #8d96a0, #f5f7fa)" }}><span style={{ display: "block", height: "100%", borderRadius: 99, background: photo }} /></span>
           </div>
         );
+      case "library": {
+        const shelf = mix(colors.background, "#2a170d", 0.5);
+        return (
+          <div style={{ position: "relative", display: "flex", alignItems: "center", gap: "6%", height: "44%", padding: "0 6%", overflow: "hidden", background: `repeating-linear-gradient(180deg, transparent 0 19px, ${shelf} 19px 21px), repeating-linear-gradient(90deg, #4a1519 0 4px, #1d3326 4px 7px, #6b4428 7px 9px, #1b2740 9px 13px, #5b1a1f 13px 15px), ${colors.background}` }}>
+            <span style={{ position: "absolute", inset: 0, background: `linear-gradient(90deg, ${colors.background} 34%, color-mix(in oklab, ${colors.background} 55%, transparent) 80%)` }} />
+            <div style={{ position: "relative", flex: 1 }}>{heroText(c("ink"), "left", 14)}</div>
+            <span style={{ position: "relative", width: "28%", aspectRatio: "4 / 5", padding: 3, background: "linear-gradient(135deg, #f3dc8f, #a37a2c 45%, #f6e3a1 60%, #8a6522)" }}>
+              <span style={{ display: "block", height: "100%", background: photo }} />
+            </span>
+          </div>
+        );
+      }
       default:
         return (
           <div style={{ display: "flex", height: "44%" }}>
@@ -626,6 +652,16 @@ export default function DesignThumb({
             {img("4 / 5", 5)}
             {line("60%", 2)}
             <span style={{ width: "34%", height: 5, borderRadius: 99, background: "linear-gradient(180deg, #ffffff, #c8ced6)", border: `1px solid ${c("line")}` }} />
+          </div>
+        );
+      case "studio":
+        return (
+          <div style={{ display: "grid", gap: 3, padding: "3px 3px 4px", background: "#fbf8f2", boxShadow: "0 3px 6px -3px rgb(0 0 0 / 0.45)" }}>
+            {img("3 / 4", 0)}
+            <span style={{ display: "flex", alignItems: "center", gap: 3, borderTop: "1px solid rgb(29 20 16 / 0.14)", paddingTop: 2 }}>
+              <span style={{ fontFamily: HEADING_FONTS[heading].css, fontSize: 5, color: "#7d5a1e" }}>No.{i + 1}</span>
+              {line("45%", 2, "#1d1410")}
+            </span>
           </div>
         );
       default:

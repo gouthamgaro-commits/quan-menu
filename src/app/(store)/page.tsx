@@ -24,6 +24,7 @@ import SwipeStack from "@/components/store/SwipeStack";
 import Showcase from "@/components/store/Showcase";
 import Hero from "@/components/store/heroes";
 import Spotlight, { type Chapter } from "@/components/store/Spotlight";
+import StyleGuide, { type StyleChapter } from "@/components/store/StyleGuide";
 import Vibes, { type Vibe } from "@/components/store/Vibes";
 import {
   BrandStrip,
@@ -42,7 +43,7 @@ import {
   TrustStrip,
   trustPoints,
 } from "@/components/store/sections";
-import { getHomeData, searchProducts } from "@/lib/catalog";
+import { getCollections, getHomeData, searchProducts, type Collection } from "@/lib/catalog";
 import { homeSections, type SectionKey } from "@/lib/designs";
 import { storefrontLook } from "@/lib/look";
 import { formatMoney } from "@/lib/money";
@@ -52,6 +53,28 @@ import { excerpt, jsonLd } from "@/lib/seo";
 import { safeHref } from "@/lib/urls";
 import { chapterColors, showcaseColors } from "@/lib/theme";
 import { contextOrigin } from "@/lib/store";
+import type { StyleGuideSettings } from "@/lib/types";
+
+/**
+ * The Style guide's chapters: the collections the store chose in Settings › Homepage, in its
+ * order, or else its featured collections; each with a few of its pieces, its chosen ones first.
+ */
+async function styleChapters(guide: StyleGuideSettings, featured: Collection[]): Promise<StyleChapter[]> {
+  const chosen = guide.collections?.length ? await getCollections() : [];
+  const picked = guide.collections?.length
+    ? guide.collections.map((slug) => chosen.find((c) => c.slug === slug)).filter((c): c is Collection => !!c)
+    : featured;
+  const chapters = await Promise.all(
+    picked.slice(0, 6).map(async (c) => ({
+      slug: c.slug,
+      title: c.title,
+      text: c.description ? excerpt(c.description, 220) : null,
+      image: c.image_url || c.banner_url,
+      products: (await searchProducts({ collection: c.slug, sort: "featured", limit: 4 })).items,
+    })),
+  );
+  return chapters.filter((c) => c.image || c.products.length);
+}
 
 export default async function Home() {
   const [settings, data, origin] = await Promise.all([getSettings(), getHomeData(), contextOrigin()]);
@@ -145,6 +168,9 @@ export default async function Home() {
         data.trending.slice(0, 4).map(async (c) => ({ title: c.title, slug: c.slug, products: (await searchProducts({ collection: c.slug, sort: "featured", limit: 6 })).items })),
       )
     : [];
+  // The Style guide: fetched only where the page shows it.
+  const guide = home.style_guide ?? {};
+  const guideChapters = order.includes("styleguide") ? await styleChapters(guide, data.trending) : [];
   const sections: Record<SectionKey, () => ReactNode> = {
     hero: () => (
       <Hero
@@ -238,6 +264,9 @@ export default async function Home() {
     blocks: () => <IsoBlocks products={newest} />,
     swipe: () => <SwipeStack products={chosen} />,
     pool: () => <Pool products={chosen} />,
+    styleguide: () => (
+      <StyleGuide chapters={guideChapters} eyebrow={guide.eyebrow || "Style guide"} title={guide.title || "Find your style"} intro={guide.intro} />
+    ),
     story: () => <StorySection settings={settings} variant={design.key} />,
     recommended: () => <RecentlyViewed title="Recommended for you" mode="recommend" />,
     newsletter: () => <NewsletterSection variant={design.key} title={kind.words.newsletter} text={kind.words.newsletterText} />,

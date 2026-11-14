@@ -163,6 +163,12 @@ const SECTIONS = {
       })).max(6),
       sections: z.array(z.object({ key: z.enum(SECTION_KEYS), on: z.boolean() })).max(SECTION_KEYS.length).optional(),
       stats: z.array(z.object({ value: z.string().trim().min(1, "Give each number a figure.").max(16), label: z.string().trim().min(1, "Give each number a label.").max(60) })).max(4).optional(),
+      style_guide: z.object({
+        eyebrow: z.string().trim().max(60).optional(),
+        title: z.string().trim().max(120).optional(),
+        intro: z.string().trim().max(400).optional(),
+        collections: z.array(z.string().trim().min(1).max(200)).max(6).optional(),
+      }).optional(),
     }),
   }),
   checkout: z.object({
