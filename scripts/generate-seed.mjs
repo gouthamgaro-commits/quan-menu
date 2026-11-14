@@ -1531,8 +1531,10 @@ if (stylesAt > -1) {
 
 // --arrivals <store id>: prints the SQL that makes the World of Style pieces a store already has its
 // newest arrivals again, in ARRIVALS order (a woman's piece, then a man's), three hours apart from
-// now, and features the ones the sample catalog features. For a store that took the pieces before
-// the order was set; running it later moves them to the top of New In again.
+// now, with the other style pieces after them five hours apart, as `--pack --since` places them, so
+// none of them lands among the alternating ones. It features the ones the sample catalog features.
+// For a store that took the pieces before the order was set; running it later moves them to the
+// top of New In again.
 const arrivalsAt = process.argv.indexOf("--arrivals");
 if (arrivalsAt > -1) {
   const store = process.argv[arrivalsAt + 1] ?? "";
@@ -1543,6 +1545,9 @@ if (arrivalsAt > -1) {
   const rows = ARRIVALS.map((title, i) => {
     const p = products.find((x) => x.t === title);
     return `    (${q(slugify(title))}, ${i * 3}, ${!!p.featured})`;
+  });
+  products.slice(products.findIndex((p) => p.t === STYLES_FIRST)).forEach((p, k) => {
+    if (!ARRIVALS.includes(p.t)) rows.push(`    (${q(slugify(p.t))}, ${ARRIVALS.length * 3 + k * 5}, false)`);
   });
   const sql = [
     `-- The World of Style pieces as store ${store}'s newest arrivals, women's and men's in turn.`,
