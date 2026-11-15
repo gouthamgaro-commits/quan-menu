@@ -3,7 +3,7 @@ import { randomBytes, randomInt } from "node:crypto";
 import { BUDGETS, type Status } from "./catalog";
 import { sql, transaction, type Query } from "./db";
 import { normalizeSettings, type Settings } from "./settings";
-import type { Order, OrderDetails, Payment, Project } from "./types";
+import type { Message, Order, OrderDetails, Payment, Project } from "./types";
 
 // ── Rows → objects ─────────────────────────────────────────────────────────────────────
 
@@ -31,7 +31,7 @@ type OrderRow = {
   email: string; college: string; branch: string; year: string; status: Status; price: number | null;
   estimate_low: number | null; estimate_high: number | null; advance_percent: number;
   deadline_text: string | null; note_for_student: string; admin_notes: string; delivery_link: string;
-  created_at: Date; updated_at: Date; paid: number | string | null; pending: number | string | null;
+  created_at: Date; updated_at: Date; paid: number | string | null; pending: number | string | null; unread: boolean;
 };
 
 function toOrder(r: OrderRow): Order {
@@ -45,6 +45,7 @@ function toOrder(r: OrderRow): Order {
     advancePercent: Number(r.advance_percent), deadline: r.deadline_text,
     noteForStudent: r.note_for_student, adminNotes: r.admin_notes, deliveryLink: r.delivery_link,
     createdAt: r.created_at, updatedAt: r.updated_at, paid: Number(r.paid ?? 0), pending: Number(r.pending ?? 0),
+    unread: !!r.unread,
   };
 }
 
@@ -215,7 +216,9 @@ export async function deleteProject(id: number) {
 const ORDER_SELECT = `
   select o.*, o.deadline::text as deadline_text, p.slug as project_slug,
     coalesce((select sum(amount) from store.payments where order_id = o.id and status = 'verified'), 0)::int as paid,
-    coalesce((select sum(amount) from store.payments where order_id = o.id and status = 'submitted'), 0)::int as pending
+    coalesce((select sum(amount) from store.payments where order_id = o.id and status = 'submitted'), 0)::int as pending,
+    exists (select 1 from store.messages m where m.order_id = o.id and m.sender = 'student'
+            and m.created_at > coalesce(o.owner_read_at, '-infinity'::timestamptz)) as unread
   from store.orders o left join store.projects p on p.id = o.project_id`;
 
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O, 1/I/L
@@ -245,23 +248,35 @@ export type NewOrder = {
   deadline: string | null;
 };
 
-/** Saves a new order and returns its code and secret link token. */
-export async function createOrder(o: NewOrder): Promise<{ code: string; token: string }> {
+/** The student's opening message, e.g. an offer instead of the listed price. */
+export type FirstMessage = { body: string; offer: number | null; accepted?: boolean; reply?: string };
+
+/** Saves a new order (and the student's first message, if any) and returns its code and secret link token. */
+export async function createOrder(o: NewOrder, first?: FirstMessage): Promise<{ code: string; token: string }> {
   for (let attempt = 0; ; attempt++) {
     const code = newCode();
     const token = randomBytes(16).toString("base64url");
     try {
       await transaction(async (query) => {
-        await query(
+        const [row] = await query<{ id: number }>(
           `insert into store.orders (code, token, kind, project_id, title, details, student_name, phone, email,
              college, branch, year, status, price, estimate_low, estimate_high, advance_percent, deadline)
-           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) returning id`,
           [
             code, token, o.kind, o.projectId, o.title, JSON.stringify(o.details), o.studentName, o.phone, o.email,
             o.college, o.branch, o.year, o.status, o.price, o.estimateLow, o.estimateHigh, o.advancePercent,
             o.deadline,
           ],
         );
+        if (first && (first.body || first.offer)) {
+          await query(
+            `insert into store.messages (order_id, sender, body, offer, offer_status) values ($1, 'student', $2, $3, $4)`,
+            [row.id, first.body, first.offer, first.offer ? (first.accepted ? "accepted" : "open") : null],
+          );
+          if (first.reply) {
+            await query(`insert into store.messages (order_id, sender, body) values ($1, 'owner', $2)`, [row.id, first.reply]);
+          }
+        }
         if (o.projectId) {
           await query("update store.projects set orders_count = orders_count + 1 where id = $1", [o.projectId]);
         }
@@ -317,6 +332,10 @@ export async function listOrders(f: { status?: string; q?: string; limit?: numbe
   const params: unknown[] = [];
   if (f.status === "payments") {
     where.push("exists (select 1 from store.payments x where x.order_id = o.id and x.status = 'submitted')");
+  } else if (f.status === "messages") {
+    where.push(
+      "exists (select 1 from store.messages m where m.order_id = o.id and m.sender = 'student' and m.created_at > coalesce(o.owner_read_at, '-infinity'::timestamptz))",
+    );
   } else if (f.status === "open") {
     where.push("o.status not in ('delivered', 'cancelled')");
   } else if (f.status) {
@@ -338,6 +357,77 @@ export async function listOrders(f: { status?: string; q?: string; limit?: numbe
   return rows.map(toOrder);
 }
 
+// ── Messages & offers ──────────────────────────────────────────────────────────────────
+
+type MessageRow = {
+  id: number; order_id: number; sender: Message["sender"]; body: string; offer: number | null;
+  offer_status: Message["offerStatus"]; created_at: Date;
+};
+
+function toMessage(r: MessageRow): Message {
+  return {
+    id: r.id, orderId: r.order_id, sender: r.sender, body: r.body, offer: r.offer == null ? null : Number(r.offer),
+    offerStatus: r.offer_status, createdAt: r.created_at,
+  };
+}
+
+export async function listMessages(orderId: number): Promise<Message[]> {
+  const rows = await sql<MessageRow>("select * from store.messages where order_id = $1 order by id", [orderId]);
+  return rows.map(toMessage);
+}
+
+/** Adds a message. A new offer replaces any offer still waiting for an answer. */
+export async function addMessage(orderId: number, sender: Message["sender"], body: string, offer: number | null) {
+  await transaction(async (query) => {
+    if (offer) {
+      await query("update store.messages set offer_status = 'replaced' where order_id = $1 and offer_status = 'open'", [orderId]);
+    }
+    await query(
+      "insert into store.messages (order_id, sender, body, offer, offer_status) values ($1, $2, $3, $4, $5)",
+      [orderId, sender, body, offer, offer ? "open" : null],
+    );
+    await query("update store.orders set updated_at = now() where id = $1", [orderId]);
+  });
+}
+
+/**
+ * Accepts or declines an open offer. Only the other side can answer an offer. Accepting sets the
+ * order's price, and an order that was still being discussed then waits for the advance.
+ * Returns false when the offer can no longer be answered.
+ */
+export async function answerOffer(messageId: number, orderId: number, by: Message["sender"], accept: boolean) {
+  return transaction(async (query) => {
+    const [m] = await query<{ offer: number }>(
+      `select offer from store.messages
+       where id = $1 and order_id = $2 and offer_status = 'open' and sender <> $3 for update`,
+      [messageId, orderId, by],
+    );
+    if (!m) return false;
+    if (accept) {
+      const updated = await query(
+        `update store.orders set price = $2, status = 'quoted', updated_at = now()
+         where id = $1 and status in ('requested', 'quoted') returning id`,
+        [orderId, m.offer],
+      );
+      if (!updated.length) return false;
+    }
+    await query("update store.messages set offer_status = $2 where id = $1", [messageId, accept ? "accepted" : "declined"]);
+    return true;
+  });
+}
+
+export async function markOwnerRead(orderId: number) {
+  await sql("update store.orders set owner_read_at = now() where id = $1", [orderId]);
+}
+
+export async function recentMessagesFrom(orderId: number, sender: Message["sender"], minutes = 60) {
+  const rows = await sql<{ n: number }>(
+    "select count(*)::int as n from store.messages where order_id = $1 and sender = $2 and created_at > now() - make_interval(mins => $3)",
+    [orderId, sender, minutes],
+  );
+  return Number(rows[0]?.n ?? 0);
+}
+
 export async function orderCounts(): Promise<Record<string, number>> {
   const rows = await sql<{ status: string; n: number }>(
     "select status, count(*)::int as n from store.orders group by status",
@@ -347,6 +437,11 @@ export async function orderCounts(): Promise<Record<string, number>> {
     "select count(distinct order_id)::int as n from store.payments where status = 'submitted'",
   );
   counts.payments = Number(pay[0]?.n ?? 0);
+  const unread = await sql<{ n: number }>(
+    `select count(*)::int as n from store.orders o where exists (select 1 from store.messages m
+       where m.order_id = o.id and m.sender = 'student' and m.created_at > coalesce(o.owner_read_at, '-infinity'::timestamptz))`,
+  );
+  counts.messages = Number(unread[0]?.n ?? 0);
   counts.all = rows.reduce((s, r) => s + Number(r.n), 0);
   counts.open = rows.filter((r) => r.status !== "delivered" && r.status !== "cancelled").reduce((s, r) => s + Number(r.n), 0);
   return counts;

@@ -5,7 +5,7 @@ import { startTransition, useActionState, useMemo, useState } from "react";
 import { submitIdea } from "@/app/(store)/actions";
 import { CATEGORIES, DIFFICULTIES } from "@/lib/catalog";
 import { inr } from "@/lib/format";
-import { advanceFor, basePrice, estimateIdea } from "@/lib/pricing";
+import { advanceFor, basePrice, estimateIdea, minOffer } from "@/lib/pricing";
 import type { Settings } from "@/lib/settings";
 import ContactFields from "./ContactFields";
 import { CategoryIcon } from "./Icons";
@@ -108,7 +108,7 @@ export default function IdeaForm({ settings: s, today, initialCategory = "softwa
 
         <section className="card form-card">
           <h2>
-            <span className="n">3</span> Deadline & extras
+            <span className="n">3</span> Deadline &amp; extras
           </h2>
           <label className="field" style={{ maxWidth: 260 }}>
             <span>
@@ -150,17 +150,39 @@ export default function IdeaForm({ settings: s, today, initialCategory = "softwa
               ))}
             </div>
           )}
-          <label className="field" style={{ maxWidth: 260 }}>
-            <span>
-              Your budget <em>(optional)</em>
-            </span>
-            <input className="input" name="budget" inputMode="numeric" pattern="[0-9,₹ ]*" maxLength={10} placeholder="₹" />
-          </label>
         </section>
 
         <section className="card form-card">
           <h2>
-            <span className="n">4</span> Your details
+            <span className="n">4</span> {s.negotiable ? "Your budget" : "Your budget (optional)"}
+          </h2>
+          <div className="grid-2">
+            <label className="field">
+              <span>
+                {s.negotiable ? "What can you pay?" : "Budget"} <em>(optional)</em>
+              </span>
+              <span className="money-input">
+                <span>₹</span>
+                <input className="input" name="budget" inputMode="numeric" maxLength={9} placeholder={String(est.low)} />
+              </span>
+              <span className="hint">
+                {s.negotiable
+                  ? `We treat it as your offer: we accept it or reply with a price that works.${s.minOfferPercent ? ` Budgets from ${inr(minOffer(est.low, s.minOfferPercent))} are considered.` : ""}`
+                  : "Helps us suggest the right scope."}
+              </span>
+            </label>
+            <label className="field">
+              <span>
+                A note for us <em>(optional)</em>
+              </span>
+              <textarea className="textarea" name="message" rows={3} maxLength={1000} placeholder="E.g. Our guide wants a working hardware model, not just a simulation." style={{ minHeight: 0 }} />
+            </label>
+          </div>
+        </section>
+
+        <section className="card form-card">
+          <h2>
+            <span className="n">5</span> Your details
           </h2>
           <ContactFields defaultBranch={initialBranch} />
         </section>
@@ -173,7 +195,11 @@ export default function IdeaForm({ settings: s, today, initialCategory = "softwa
             <span className="range" aria-live="polite">
               {range}
             </span>
-            <span className="small muted">We confirm the final price on WhatsApp, usually within a few hours.</span>
+            <span className="small muted">
+              {s.negotiable
+                ? "Tell us your budget below. We agree the final price with you before you pay anything."
+                : "We confirm the final price on your order page, usually within a few hours."}
+            </span>
           </div>
           <div className="lines">
             <div className="line">

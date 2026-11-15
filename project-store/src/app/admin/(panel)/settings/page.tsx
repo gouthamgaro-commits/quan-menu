@@ -82,6 +82,36 @@ export default async function SettingsPage() {
 
         <section className="card card-pad stack">
           <div className="stack-xs">
+            <h2 className="card-title">Offers & bargaining</h2>
+            <p className="small muted">
+              Students can offer their own price when they order, and you talk it over on their order page: accept, decline
+              or send a counter-offer.
+            </p>
+          </div>
+          <label className="check-plain">
+            <input type="checkbox" name="negotiable" value="1" defaultChecked={s.negotiable} /> Let students make offers (shows
+            “Negotiable” on prices)
+          </label>
+          <div className="grid-2">
+            <label className="field">
+              <span>
+                Lowest offer to consider <em>(% of the price)</em>
+              </span>
+              <input className="input" name="minOfferPercent" inputMode="numeric" maxLength={3} defaultValue={s.minOfferPercent} />
+              <span className="hint">Lower offers are refused straight away. 60 means ₹12,000 on a ₹20,000 project. 0 = any offer.</span>
+            </label>
+            <label className="field">
+              <span>
+                Accept offers automatically from <em>(% of the price)</em>
+              </span>
+              <input className="input" name="autoAcceptPercent" inputMode="numeric" maxLength={3} defaultValue={s.autoAcceptPercent || ""} placeholder="Off" />
+              <span className="hint">E.g. 90: an offer of ₹18,000+ on a ₹20,000 project is a deal at once. Leave empty to decide every offer yourself.</span>
+            </label>
+          </div>
+        </section>
+
+        <section className="card card-pad stack">
+          <div className="stack-xs">
             <h2 className="card-title">Pricing for students' own ideas</h2>
             <p className="small muted">
               Estimate = base price for the difficulty × the domain's multiplier, + rush charge + extras. Students see a range

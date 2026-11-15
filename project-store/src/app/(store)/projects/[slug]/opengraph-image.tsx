@@ -22,6 +22,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
     subtitle: p.summary,
     price: p.price,
     difficulty: p.difficulty,
-    chips: p.branches.slice(0, 3).map((b) => branchName(b, true)),
+    negotiable: s.negotiable,
+    chips: p.branches.slice(0, s.negotiable ? 2 : 3).map((b) => branchName(b, true)),
   });
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import InstallApp from "@/components/InstallApp";
 import { LogoMark, WhatsAppIcon } from "@/components/Icons";
 import { TabBar, TopNav } from "@/components/Nav";
+import Reveal from "@/components/Reveal";
 import SetupNeeded from "@/components/SetupNeeded";
 import { BRANCHES } from "@/lib/catalog";
 import { getSettings } from "@/lib/data";
@@ -16,7 +17,8 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   const wa = s.whatsapp ? waLink(s.whatsapp, `Hi ${s.brandName}! I have a question about a project.`) : "";
 
   return (
-    <div className="has-tabbar">
+    <div className="store has-tabbar">
+      <Reveal />
       {s.announcement && <div className="topbar">{s.announcement}</div>}
       <header className="header">
         <div className="container header-in">
@@ -49,7 +51,9 @@ export default async function StoreLayout({ children }: { children: React.ReactN
               {s.brandName}
             </span>
             <p className="muted small">{s.tagline}{s.city ? ` · ${s.city}` : ""}</p>
-            <p className="muted small">Ready-made and custom projects with source code, report, PPT and viva support.</p>
+            <p className="muted small">
+              Ready-made and custom projects with source code, report, PPT and viva support.{s.negotiable ? " Every price is negotiable." : ""}
+            </p>
             <InstallApp />
           </div>
           <div>

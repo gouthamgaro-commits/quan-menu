@@ -20,14 +20,14 @@ export default async function Dashboard() {
   ]);
   const missing = setupMissing(s);
   const tiles = [
-    { label: "Ideas to quote", value: counts.requested ?? 0, href: "/admin/orders?status=requested", hot: (counts.requested ?? 0) > 0 },
+    { label: "New messages & offers", value: counts.messages ?? 0, href: "/admin/orders?status=messages", hot: (counts.messages ?? 0) > 0 },
+    { label: "Prices to agree", value: counts.requested ?? 0, href: "/admin/orders?status=requested", hot: (counts.requested ?? 0) > 0 },
     { label: "Payments to check", value: counts.payments ?? 0, href: "/admin/orders?status=payments", hot: (counts.payments ?? 0) > 0 },
     { label: "Waiting for advance", value: counts.quoted ?? 0, href: "/admin/orders?status=quoted" },
     { label: "In progress", value: counts.in_progress ?? 0, href: "/admin/orders?status=in_progress" },
     { label: "Ready for demo", value: counts.ready ?? 0, href: "/admin/orders?status=ready" },
     { label: "Received this month", value: inr(st.revenueMonth), href: "/admin/orders?status=all" },
     { label: "Orders this month", value: st.ordersMonth, href: "/admin/orders?status=all" },
-    { label: "Delivered this month", value: st.deliveredMonth, href: "/admin/orders?status=delivered" },
   ];
 
   return (

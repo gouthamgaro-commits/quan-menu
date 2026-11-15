@@ -6,7 +6,9 @@ import { requireAdmin } from "@/lib/admin";
 import { ADMIN_COOKIE, adminPassword, newSession, passwordMatches, SESSION_DAYS } from "@/lib/auth";
 import { BRANCHES, CATEGORIES, INCLUDES, LEVELS, isStatus, type IncludeId } from "@/lib/catalog";
 import {
+  addMessage,
   addPayment,
+  answerOffer,
   decidePayment,
   deleteOrder,
   deletePayment,
@@ -249,10 +251,39 @@ export async function saveSettingsAction(_prev: FormState, fd: FormData): Promis
     factors: Object.fromEntries(CATEGORIES.map((c) => [c.id, num(fd, `factor_${c.id}`, 0.1, 20, current.factors[c.id])])),
     rush,
     addons,
+    negotiable: !!text(fd, "negotiable"),
+    minOfferPercent: int(fd, "minOfferPercent", 0, 100) ?? current.minOfferPercent,
+    autoAcceptPercent: int(fd, "autoAcceptPercent", 0, 100) ?? 0,
     policies: longText(fd, "policies", 20000) || current.policies,
   });
   await saveSettings(next);
   refresh();
   revalidatePath("/", "layout");
   return { ok: "Settings saved. The store uses them right away." };
+}
+
+// ── Chat & offers ──────────────────────────────────────────────────────────────────────
+
+/** You reply on an order, optionally with a price offer the student can accept in one tap. */
+export async function ownerMessageAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  const order = await getOrder(int(fd, "id", 1, 2_000_000_000) ?? 0);
+  if (!order) return { error: "Order not found." };
+  const body = longText(fd, "body", 2000);
+  const offer = text(fd, "withOffer") ? int(fd, "offer", 1, 10_000_000) : null;
+  if (text(fd, "withOffer") && !offer) return { error: "Enter the price you're offering." };
+  if (!body && !offer) return { error: "Write a message first." };
+  await addMessage(order.id, "owner", body, offer);
+  refresh(order.token);
+  return { ok: offer ? "Offer sent. Let them know on WhatsApp so they see it quickly." : "Sent." };
+}
+
+/** You accept or decline the student's offer. Accepting sets the price; the order then waits for the advance. */
+export async function ownerAnswerOfferAction(fd: FormData) {
+  await requireAdmin();
+  const order = await getOrder(int(fd, "id", 1, 2_000_000_000) ?? 0);
+  const message = int(fd, "message", 1, 2_000_000_000);
+  if (!order || !message) return;
+  await answerOffer(message, order.id, "owner", text(fd, "answer", 10) === "accept");
+  refresh(order.token);
 }

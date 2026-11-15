@@ -38,7 +38,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
             </form>
           </div>
         </div>
-        <AdminNav attention={(counts.requested ?? 0) + (counts.payments ?? 0)} />
+        <AdminNav attention={(counts.messages ?? 0) + (counts.payments ?? 0)} />
       </header>
       <main className="container page stack-lg">{children}</main>
     </div>

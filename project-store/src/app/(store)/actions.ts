@@ -4,20 +4,23 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { BRANCHES, CATEGORIES, YEARS, categoryName, difficultyName } from "@/lib/catalog";
 import {
+  addMessage,
   addPayment,
+  answerOffer,
   createOrder,
   findOrderToken,
   getOrderByToken,
   getProjectBySlug,
   getSettings,
   recentOrdersFromPhone,
+  recentMessagesFrom,
   recentOrdersTotal,
   recentPaymentSubmissions,
   utrUsed,
 } from "@/lib/data";
 import { inr, phonePretty } from "@/lib/format";
 import { notifyOwner } from "@/lib/notify";
-import { daysUntil, estimateIdea, pickAddons, todayIST } from "@/lib/pricing";
+import { autoAccepts, daysUntil, estimateIdea, minOffer, pickAddons, todayIST } from "@/lib/pricing";
 import { siteUrl } from "@/lib/site";
 import { int, isEmail, list, longText, normalizePhone, safeUrl, text } from "@/lib/validate";
 
@@ -77,25 +80,49 @@ export async function placeOrder(_prev: FormState, fd: FormData): Promise<FormSt
 
   const s = await getSettings();
   const addons = pickAddons(s, list(fd, "addons"));
-  const price = project.price + addons.reduce((sum, a) => sum + a.price, 0);
+  const listPrice = project.price + addons.reduce((sum, a) => sum + a.price, 0);
   const notes = longText(fd, "notes", 2000);
-  const { code, token } = await createOrder({
-    kind: "catalog",
-    projectId: project.id,
-    title: project.title,
-    details: { addons, notes, teamSize: c.teamSize, basePrice: project.price },
-    ...c.contact,
-    status: "quoted",
-    price,
-    estimateLow: null,
-    estimateHigh: null,
-    advancePercent: s.advancePercent,
-    deadline: dl.deadline,
-  });
+
+  // "Make an offer": the student proposes their own price, and we talk on the order page.
+  let offer = s.negotiable && text(fd, "mode", 10) === "offer" ? int(fd, "offer", 1, 10_000_000) : null;
+  if (s.negotiable && text(fd, "mode", 10) === "offer" && !offer) return { error: "Enter the price you'd like to pay." };
+  if (offer && offer >= listPrice) offer = null; // offering the full price is just ordering
+  const floor = minOffer(listPrice, s.minOfferPercent);
+  if (offer && offer < floor) return { error: `For this project we can consider offers from ${inr(floor)}. Try a higher amount, or chat with us.` };
+  const instant = !!offer && autoAccepts(offer, listPrice, s.autoAcceptPercent);
+  const message = longText(fd, "message", 1000);
+
+  const { code, token } = await createOrder(
+    {
+      kind: "catalog",
+      projectId: project.id,
+      title: project.title,
+      details: { addons, notes, teamSize: c.teamSize, basePrice: project.price, ...(offer ? { listPrice } : {}) },
+      ...c.contact,
+      status: offer && !instant ? "requested" : "quoted",
+      price: offer ? (instant ? offer : null) : listPrice,
+      estimateLow: null,
+      estimateHigh: null,
+      advancePercent: s.advancePercent,
+      deadline: dl.deadline,
+    },
+    offer
+      ? {
+          body: message,
+          offer,
+          accepted: instant,
+          reply: instant ? `Deal! ${inr(offer)} it is. Pay the advance below and we'll start.` : undefined,
+        }
+      : message
+        ? { body: message, offer: null }
+        : undefined,
+  );
   const base = await siteUrl();
   after(() =>
     notifyOwner(
-      `🛒 New order ${code}\n${project.title}\n${inr(price)}${addons.length ? ` (incl. ${addons.map((a) => a.name).join(", ")})` : ""}\n` +
+      (offer
+        ? `🤝 Offer ${code}: ${inr(offer)} for ${project.title} (listed ${inr(listPrice)})${instant ? " · accepted automatically" : ""}\n`
+        : `🛒 New order ${code}\n${project.title}\n${inr(listPrice)}${addons.length ? ` (incl. ${addons.map((a) => a.name).join(", ")})` : ""}\n`) +
         `${c.contact.studentName} · ${phonePretty(c.contact.phone)}${c.contact.college ? ` · ${c.contact.college}` : ""}\n${base}/admin`,
     ),
   );
@@ -127,28 +154,37 @@ export async function submitIdea(_prev: FormState, fd: FormData): Promise<FormSt
   const s = await getSettings();
   const est = estimateIdea(s, { difficulty, category, deadline: dl.deadline, addons: list(fd, "addons") }, todayIST());
   const budget = int(fd, "budget", 0, 10_000_000);
-  const { code, token } = await createOrder({
-    kind: "custom",
-    projectId: null,
-    title,
-    details: {
-      idea,
-      category,
-      difficulty,
-      budget,
-      reference,
-      addons: est.addons,
-      teamSize: c.teamSize,
-      rushPercent: est.rushPercent,
+  const floor = minOffer(est.low, s.minOfferPercent);
+  if (budget && budget < floor) {
+    return { error: `Projects like this start around ${inr(est.low)}. We can consider budgets from ${inr(floor)}.` };
+  }
+  const message = longText(fd, "message", 1000);
+  const { code, token } = await createOrder(
+    {
+      kind: "custom",
+      projectId: null,
+      title,
+      details: {
+        idea,
+        category,
+        difficulty,
+        budget,
+        reference,
+        addons: est.addons,
+        teamSize: c.teamSize,
+        rushPercent: est.rushPercent,
+      },
+      ...c.contact,
+      status: "requested",
+      price: null,
+      estimateLow: est.low,
+      estimateHigh: est.high,
+      advancePercent: s.advancePercent,
+      deadline: dl.deadline,
     },
-    ...c.contact,
-    status: "requested",
-    price: null,
-    estimateLow: est.low,
-    estimateHigh: est.high,
-    advancePercent: s.advancePercent,
-    deadline: dl.deadline,
-  });
+    // Their budget becomes an offer you can accept in one tap.
+    budget || message ? { body: message, offer: s.negotiable && budget ? budget : null } : undefined,
+  );
   const base = await siteUrl();
   after(() =>
     notifyOwner(
@@ -191,4 +227,47 @@ export async function findOrder(_prev: FormState, fd: FormData): Promise<FormSta
   const token = await findOrderToken(code, phone);
   if (!token) return { error: "We couldn't find an order with that code and number. Check both and try again." };
   redirect(`/track/${token}`);
+}
+
+/** The student writes on their order page, optionally with a price offer. */
+export async function studentMessage(_prev: FormState, fd: FormData): Promise<FormState> {
+  const order = await getOrderByToken(text(fd, "token", 60));
+  if (!order) return { error: "Order not found." };
+  if (order.status === "cancelled") return { error: "This order was cancelled. Message us on WhatsApp." };
+  const body = longText(fd, "body", 1000);
+  const s = await getSettings();
+  const offerAllowed = s.negotiable && ["requested", "quoted"].includes(order.status) && order.paid === 0;
+  const offer = offerAllowed && text(fd, "withOffer") ? int(fd, "offer", 1, 10_000_000) : null;
+  if (text(fd, "withOffer") && offerAllowed && !offer) return { error: "Enter the price you'd like to pay." };
+  if (!body && !offer) return { error: "Write a message first." };
+  const reference = order.details.listPrice ?? order.price ?? order.estimateLow ?? 0;
+  const floor = reference ? minOffer(reference, s.minOfferPercent) : 0;
+  if (offer && floor && offer < floor) return { error: `We can consider offers from ${inr(floor)} for this project.` };
+  if ((await recentMessagesFrom(order.id, "student", 60)) >= 30) return { error: "That's a lot of messages. Please wait a little, or message us on WhatsApp." };
+
+  await addMessage(order.id, "student", body, offer);
+  const base = await siteUrl();
+  after(() =>
+    notifyOwner(
+      `💬 ${order.studentName} on ${order.code} (${order.title})${offer ? `\nOffer: ${inr(offer)}` : ""}${body ? `\n“${body.slice(0, 300)}”` : ""}\nReply: ${base}/admin/orders/${order.id}`,
+    ),
+  );
+  revalidatePath(`/track/${order.token}`);
+  return { ok: offer ? "Offer sent. We'll reply here, usually within a few hours." : "Sent." };
+}
+
+/** The student accepts or declines the owner's price offer. */
+export async function studentAnswerOffer(fd: FormData) {
+  const order = await getOrderByToken(text(fd, "token", 60));
+  if (!order) return;
+  const id = int(fd, "message", 1, 2_000_000_000);
+  const accept = text(fd, "answer", 10) === "accept";
+  if (!id || !(await answerOffer(id, order.id, "student", accept))) return;
+  const base = await siteUrl();
+  after(() =>
+    notifyOwner(
+      `${accept ? "✅" : "❌"} ${order.studentName} ${accept ? "accepted" : "declined"} your offer on ${order.code} (${order.title})\n${base}/admin/orders/${order.id}`,
+    ),
+  );
+  revalidatePath(`/track/${order.token}`);
 }

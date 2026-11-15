@@ -6,7 +6,8 @@ import { listOrders, orderCounts } from "@/lib/data";
 
 const TABS = [
   { id: "open", label: "Open" },
-  { id: "requested", label: "Ideas to quote" },
+  { id: "messages", label: "New messages" },
+  { id: "requested", label: "Prices to agree" },
   { id: "payments", label: "Payments to check" },
   { id: "quoted", label: "Waiting for advance" },
   { id: "in_progress", label: "In progress" },

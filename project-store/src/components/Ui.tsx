@@ -3,7 +3,7 @@ import Link from "next/link";
 import { branchName, categoryName, difficultyName, levelName, STATUSES, type Status } from "@/lib/catalog";
 import { inr } from "@/lib/format";
 import type { Project } from "@/lib/types";
-import { CategoryIcon } from "./Icons";
+import CoverArt from "./CoverArt";
 
 export function Meter({ level, label = true }: { level: number; label?: boolean }) {
   return (
@@ -24,22 +24,21 @@ export function StatusBadge({ status, student = false }: { status: Status; stude
   return <span className={`badge tone-${s.tone}`}>{student && status !== "delivered" && status !== "cancelled" ? s.student : s.name}</span>;
 }
 
-export function ProjectCard({ p, showBranches = true }: { p: Project; showBranches?: boolean }) {
+export function ProjectCard({ p, negotiable = true, className = "" }: { p: Project; negotiable?: boolean; className?: string }) {
   return (
-    <Link href={`/projects/${p.slug}`} className={`pcard cat-${p.category}`}>
-      <div className="pcard-head">
-        <span className="cat-icon">
-          <CategoryIcon category={p.category} size={20} />
+    <Link href={`/projects/${p.slug}`} className={`pcard cat-${p.category} ${className}`}>
+      <CoverArt category={p.category} seed={p.slug}>
+        <span className="cover-tags">
+          <span className="glass-chip">{levelName(p.level)}</span>
+          <span className="glass-chip">
+            <Meter level={p.difficulty} />
+          </span>
         </span>
-        <div className="grow">
-          <span className="pcard-cat">{categoryName(p.category, true)}</span>
-          <span className="tiny muted">{levelName(p.level)}</span>
-        </div>
-        <Meter level={p.difficulty} />
-      </div>
-      <h3>{p.title}</h3>
-      <p>{p.summary}</p>
-      {showBranches && (
+      </CoverArt>
+      <div className="pcard-body">
+        <span className="pcard-cat">{categoryName(p.category, true)}</span>
+        <h3>{p.title}</h3>
+        <p>{p.summary}</p>
         <div className="chips">
           {p.branches.slice(0, 3).map((b) => (
             <span key={b} className="chip">
@@ -47,9 +46,12 @@ export function ProjectCard({ p, showBranches = true }: { p: Project; showBranch
             </span>
           ))}
         </div>
-      )}
+      </div>
       <div className="pcard-foot">
-        <span className="price">{inr(p.price)}</span>
+        <span className="stack-xs">
+          <span className="price">{inr(p.price)}</span>
+          {negotiable && <span className="neg">Negotiable</span>}
+        </span>
         <span className="days">
           <Clock size={14} aria-hidden /> {p.deliveryDays} days
         </span>

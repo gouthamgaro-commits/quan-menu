@@ -21,12 +21,14 @@ export default async function CustomPage({ searchParams }: { searchParams: Promi
 
   return (
     <main className="container page stack">
-      <div className="stack-xs">
+      <div className="page-hero stack-xs">
         <span className="eyebrow">Your own idea</span>
-        <h1>Tell us your idea, see the price</h1>
+        <h1>
+          Your idea. <span className="grad-text">Your price.</span>
+        </h1>
         <p className="lead">
-          Describe the project, pick its domain, difficulty and deadline. The estimate updates as you go. We confirm the
-          final price on WhatsApp before you pay anything.
+          Describe the project and pick its domain, difficulty and deadline. The estimate updates as you go. Add what you can
+          pay, and we'll agree the final price with you before you pay anything.
         </p>
       </div>
       <IdeaForm settings={s} today={todayIST()} initialCategory={cat} initialBranch={branch} />

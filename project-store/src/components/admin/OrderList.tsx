@@ -1,3 +1,4 @@
+import { MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { StatusBadge } from "@/components/Ui";
 import { branchName } from "@/lib/catalog";
@@ -6,6 +7,7 @@ import type { Order } from "@/lib/types";
 
 function priceText(o: Order) {
   if (o.price != null) return inr(o.price);
+  if (o.details.listPrice != null) return `listed ${inr(o.details.listPrice)}`;
   if (o.estimateLow != null && o.estimateHigh != null) return `~${inr(o.estimateLow)}–${inr(o.estimateHigh)}`;
   return "—";
 }
@@ -34,6 +36,11 @@ export default function OrderList({ orders }: { orders: Order[] }) {
                   <Link className="rowlink mono" href={`/admin/orders/${o.id}`}>
                     {o.code}
                   </Link>
+                  {o.unread && (
+                    <div className="unread">
+                      <MessageCircle size={13} aria-hidden /> New message
+                    </div>
+                  )}
                   <div className="tiny muted" title={dateTimeIN(o.createdAt)}>
                     {timeAgo(o.createdAt)}
                   </div>
@@ -67,7 +74,14 @@ export default function OrderList({ orders }: { orders: Order[] }) {
         {orders.map((o) => (
           <Link key={o.id} href={`/admin/orders/${o.id}`} className="card orow">
             <div className="row between">
-              <span className="mono small">{o.code}</span>
+              <span className="mono small">
+                {o.code}
+                {o.unread && (
+                  <span className="unread" style={{ marginLeft: 8 }}>
+                    <MessageCircle size={13} aria-hidden /> New message
+                  </span>
+                )}
+              </span>
               <StatusBadge status={o.status} />
             </div>
             <b>{o.title}</b>

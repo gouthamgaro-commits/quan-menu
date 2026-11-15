@@ -5,7 +5,7 @@
  *
  * Raise SCHEMA_VERSION whenever SCHEMA_SQL changes; every statement must be safe to re-run.
  */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const SCHEMA_SQL = /* sql */ `
 create schema if not exists store;
@@ -88,6 +88,19 @@ create table if not exists store.settings (
   updated_at timestamptz not null default now()
 );
 insert into store.settings (id) values (1) on conflict (id) do nothing;
+
+-- The conversation on each order: messages and price offers from either side.
+create table if not exists store.messages (
+  id           integer generated always as identity primary key,
+  order_id     integer not null references store.orders(id) on delete cascade,
+  sender       text not null check (sender in ('student', 'owner')),
+  body         text not null default '',
+  offer        integer check (offer > 0),            -- a price proposal, if this message makes one
+  offer_status text check (offer_status in ('open', 'accepted', 'declined', 'replaced')),
+  created_at   timestamptz not null default now()
+);
+create index if not exists messages_order_idx on store.messages (order_id, id);
+alter table store.orders add column if not exists owner_read_at timestamptz;  -- last time the owner opened the chat
 
 -- Wrong owner passwords, per address, to slow down guessing.
 create table if not exists store.login_failures (

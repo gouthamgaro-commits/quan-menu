@@ -15,8 +15,15 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return { title: p ? `Order: ${p.title} · ${s.brandName}` : s.brandName, robots: { index: false } };
 }
 
-export default async function OrderPage({ params }: { params: Params }) {
+export default async function OrderPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { slug } = await params;
+  const wantsOffer = (await searchParams).offer === "1";
   const [p, s] = await Promise.all([getProjectBySlug(slug), getSettings()]);
   if (!p || !p.active) notFound();
 
@@ -30,7 +37,7 @@ export default async function OrderPage({ params }: { params: Params }) {
         <span aria-current="page">Order</span>
       </nav>
       <div className="stack-xs">
-        <h1 style={{ fontSize: "clamp(24px, 4.4vw, 32px)" }}>Order your project</h1>
+        <h1 style={{ fontSize: "clamp(26px, 4.6vw, 36px)" }}>{wantsOffer && s.negotiable ? "Make an offer" : "Order your project"}</h1>
         <p className="muted">
           {p.title} · {inr(p.price)} · ready in {p.deliveryDays} days
         </p>
@@ -40,6 +47,9 @@ export default async function OrderPage({ params }: { params: Params }) {
         addons={s.addons}
         advancePercent={s.advancePercent}
         today={todayIST()}
+        negotiable={s.negotiable}
+        minOfferPercent={s.minOfferPercent}
+        startWithOffer={wantsOffer}
       />
     </main>
   );

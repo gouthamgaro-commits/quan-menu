@@ -1,13 +1,18 @@
-import { ArrowLeft, ExternalLink, Phone, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, ExternalLink, MessagesSquare, Phone, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   cancelOrderAction,
   deleteOrderAction,
   deletePaymentAction,
+  ownerAnswerOfferAction,
+  ownerMessageAction,
   recordPaymentAction,
   updateOrderAction,
 } from "@/app/admin/actions";
+import AutoRefresh from "@/components/AutoRefresh";
+import ChatComposer from "@/components/ChatComposer";
+import Thread from "@/components/Thread";
 import ActionForm from "@/components/admin/ActionForm";
 import ConfirmButton from "@/components/admin/ConfirmButton";
 import PaymentButtons from "@/components/admin/PaymentButtons";
@@ -15,7 +20,7 @@ import { WhatsAppIcon } from "@/components/Icons";
 import { Meter, StatusBadge } from "@/components/Ui";
 import { requireAdmin } from "@/lib/admin";
 import { STATUS_ORDER, STATUSES, branchName, categoryName } from "@/lib/catalog";
-import { getOrder, getSettings, listPayments } from "@/lib/data";
+import { getOrder, getSettings, listMessages, listPayments, markOwnerRead } from "@/lib/data";
 import { dateIN, dateTimeIN, inr, phonePretty } from "@/lib/format";
 import { waLink } from "@/lib/links";
 import { money } from "@/lib/money";
@@ -27,7 +32,10 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
   const id = Number((await params).id);
   const o = Number.isInteger(id) && id > 0 ? await getOrder(id) : null;
   if (!o) notFound();
-  const [s, payments, base] = await Promise.all([getSettings(), listPayments(o.id), siteUrl()]);
+  const [s, payments, messages, base] = await Promise.all([getSettings(), listPayments(o.id), listMessages(o.id), siteUrl()]);
+  if (o.unread) await markOwnerRead(o.id);
+  const studentOffer = [...messages].reverse().find((x) => x.offerStatus === "open" && x.sender === "student");
+  const canNegotiate = ["requested", "quoted"].includes(o.status) && o.paid === 0;
   const m = money(o);
   const link = `${base}/track/${o.token}`;
   const first = o.studentName.split(/\s+/)[0];
@@ -52,6 +60,10 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
       label: "Files delivered",
       text: `Hi ${first}, your project files for “${o.title}” are ready to download on your order page: ${link}. All the best for your review!`,
     },
+    messages.length > 0 && {
+      label: "I've replied",
+      text: `Hi ${first}, I've replied about “${o.title}” on your order page: ${link}`,
+    },
     { label: "Order link", text: `Hi ${first}, here's your order page for “${o.title}” (order ${o.code}): ${link}` },
   ].filter(Boolean) as { label: string; text: string }[];
 
@@ -72,8 +84,81 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
         </div>
       </div>
 
+      <AutoRefresh seconds={15} />
       <div className="admin-grid">
         <div className="stack">
+          <section className="card card-pad stack">
+            <div className="row between">
+              <h2 className="card-title">
+                <MessagesSquare size={19} aria-hidden /> Conversation
+              </h2>
+              {o.details.listPrice != null && (
+                <span className="small muted">
+                  Listed at <b>{inr(o.details.listPrice)}</b>
+                </span>
+              )}
+            </div>
+            {studentOffer && canNegotiate && (
+              <div className="notice warn">
+                <span className="stack-xs">
+                  <b>
+                    {o.studentName} offers {inr(studentOffer.offer)}
+                    {o.details.listPrice ? ` (listed ${inr(o.details.listPrice)})` : o.estimateLow != null ? ` (estimate ${inr(o.estimateLow)}–${inr(o.estimateHigh)})` : ""}
+                  </b>
+                  <span className="small">Accept it, decline it, or send your own price below.</span>
+                </span>
+              </div>
+            )}
+            {messages.length ? (
+              <Thread
+                messages={messages}
+                viewer="owner"
+                names={{ student: o.studentName, owner: s.brandName }}
+                listPrice={o.details.listPrice ?? null}
+                answer={(msg) =>
+                  canNegotiate ? (
+                    <div className="offer-actions">
+                      <form action={ownerAnswerOfferAction}>
+                        <input type="hidden" name="id" value={o.id} />
+                        <input type="hidden" name="message" value={msg.id} />
+                        <input type="hidden" name="answer" value="accept" />
+                        <button className="btn btn-primary btn-sm" type="submit">
+                          <Check size={15} aria-hidden /> Accept {msg.offer != null ? inr(msg.offer) : ""}
+                        </button>
+                      </form>
+                      <form action={ownerAnswerOfferAction}>
+                        <input type="hidden" name="id" value={o.id} />
+                        <input type="hidden" name="message" value={msg.id} />
+                        <input type="hidden" name="answer" value="decline" />
+                        <button className="btn btn-sm" type="submit">
+                          <X size={15} aria-hidden /> Decline
+                        </button>
+                      </form>
+                    </div>
+                  ) : null
+                }
+              />
+            ) : (
+              <p className="small muted">No messages yet. Write to {first} here; they see it on their order page.</p>
+            )}
+            <ChatComposer
+              action={ownerMessageAction}
+              hidden={{ id: o.id }}
+              allowOffer={canNegotiate}
+              offerHint={o.details.listPrice ? `Listed at ${inr(o.details.listPrice)}.` : o.estimateLow != null ? `Estimate ${inr(o.estimateLow)}–${inr(o.estimateHigh)}.` : undefined}
+              placeholder={`Reply to ${first}…`}
+              quickReplies={[
+                "Thanks! Let me check and get back to you shortly.",
+                "This price includes source code, report, PPT, demo video and viva prep.",
+                "I can do this price if you pay the advance today.",
+                "We can start as soon as the advance is paid.",
+              ]}
+            />
+            <a className="btn btn-wa btn-sm" style={{ justifySelf: "start" }} href={waLink(o.phone, `Hi ${first}, I've replied about “${o.title}” on your order page: ${link}`)} target="_blank" rel="noopener noreferrer">
+              <WhatsAppIcon size={15} /> Tell {first} on WhatsApp
+            </a>
+          </section>
+
           <section className="card card-pad stack-sm">
             <h2 className="card-title">Student</h2>
             <dl className="kv">
@@ -323,7 +408,9 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
                   <input className="input" name="advance" inputMode="numeric" defaultValue={o.advancePercent} />
                 </label>
               </div>
-              {o.status === "requested" && <p className="hint">Enter the final price and save: the student's page then asks for the advance.</p>}
+              {o.status === "requested" && (
+              <p className="hint">Agree the price in the conversation, or type the final price here and save: the student's page then asks for the advance.</p>
+            )}
               <label className="field">
                 <span>
                   Message on the student's page <em>(optional)</em>

@@ -1,33 +1,43 @@
 # Project store for engineering students
 
-A website and installable phone app where engineering students buy final-year and mini projects. They can **pick a ready-made project** with a fixed price, or **describe their own idea** and get an instant price based on how hard it is. They pay a UPI advance, track progress, and download the files. You run everything from an owner panel: quote ideas, check payments, update orders and edit the catalogue and prices.
+A website and installable phone app where engineering students buy final-year and mini projects. Projects are priced like a premium service (from ₹12,000), and **every price is negotiable**: students can order at the listed price or **make an offer**, and you settle it in a chat on their order page with offers and counter-offers. They can also **describe their own idea** and get an instant estimate. Then they pay a UPI advance, track progress and download the files. You run everything from an owner panel.
 
-| Home | Project page | Price my idea | Pay by UPI |
-|---|---|---|---|
-| <img src="docs/01-home.webp" width="260"> | <img src="docs/02-project.webp" width="180"> | <img src="docs/03-price-my-idea.webp" width="180"> | <img src="docs/04-pay-by-upi.webp" width="180"> |
-
-| Owner dashboard | Owner: one order |
+| Home | Catalogue |
 |---|---|
-| <img src="docs/05-owner-dashboard.webp" width="420"> | <img src="docs/06-owner-order.webp" width="420"> |
+| <img src="docs/01-home.webp" width="420"> | <img src="docs/02-catalogue.webp" width="420"> |
+
+| Project page | Make an offer | Your counter-offer | Pay by UPI |
+|---|---|---|---|
+| <img src="docs/03-project.webp" width="180"> | <img src="docs/04-make-offer.webp" width="180"> | <img src="docs/05-counter-offer.webp" width="180"> | <img src="docs/07-pay-by-upi.webp" width="180"> |
+
+| Owner: the conversation on an order | Owner dashboard |
+|---|---|
+| <img src="docs/06-owner-chat.webp" width="420"> | <img src="docs/08-owner-dashboard.webp" width="420"> |
+
+**Look:** a dark, premium theme for students (animated gradient hero, tech ticker, glowing cards, scroll-in motion that respects "reduce motion"), and a clean light owner panel.
 
 **Stack:** Next.js 15 (App Router, TypeScript) · Postgres (free Supabase database in production, a built-in one for development) · deploys to Vercel. No paid services needed.
 
 ## What students can do
 
-- **Browse 44 sample projects** for CSE, IT, AI & DS, ECE, EEE, Mechanical and Civil, with search and filters for branch, difficulty (Easy, Medium, Hard, Expert), budget, domain and mini/final-year.
+- **Browse 44 sample projects** (₹12,000 – ₹38,000) for CSE, IT, AI & DS, ECE, EEE, Mechanical and Civil, with search and filters for branch, difficulty (Easy, Medium, Hard, Expert), budget, domain and mini/final-year. Every project has its own artwork drawn from its domain.
 - **See exactly what they get:** source code, report, PPT, demo video, viva Q&A, and the hardware kit or working model for hardware projects.
-- **Order** with optional extras (viva-prep call, code walkthrough video, IEEE paper write-up, priority delivery) and a deadline.
-- **Price their own idea:** they pick the domain, difficulty and deadline, and see the estimate change as they go. Close deadlines add a rush charge. You confirm the final price.
+- **Order** at the listed price with optional extras (viva-prep call, code walkthrough video, IEEE paper write-up, priority delivery) and a deadline.
+- **Make an offer instead:** "Make an offer" on any project lets them name their price with a note ("we're a team of 3, this is our budget"). Nothing to pay until you agree.
+- **Bargain in a chat:** their order page has a conversation with you. They see your counter-offer with **Accept** / **Decline** buttons, can send their own counter-offer, or just ask questions. The page refreshes by itself, so replies appear without reloading.
+- **Price their own idea:** they pick the domain, difficulty and deadline, see the estimate change as they go, and add what they can pay. Their budget arrives as an offer you can accept in one tap.
 - **Pay by UPI:** the order page shows a QR code and a "Pay with a UPI app" button for the exact amount (GPay, PhonePe, Paytm…). Then they type the transaction ID (UTR) so you can check it.
-- **Track the order** (Order placed → Advance paid → Being built → Demo ready → Delivered) and download the files when it's done. Their orders are remembered on their phone, or they can find one with the order code and phone number.
+- **Track the order** (Price agreed → Advance paid → Being built → Demo ready → Delivered) and download the files when it's done. Their orders are remembered on their phone, or they can find one with the order code and phone number.
 - **WhatsApp everywhere:** every page can open a chat with you, with the project or order already typed in.
 - **Install it as an app:** on Android, "Install the app" adds it to the home screen with a bottom tab bar; on iPhone, Share → Add to Home Screen.
 - **Share links that look good:** a shared project shows a preview card with its title, price and difficulty in WhatsApp and Instagram.
 
 ## What you (the owner) can do — `/admin`
 
-- **Dashboard:** ideas waiting for a price, payments to check, orders by stage, money received this month.
-- **Quote an idea:** type the final price and save. The student's page then asks for the advance. One tap opens WhatsApp with "your project is confirmed at ₹X, pay here: link" ready to send.
+- **Dashboard:** new messages and offers, prices still to agree, payments to check, orders by stage, money received this month.
+- **Answer offers:** each order has the whole conversation. Tap **Accept** on a student's offer, **Decline** it, or send your own price ("We can do ₹16,500 including the viva prep call"). Quick replies fill in common answers. When a price is accepted by either side, the order moves to *Waiting for advance* and the student sees the UPI QR code.
+- **Bargaining rules** (Settings): the lowest offer you'll look at (default 60% of the price; lower offers are refused politely), and an optional auto-accept level (e.g. 90%: any offer that high is a deal at once). You can also turn offers off.
+- **Or just set the price:** type the final price on the order and save; the student's page then asks for the advance. One tap opens WhatsApp with the price and payment link ready to send.
 - **Check payments:** search the UTR in your bank or UPI app, then tap **Received** or **Not received**. When the advance is in, the order moves to *In progress* by itself. You can also record cash or bank payments.
 - **Deliver:** upload the files to Google Drive (share with "anyone with the link"), paste the link, set the status to *Delivered*. The student gets a download button.
 - **Ready-made WhatsApp messages** for each stage: price and payment link, payment received, demo ready, files delivered.
@@ -46,15 +56,13 @@ base price for the difficulty × domain multiplier  +  rush charge  +  extras
 
 | Difficulty | Base (default) | | Domain | Multiplier (default) |
 |---|---|---|---|---|
-| Easy | ₹2,000 | | Web & mobile apps, research studies | ×1 |
-| Medium | ₹4,000 | | CAD, simulation & analysis | ×1.1 |
-| Hard | ₹7,500 | | AI & ML | ×1.25 |
-| Expert | ₹12,000 | | Security & blockchain | ×1.3 |
-| | | | VLSI & signal processing | ×1.35 |
-| | | | IoT/embedded, power & EV (kit included) | ×1.5 |
-| | | | Fabrication & working models | ×2 |
+| Easy | ₹12,000 | | Web & mobile apps, CAD & analysis, research studies | ×1 |
+| Medium | ₹15,000 | | AI & ML, security & blockchain | ×1.15 |
+| Hard | ₹22,000 | | VLSI & signal processing | ×1.2 |
+| Expert | ₹30,000 | | IoT/embedded, power & EV (kit included) | ×1.25 |
+| | | | Fabrication & working models | ×1.5 |
 
-Rush charge: +40% if the deadline is within 7 days, +20% within 14 days. Students see a range (10% below to 20% above the estimate), and you set the final price. Change any of these numbers in **Admin → Settings & prices**.
+Rush charge: +30% if the deadline is within 7 days, +15% within 14 days. Extras: viva-prep call ₹1,000, code walkthrough video ₹1,500, IEEE paper write-up ₹4,000, priority delivery ₹2,500. Students see a range (10% below to 20% above the estimate), and the final price is whatever you agree. Change any of these numbers in **Admin → Settings & prices**; the sample projects' own prices are edited in **Admin → Projects**.
 
 ## Run it on your computer (2 minutes)
 
@@ -102,7 +110,8 @@ The site is already an installable app (PWA). To list it on Google Play, enter y
 
 ## Your daily routine
 
-1. **New idea** (dashboard: *Ideas to quote*) → open it, read it, type the price, **Save** → tap **Send price & payment link**.
+1. **New offer or message** (dashboard: *New messages & offers*) → open it → **Accept**, or reply with your price → tap **Tell them on WhatsApp** so they see it quickly.
+   **New idea** (*Prices to agree*) → read it, then accept their budget, send an offer, or type the price and **Save**.
 2. **Payment to check** → find the UTR in your bank/UPI app → **Received**. The order moves to *In progress*.
 3. **Demo ready** → set the status to *Ready* → **Demo ready** message → collect the balance.
 4. **Hand over** → paste the Google Drive link → status *Delivered* → **Files delivered** message.
@@ -111,13 +120,15 @@ The site is already an installable app (PWA). To list it on Google Play, enter y
 
 | Path | What it does |
 |---|---|
-| `src/app/(store)/` | Student pages: home, `projects` (catalogue and project pages), `projects/[slug]/order`, `custom` (price my idea), `track` (order lookup and order page), `policies`. `actions.ts` saves orders, ideas and payment reports, with checks against spam (a hidden field for bots, at most 5 orders per phone number per hour). |
+| `src/app/(store)/` | Student pages: home, `projects` (catalogue and project pages), `projects/[slug]/order` (order or make an offer), `custom` (price my idea), `track` (order lookup, and the order page with its conversation), `policies`. `actions.ts` saves orders, offers, messages and payment reports, with checks against spam (a hidden field for bots, at most 5 orders per phone number per hour, 30 messages per order per hour). |
 | `src/app/admin/` | Owner panel. `actions.ts` holds every owner action; each one checks the owner's sign-in. `src/middleware.ts` also keeps signed-out visitors away from `/admin`. |
 | `src/lib/db.ts` | Database connection: Postgres when `DATABASE_URL` is set, otherwise the built-in PGlite database (development only). Creates the tables on first start and fills the catalogue once. |
-| `src/lib/schema.ts` | Tables: `projects`, `orders`, `payments`, `settings`, all in the `store` schema. Raise `SCHEMA_VERSION` when you change it; every statement is safe to run again. |
+| `src/lib/schema.ts` | Tables: `projects`, `orders`, `payments`, `messages` (the conversation and offers on each order), `settings`, all in the `store` schema. Raise `SCHEMA_VERSION` when you change it; every statement is safe to run again. |
 | `src/lib/seed.ts` | The 44 sample projects. |
 | `src/lib/data.ts` | Every database query. |
-| `src/lib/pricing.ts` | The estimate formula, shared by the student form and the server. |
+| `src/lib/pricing.ts` | The estimate formula and the offer rules (lowest offer, auto-accept), shared by the student forms and the server. |
+| `src/components/CoverArt.tsx` | Each project's artwork, drawn as SVG from its domain (circuits, neural networks, gears…) with a variation per project. |
+| `src/components/Thread.tsx`, `ChatComposer.tsx` | The order conversation: chat bubbles, offer cards with Accept/Decline, and the message box with "Add a price offer". |
 | `src/lib/settings.ts` | Owner settings with their defaults, including the default policy text. |
 | `src/lib/auth.ts` | Owner sign-in: one password, a signed cookie for 30 days, at most 10 wrong tries per 15 minutes from one address. |
 | `src/lib/links.ts` | WhatsApp click-to-chat and UPI payment links. |

@@ -35,6 +35,8 @@ export type OrderDetails = {
   teamSize?: number;
   /** Catalogue orders: the project's own price when ordered. */
   basePrice?: number;
+  /** Listed price (project + extras) when the student made an offer instead. */
+  listPrice?: number;
   rushPercent?: number;
 };
 
@@ -79,4 +81,16 @@ export type Order = {
   paid: number;
   /** Sum of payments waiting for the owner to check. */
   pending: number;
+  /** The student wrote since the owner last opened the order. */
+  unread: boolean;
+};
+
+export type Message = {
+  id: number;
+  orderId: number;
+  sender: "student" | "owner";
+  body: string;
+  offer: number | null;
+  offerStatus: "open" | "accepted" | "declined" | "replaced" | null;
+  createdAt: Date;
 };

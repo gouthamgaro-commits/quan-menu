@@ -43,6 +43,7 @@ export async function generateMetadata({ searchParams }: { searchParams: SP }): 
 
 export default async function ProjectsPage({ searchParams }: { searchParams: SP }) {
   const f = readFilters(await searchParams);
+  const s = await getSettings();
   const projects = await listProjects({
     q: f.q,
     branch: f.branch,
@@ -63,10 +64,23 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
 
   return (
     <main className="container page stack-lg">
-      <div className="stack">
+      <div className="page-hero stack">
         <div className="stack-xs">
-          <h1>{f.branch ? `${branchName(f.branch)} projects` : "All projects"}</h1>
-          <p className="muted">Fixed prices, with source code, report and PPT. Tap a project to see everything included.</p>
+          <span className="eyebrow">{projects.length} projects · {f.branch ? branchName(f.branch, true) : "all branches"}</span>
+          <h1>
+            {f.branch ? (
+              <>
+                <span className="grad-text">{branchName(f.branch, true)}</span> projects
+              </>
+            ) : (
+              <>
+                Find your <span className="grad-text">project</span>
+              </>
+            )}
+          </h1>
+          <p className="muted">
+            Source code, report and PPT with every project.{s.negotiable ? " Like one but not the price? Make an offer." : ""}
+          </p>
         </div>
         <form className="searchbar" action="/projects" role="search">
           {Object.entries(f).map(([k, v]) =>
@@ -165,7 +179,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
           {projects.length ? (
             <div className="pgrid three">
               {projects.map((p) => (
-                <ProjectCard key={p.id} p={p} />
+                <ProjectCard key={p.id} p={p} negotiable={s.negotiable} />
               ))}
             </div>
           ) : (

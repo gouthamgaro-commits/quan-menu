@@ -24,13 +24,19 @@ export type Settings = {
   /** Extra charge when the deadline is close. Checked in order of days; the first match applies. */
   rush: RushRule[];
   addons: Addon[];
+  /** Students may make an offer instead of paying the listed price, and chat about it on their order page. */
+  negotiable: boolean;
+  /** Offers below this share of the price are refused straight away (0 = accept any offer for review). */
+  minOfferPercent: number;
+  /** Offers at or above this share of the price are accepted by themselves (0 = always decide yourself). */
+  autoAcceptPercent: number;
   /** Plain text. "## " starts a heading, "- " a bullet, a blank line a new paragraph. */
   policies: string;
 };
 
 export const DEFAULT_POLICIES = `## Ordering
-- Pick a project from the catalogue or send us your own idea. For your own idea we confirm the final price on WhatsApp, usually within a few hours.
-- Work starts once the advance is paid. You pay the rest after you have seen the working demo.
+- Pick a project from the catalogue or send us your own idea. Every price is open to discussion: make an offer when you order, or talk to us on your order page or on WhatsApp.
+- Once we agree on the price, work starts when the advance is paid. You pay the rest after you have seen the working demo.
 
 ## Delivery
 - Delivery times start from the day the advance is received.
@@ -59,18 +65,21 @@ export const DEFAULTS: Settings = {
   upiId: "",
   upiName: "",
   advancePercent: 50,
-  tierPrices: [2000, 4000, 7500, 12000],
+  tierPrices: [12000, 15000, 22000, 30000],
   factors: Object.fromEntries(CATEGORIES.map((c) => [c.id, c.factor])) as Record<CategoryId, number>,
   rush: [
-    { days: 7, percent: 40 },
-    { days: 14, percent: 20 },
+    { days: 7, percent: 30 },
+    { days: 14, percent: 15 },
   ],
   addons: [
-    { id: "viva", name: "1-on-1 explanation & viva prep call (1 hour)", price: 500 },
-    { id: "walkthrough", name: "Recorded code walkthrough video", price: 600 },
-    { id: "paper", name: "Conference paper write-up (IEEE format)", price: 1500 },
-    { id: "priority", name: "Priority delivery (we start the same day)", price: 1000 },
+    { id: "viva", name: "1-on-1 explanation & viva prep call (1 hour)", price: 1000 },
+    { id: "walkthrough", name: "Recorded code walkthrough video", price: 1500 },
+    { id: "paper", name: "Conference paper write-up (IEEE format)", price: 4000 },
+    { id: "priority", name: "Priority delivery (we start the same day)", price: 2500 },
   ],
+  negotiable: true,
+  minOfferPercent: 60,
+  autoAcceptPercent: 0,
   policies: DEFAULT_POLICIES,
 };
 
@@ -113,6 +122,9 @@ export function normalizeSettings(raw: unknown): Settings {
     ) as Record<CategoryId, number>,
     rush,
     addons,
+    negotiable: typeof r.negotiable === "boolean" ? r.negotiable : d.negotiable,
+    minOfferPercent: Math.round(num(r.minOfferPercent, d.minOfferPercent, 0, 100)),
+    autoAcceptPercent: Math.round(num(r.autoAcceptPercent, d.autoAcceptPercent, 0, 100)),
     policies: str(r.policies, d.policies, 20000),
   };
 }

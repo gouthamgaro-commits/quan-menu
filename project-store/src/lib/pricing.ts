@@ -31,7 +31,7 @@ export function rushPercent(s: Settings, daysLeft: number | null) {
 export function basePrice(s: Settings, difficulty: number, category: string) {
   const tier = s.tierPrices[Math.min(4, Math.max(1, Math.round(difficulty))) - 1];
   const factor = s.factors[category as CategoryId] ?? 1;
-  return roundTo(tier * factor);
+  return roundTo(tier * factor, 500);
 }
 
 export function pickAddons(s: Settings, ids: string[]): Addon[] {
@@ -74,8 +74,8 @@ export function estimateIdea(
     addons,
     addonsTotal,
     total,
-    low: roundTo(base * 0.9 + rush + addonsTotal),
-    high: roundTo(base * 1.2 + rush + addonsTotal),
+    low: roundTo(base * 0.9 + rush + addonsTotal, 500),
+    high: roundTo(base * 1.2 + rush + addonsTotal, 500),
     daysLeft,
   };
 }
@@ -83,4 +83,14 @@ export function estimateIdea(
 /** Advance due before work starts, for a given price. */
 export function advanceFor(price: number, percent: number) {
   return Math.round((price * percent) / 100);
+}
+
+/** The lowest offer we take for review on a price (rounded up to ₹100). 0 when any offer is fine. */
+export function minOffer(price: number, minPercent: number) {
+  return minPercent > 0 ? Math.ceil((price * minPercent) / 100 / 100) * 100 : 0;
+}
+
+/** Whether an offer is high enough to be accepted without asking the owner. */
+export function autoAccepts(offer: number, price: number, autoPercent: number) {
+  return autoPercent > 0 && offer >= (price * autoPercent) / 100;
 }
