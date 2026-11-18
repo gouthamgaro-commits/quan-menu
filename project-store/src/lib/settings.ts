@@ -38,6 +38,12 @@ export type Settings = {
   minOfferPercent: number;
   /** Offers at or above this share of the price are accepted by themselves (0 = always decide yourself). */
   autoAcceptPercent: number;
+  /** Every order gets a code to share; a friend who uses it gets money off their first order. */
+  referralOn: boolean;
+  /** Rupees off for the friend who uses a code. */
+  referralDiscount: number;
+  /** Rupees back for the student whose code was used, once the friend's advance is paid. */
+  referralReward: number;
   /** Plain text. "## " starts a heading, "- " a bullet, a blank line a new paragraph. */
   policies: string;
 };
@@ -58,6 +64,10 @@ export const DEFAULT_POLICIES = `## Ordering
 ## Refunds
 - If we can't start your project, the advance is refunded in full.
 - Once work has started, the advance is not refundable, but you can switch to another project of the same price.
+
+## Squads & friend codes
+- Ordering as a team? Split the price on your order page: every teammate gets their own link to pay their share.
+- Share your friend code: your friend gets money off their first order, and you get money back once their advance is paid. One code per order, first orders only.
 
 ## Paying from outside India
 - Pay by PayPal or the card payment link on your order page. Amounts in your currency are approximate; small differences from exchange rates are fine.
@@ -95,6 +105,9 @@ export const DEFAULTS: Settings = {
   negotiable: true,
   minOfferPercent: 60,
   autoAcceptPercent: 0,
+  referralOn: true,
+  referralDiscount: 1000,
+  referralReward: 1000,
   policies: DEFAULT_POLICIES,
 };
 
@@ -144,6 +157,9 @@ export function normalizeSettings(raw: unknown): Settings {
     negotiable: typeof r.negotiable === "boolean" ? r.negotiable : d.negotiable,
     minOfferPercent: Math.round(num(r.minOfferPercent, d.minOfferPercent, 0, 100)),
     autoAcceptPercent: Math.round(num(r.autoAcceptPercent, d.autoAcceptPercent, 0, 100)),
+    referralOn: typeof r.referralOn === "boolean" ? r.referralOn : d.referralOn,
+    referralDiscount: Math.round(num(r.referralDiscount, d.referralDiscount, 0, 100_000)),
+    referralReward: Math.round(num(r.referralReward, d.referralReward, 0, 100_000)),
     policies: str(r.policies, d.policies, 20000),
   };
 }

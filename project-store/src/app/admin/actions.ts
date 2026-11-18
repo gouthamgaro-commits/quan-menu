@@ -4,7 +4,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
 import { ADMIN_COOKIE, adminPassword, newSession, passwordMatches, SESSION_DAYS } from "@/lib/auth";
-import { BRANCHES, CATEGORIES, INCLUDES, LEVELS, isStatus, type IncludeId } from "@/lib/catalog";
+import { BRANCHES, CATEGORIES, INCLUDES, LEVELS, isStatus, type IncludeId, type LevelId } from "@/lib/catalog";
 import {
   addMessage,
   addPayment,
@@ -13,15 +13,20 @@ import {
   deleteOrder,
   deletePayment,
   deleteProject,
+  deleteReview,
   getOrder,
   getProject,
   getSettings,
+  getSquad,
+  markRewardPaid,
   recentLoginFailures,
   recordLoginFailure,
   saveProject,
   saveSettings,
   setOrderStatus,
   setProjectActive,
+  setReviewReply,
+  setReviewStatus,
   slugTaken,
   updateOrder,
 } from "@/lib/data";
@@ -77,19 +82,23 @@ export async function updateOrderAction(_prev: FormState, fd: FormData): Promise
   const deliveryText = text(fd, "delivery", 1000);
   const deliveryLink = safeUrl(deliveryText);
   if (deliveryText && !deliveryLink) return { error: "The download link must be a web address (https://…)." };
+  const discountText = text(fd, "discount", 20);
+  const discount = discountText ? int(fd, "discount", 0, 10_000_000) : 0;
+  if (discount == null) return { error: "The discount must be a number (0 for none)." };
 
   // Typing a price on a new idea means it's quoted: the student's page then asks for the advance.
   const quotedNow = status === "requested" && order.status === "requested" && price != null;
   await updateOrder(order.id, {
     status: quotedNow ? "quoted" : status,
     price,
+    discount,
     advancePercent: int(fd, "advance", 0, 100) ?? order.advancePercent,
     noteForStudent: longText(fd, "note", 2000),
     adminNotes: longText(fd, "adminNotes", 5000),
     deliveryLink,
   });
   refresh(order.token);
-  const unpaid = (price ?? 0) - order.paid;
+  const unpaid = Math.max(0, (price ?? 0) - discount) - order.paid;
   return {
     ok: quotedNow
       ? "Saved. The student's page now shows the price and asks for the advance. Send them the price on WhatsApp."
@@ -118,7 +127,9 @@ export async function recordPaymentAction(_prev: FormState, fd: FormData): Promi
   const amount = int(fd, "amount", 1, 10_000_000);
   if (!amount) return { error: "Enter the amount received." };
   const method = ["upi", "paypal", "card", "cash", "bank"].includes(text(fd, "method", 10)) ? text(fd, "method", 10) : "upi";
-  await addPayment({ orderId: order.id, amount, utr: text(fd, "ref", 40).toUpperCase(), method, verified: true });
+  const seats = await getSquad(order.id);
+  const seatNo = seats.length >= 2 ? int(fd, "seat", 1, seats.length) : null;
+  await addPayment({ orderId: order.id, amount, utr: text(fd, "ref", 40).toUpperCase(), method, verified: true, seat: seatNo });
   refresh(order.token);
   return { ok: "Payment recorded." };
 }
@@ -164,6 +175,12 @@ export async function saveProjectAction(_prev: FormState, fd: FormData): Promise
   const price = int(fd, "price", 0, 10_000_000);
   if (price == null) return { error: "Enter a price." };
   const level = text(fd, "level", 10);
+  const demoText = text(fd, "demoUrl", 500);
+  const demoUrl = safeUrl(demoText);
+  if (demoText && !demoUrl) return { error: "The demo video link must be a web address (YouTube, Loom, Google Drive…)." };
+  const liveText = text(fd, "liveUrl", 500);
+  const liveUrl = safeUrl(liveText);
+  if (liveText && !liveUrl) return { error: "The live demo link must be a web address (https://…)." };
   await saveProject(
     {
       slug,
@@ -173,13 +190,15 @@ export async function saveProjectAction(_prev: FormState, fd: FormData): Promise
       features: splitLines(longText(fd, "features", 3000), 20, 200),
       branches,
       category,
-      level: LEVELS.some((l) => l.id === level) ? (level as "mini" | "major") : "major",
+      level: LEVELS.some((l) => l.id === level) ? (level as LevelId) : "major",
       difficulty: (int(fd, "difficulty", 1, 4) ?? 2) as 1 | 2 | 3 | 4,
       price,
       tech: splitList(text(fd, "tech", 600), 15, 60),
       includes: list(fd, "includes").filter((i): i is IncludeId => i in INCLUDES),
       deliveryDays: int(fd, "days", 1, 180) ?? 7,
       imageUrl: "",
+      demoUrl,
+      liveUrl,
       featured: !!text(fd, "featured"),
       active: !!text(fd, "active"),
     },
@@ -262,6 +281,9 @@ export async function saveSettingsAction(_prev: FormState, fd: FormData): Promis
     negotiable: !!text(fd, "negotiable"),
     minOfferPercent: int(fd, "minOfferPercent", 0, 100) ?? current.minOfferPercent,
     autoAcceptPercent: int(fd, "autoAcceptPercent", 0, 100) ?? 0,
+    referralOn: !!text(fd, "referralOn"),
+    referralDiscount: int(fd, "referralDiscount", 0, 100_000) ?? current.referralDiscount,
+    referralReward: int(fd, "referralReward", 0, 100_000) ?? current.referralReward,
     policies: longText(fd, "policies", 20000) || current.policies,
   });
   await saveSettings(next);
@@ -294,4 +316,37 @@ export async function ownerAnswerOfferAction(fd: FormData) {
   if (!order || !message) return;
   await answerOffer(message, order.id, "owner", text(fd, "answer", 10) === "accept");
   refresh(order.token);
+}
+
+// ── Reviews & referrals ────────────────────────────────────────────────────────────────
+
+/** Publish, hide or delete a student's review. */
+export async function reviewStatusAction(fd: FormData) {
+  await requireAdmin();
+  const id = int(fd, "id", 1, 2_000_000_000);
+  const verdict = text(fd, "verdict", 10);
+  if (!id) return;
+  if (verdict === "delete") await deleteReview(id);
+  else if (verdict === "approved" || verdict === "hidden" || verdict === "pending") await setReviewStatus(id, verdict);
+  refresh();
+  revalidatePath("/", "layout");
+}
+
+/** Your public answer under a review. */
+export async function reviewReplyAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  const id = int(fd, "id", 1, 2_000_000_000);
+  if (!id) return { error: "Review not found." };
+  await setReviewReply(id, longText(fd, "reply", 1000));
+  refresh();
+  revalidatePath("/", "layout");
+  return { ok: "Reply saved." };
+}
+
+/** You've sent a student the referral money you owed them. */
+export async function rewardPaidAction(fd: FormData) {
+  await requireAdmin();
+  const id = int(fd, "id", 1, 2_000_000_000);
+  if (id) await markRewardPaid(id);
+  refresh();
 }

@@ -7,6 +7,7 @@ import { approx, inr } from "@/lib/format";
 import { advanceFor, daysUntil, minOffer } from "@/lib/pricing";
 import type { Addon } from "@/lib/settings";
 import ContactFields from "./ContactFields";
+import FriendCode from "./FriendCode";
 
 type Props = {
   project: { slug: string; title: string; price: number; deliveryDays: number; branch: string };
@@ -17,14 +18,29 @@ type Props = {
   minOfferPercent: number;
   startWithOffer: boolean;
   fx?: { code: string; rate: number } | null;
+  /** The friend's code this visitor came with, and what any friend code takes off (0 = codes off). */
+  invite?: { code: string; friend: string } | null;
+  referralDiscount?: number;
 };
 
-export default function OrderForm({ project, addons, advancePercent, today, negotiable, minOfferPercent, startWithOffer, fx = null }: Props) {
+export default function OrderForm({
+  project,
+  addons,
+  advancePercent,
+  today,
+  negotiable,
+  minOfferPercent,
+  startWithOffer,
+  fx = null,
+  invite = null,
+  referralDiscount = 0,
+}: Props) {
   const [state, dispatch, pending] = useActionState(placeOrder, null);
   const [picked, setPicked] = useState<string[]>([]);
   const [deadline, setDeadline] = useState("");
   const [mode, setMode] = useState<"list" | "offer">(negotiable && startWithOffer ? "offer" : "list");
   const [offerText, setOfferText] = useState("");
+  const [friendCode, setFriendCode] = useState(invite?.code ?? "");
 
   const chosen = addons.filter((a) => picked.includes(a.id));
   const total = project.price + chosen.reduce((s, a) => s + a.price, 0);
@@ -32,7 +48,10 @@ export default function OrderForm({ project, addons, advancePercent, today, nego
   const offering = mode === "offer";
   const floor = minOffer(total, minOfferPercent);
   const agreed = offering && offer > 0 ? Math.min(offer, total) : total;
-  const advance = advanceFor(agreed, advancePercent);
+  // A friend's code takes money off whatever price is agreed (the server checks the code).
+  const friendOff = friendCode.trim() && referralDiscount > 0 ? Math.min(referralDiscount, agreed) : 0;
+  const toPay = agreed - friendOff;
+  const advance = advanceFor(toPay, advancePercent);
   const days = useMemo(() => daysUntil(deadline, today), [deadline, today]);
   const tight = days != null && days < project.deliveryDays;
   let n = 0;
@@ -201,24 +220,41 @@ export default function OrderForm({ project, addons, advancePercent, today, nego
               </div>
             ))}
             {offering ? (
-              <div className="line total">
-                <span>your offer 🎯</span>
-                <span>{offer > 0 ? inr(Math.min(offer, total)) : "—"}</span>
-              </div>
+              <>
+                <div className="line total">
+                  <span>your offer 🎯</span>
+                  <span>{offer > 0 ? inr(Math.min(offer, total)) : "—"}</span>
+                </div>
+                {friendOff > 0 && (
+                  <div className="line">
+                    <span>then your friend code 🎁</span>
+                    <span>−{inr(friendOff)}</span>
+                  </div>
+                )}
+              </>
             ) : (
-              <div className="line total">
-                <span>total</span>
-                <span>
-                  {inr(total)}
-                  {fx && <span className="approx" style={{ display: "block", textAlign: "right" }}>{approx(total, fx)}</span>}
-                </span>
-              </div>
+              <>
+                {friendOff > 0 && (
+                  <div className="line">
+                    <span>friend code 🎁</span>
+                    <span>−{inr(friendOff)}</span>
+                  </div>
+                )}
+                <div className="line total">
+                  <span>total</span>
+                  <span>
+                    {inr(toPay)}
+                    {fx && <span className="approx" style={{ display: "block", textAlign: "right" }}>{approx(toPay, fx)}</span>}
+                  </span>
+                </div>
+              </>
             )}
             <div className="line due">
               <span>{offering ? "if accepted, pay to start" : "pay now to start"} ({advancePercent}%)</span>
               <span>{offering && !offer ? "—" : inr(advance)}</span>
             </div>
           </div>
+          <FriendCode code={invite?.code} friend={invite?.friend} discount={referralDiscount} onChange={setFriendCode} />
           <label className="check-plain small">
             <input type="checkbox" name="agree" value="1" required />
             <span>
@@ -245,7 +281,7 @@ export default function OrderForm({ project, addons, advancePercent, today, nego
       <div className="mobile-total">
         <span className="stack-xs">
           <span className="tiny muted">{offering ? "your offer 🎯" : `total · pay ${inr(advance)} now`}</span>
-          <b>{offering ? (offer > 0 ? inr(Math.min(offer, total)) : "—") : inr(total)}</b>
+          <b>{offering ? (offer > 0 ? inr(toPay) : "—") : inr(toPay)}</b>
         </span>
         <button className={`btn ${offering ? "btn-offer" : "btn-primary"}`} type="submit" disabled={pending}>
           {pending ? "sending…" : offering ? "send offer 🎯" : "lock it in 🔒"}

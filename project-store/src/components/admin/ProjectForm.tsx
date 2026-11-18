@@ -82,6 +82,22 @@ export default function ProjectForm({ project, settings }: { project?: Project; 
           </span>
           <input className="input" name="tech" maxLength={600} defaultValue={project?.tech.join(", ")} placeholder="Python, OpenCV, Flask" />
         </label>
+        <div className="grid-2">
+          <label className="field">
+            <span>
+              Demo video link <em>(optional)</em>
+            </span>
+            <input className="input" name="demoUrl" type="url" maxLength={500} defaultValue={project?.demoUrl} placeholder="YouTube, Loom, Google Drive, Instagram…" />
+            <span className="hint">Plays right on the project page. Projects with a demo sell much better.</span>
+          </label>
+          <label className="field">
+            <span>
+              Live demo link <em>(optional)</em>
+            </span>
+            <input className="input" name="liveUrl" type="url" maxLength={500} defaultValue={project?.liveUrl} placeholder="https://your-demo.vercel.app" />
+            <span className="hint">A working copy students can click around in.</span>
+          </label>
+        </div>
       </section>
 
       <section className="card card-pad stack">

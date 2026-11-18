@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import OrderForm from "@/components/OrderForm";
 import { getProjectBySlug, getSettings } from "@/lib/data";
+import { currentInvite } from "@/lib/invite";
 import { inr } from "@/lib/format";
 import { getFx } from "@/lib/fx";
 import { todayIST } from "@/lib/pricing";
@@ -52,6 +53,8 @@ export default async function OrderPage({
         minOfferPercent={s.minOfferPercent}
         startWithOffer={wantsOffer}
         fx={await getFx(s.localCurrency)}
+        invite={await currentInvite()}
+        referralDiscount={s.referralOn ? s.referralDiscount : 0}
       />
     </main>
   );

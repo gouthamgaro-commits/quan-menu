@@ -139,6 +139,35 @@ export default async function SettingsPage() {
 
         <section className="card card-pad stack">
           <div className="stack-xs">
+            <h2 className="card-title">Friend codes (referrals)</h2>
+            <p className="small muted">
+              Every order gets its own code to share. A friend who uses it gets money off their first order. Once that friend&apos;s
+              advance is paid, the student who shared the code gets a reward: it comes off what they still owe you, or it shows under
+              Referrals as money you owe them.
+            </p>
+          </div>
+          <label className="check-plain">
+            <input type="checkbox" name="referralOn" value="1" defaultChecked={s.referralOn} /> Turn friend codes on
+          </label>
+          <div className="grid-2">
+            <label className="field">
+              <span>
+                Discount for the friend <em>(₹)</em>
+              </span>
+              <input className="input" name="referralDiscount" inputMode="numeric" maxLength={6} defaultValue={s.referralDiscount} />
+            </label>
+            <label className="field">
+              <span>
+                Reward for the student who shared <em>(₹)</em>
+              </span>
+              <input className="input" name="referralReward" inputMode="numeric" maxLength={6} defaultValue={s.referralReward} />
+              <span className="hint">0 = no reward, only the friend&apos;s discount.</span>
+            </label>
+          </div>
+        </section>
+
+        <section className="card card-pad stack">
+          <div className="stack-xs">
             <h2 className="card-title">Pricing for students' own ideas</h2>
             <p className="small muted">
               Estimate = base price for the difficulty × the domain's multiplier, + rush charge + extras. Students see a range

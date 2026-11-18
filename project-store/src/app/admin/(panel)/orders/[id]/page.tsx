@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, ExternalLink, MessagesSquare, Phone, Trash2, X } from "lucide-react";
+import { ArrowLeft, Check, ExternalLink, Gift, MessagesSquare, Phone, Star, Trash2, Users, X } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -15,15 +15,27 @@ import ChatComposer from "@/components/ChatComposer";
 import Thread from "@/components/Thread";
 import ActionForm from "@/components/admin/ActionForm";
 import ConfirmButton from "@/components/admin/ConfirmButton";
+import CopyButton from "@/components/CopyButton";
+import { Stars } from "@/components/Reviews";
 import PaymentButtons from "@/components/admin/PaymentButtons";
 import { WhatsAppIcon } from "@/components/Icons";
 import { Meter, StatusBadge } from "@/components/Ui";
 import { requireAdmin } from "@/lib/admin";
 import { STATUS_ORDER, STATUSES, branchName, categoryName } from "@/lib/catalog";
-import { getOrder, getSettings, listMessages, listPayments, markOwnerRead } from "@/lib/data";
+import {
+  getOrder,
+  getReviewForOrder,
+  getSettings,
+  getSquad,
+  listMessages,
+  listPayments,
+  markOwnerRead,
+  orderBrief,
+  referralSummary,
+} from "@/lib/data";
 import { dateIN, dateTimeIN, inr, phonePretty } from "@/lib/format";
 import { waLink } from "@/lib/links";
-import { money } from "@/lib/money";
+import { money, seatMoney } from "@/lib/money";
 import { daysUntil, todayIST } from "@/lib/pricing";
 import { siteUrl } from "@/lib/site";
 
@@ -32,7 +44,18 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
   const id = Number((await params).id);
   const o = Number.isInteger(id) && id > 0 ? await getOrder(id) : null;
   if (!o) notFound();
-  const [s, payments, messages, base] = await Promise.all([getSettings(), listPayments(o.id), listMessages(o.id), siteUrl()]);
+  const [s, payments, messages, base, squad, refs, review, referrer] = await Promise.all([
+    getSettings(),
+    listPayments(o.id),
+    listMessages(o.id),
+    siteUrl(),
+    getSquad(o.id),
+    referralSummary(o.id),
+    getReviewForOrder(o.id),
+    o.referredBy ? orderBrief(o.referredBy) : Promise.resolve(null),
+  ]);
+  const squadOn = squad.length >= 2;
+  const seatName = (n: number | null) => (squadOn && n ? squad.find((x) => x.seat === n)?.name : undefined);
   if (o.unread) await markOwnerRead(o.id);
   const studentOffer = [...messages].reverse().find((x) => x.offerStatus === "open" && x.sender === "student");
   const canNegotiate = ["requested", "quoted"].includes(o.status) && o.paid === 0;
@@ -46,7 +69,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
     o.price != null &&
       !m.advancePaid && {
         label: "Send price & payment link",
-        text: `Hi ${first}, this is ${s.brandName}. Your project “${o.title}” is confirmed at ${inr(o.price)}. Please pay the ${inr(m.advance)} advance to start: ${link}`,
+        text: `Hi ${first}, this is ${s.brandName}. Your project “${o.title}” is confirmed at ${inr(m.price)}${m.discount ? ` (after ${inr(m.discount)} off)` : ""}. Please pay the ${inr(m.advance)} advance to start: ${link}`,
       },
     o.paid > 0 && {
       label: "Payment received",
@@ -60,6 +83,18 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
       label: "Files delivered",
       text: `Hi ${first}, your project files for “${o.title}” are ready to download on your order page: ${link}. All the best for your review!`,
     },
+    o.status === "delivered" &&
+      !review && {
+        label: "Ask for a review",
+        text: `Hi ${first}! Hope “${o.title}” went great 🙌 Could you leave us a quick review? It takes 30 seconds and really helps other students: ${link}#review`,
+      },
+    s.referralOn &&
+      s.referralDiscount > 0 &&
+      o.refCode &&
+      o.status !== "cancelled" && {
+        label: "Share friend code",
+        text: `Hi ${first}! Your friends get ${inr(s.referralDiscount)} off their project with your code ${o.refCode}${s.referralReward > 0 ? `, and you get ${inr(s.referralReward)} back for each friend` : ""} 🎁 Share this link: ${base}/r/${o.refCode}`,
+      },
     messages.length > 0 && {
       label: "I've replied",
       text: `Hi ${first}, I've replied about “${o.title}” on your order page: ${link}`,
@@ -292,6 +327,18 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
                   <span>Price</span>
                   <b>{inr(o.price)}</b>
                 </div>
+                {m.discount > 0 && (
+                  <>
+                    <div className="line">
+                      <span>Discounts</span>
+                      <span>−{inr(m.discount)}</span>
+                    </div>
+                    <div className="line">
+                      <span>Student pays</span>
+                      <b>{inr(m.price)}</b>
+                    </div>
+                  </>
+                )}
                 <div className="line">
                   <span>Advance ({o.advancePercent}%)</span>
                   <span>
@@ -315,6 +362,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
                     <span className="stack-xs">
                       <span>
                         <b>{inr(p.amount)}</b> · {p.method.toUpperCase()}
+                        {seatName(p.seat) && <> · from {seatName(p.seat)}</>}
                         {p.utr && (
                           <>
                             {" "}
@@ -373,10 +421,102 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
                     </span>
                     <input className="input mono" name="ref" maxLength={40} />
                   </label>
+                  {squadOn && (
+                    <label className="field">
+                      <span>Paid by</span>
+                      <select className="select" name="seat" defaultValue="1">
+                        {squad.map((x) => (
+                          <option key={x.seat} value={x.seat}>
+                            {x.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                 </div>
               </ActionForm>
             </details>
           </section>
+
+          {squadOn && (
+            <section className="card card-pad stack-sm">
+              <h2 className="card-title">
+                <Users size={19} aria-hidden /> Squad of {squad.length}
+              </h2>
+              <p className="small muted">The student split the price. Each teammate pays from their own link.</p>
+              <ul className="plist">
+                {squad.map((x) => {
+                  const sm = seatMoney(o, squad.length, x.seat, payments);
+                  return (
+                    <li key={x.seat}>
+                      <span className="stack-xs">
+                        <span>
+                          <b>{x.name}</b>
+                          {x.seat === 1 ? " (ordered)" : ""}
+                        </span>
+                        <span className="tiny muted">
+                          share {inr(sm.share)} · paid {inr(sm.paid)}
+                          {sm.pending > 0 ? ` · checking ${inr(sm.pending)}` : ""}
+                        </span>
+                      </span>
+                      <span className="row" style={{ gap: 6 }}>
+                        {sm.done && <span className="badge tone-green">paid</span>}
+                        {x.seat > 1 && <CopyButton text={`${base}/squad/${x.token}`} label="Link" />}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+
+          {(referrer || refs.friends > 0 || refs.rewards.length > 0) && (
+            <section className="card card-pad stack-sm">
+              <h2 className="card-title">
+                <Gift size={19} aria-hidden /> Friend codes
+              </h2>
+              {referrer && (
+                <p className="small">
+                  Came with <Link href={`/admin/orders/${referrer.id}`}>{referrer.studentName}</Link>&apos;s code <span className="mono">{referrer.refCode}</span>.
+                </p>
+              )}
+              {refs.friends > 0 && (
+                <p className="small">
+                  {refs.friends} {refs.friends === 1 ? "friend" : "friends"} ordered with {first}&apos;s code <span className="mono">{o.refCode}</span>.
+                </p>
+              )}
+              {refs.rewards.length > 0 && (
+                <ul className="plist">
+                  {refs.rewards.map((r) => (
+                    <li key={r.id}>
+                      <span className="small">
+                        <b>{inr(r.amount)}</b> for <Link href={`/admin/orders/${r.referredOrderId}`}>{r.friendName}</Link>
+                      </span>
+                      <span className={`badge ${r.status === "owed" ? "tone-amber" : "tone-green"}`}>
+                        {r.status === "applied" ? "Taken off balance" : r.status === "owed" ? "You owe this" : "Paid"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {review && (
+            <section className="card card-pad stack-sm">
+              <h2 className="card-title">
+                <Star size={19} aria-hidden /> Their review
+              </h2>
+              <Stars rating={review.rating} />
+              <p className="small" style={{ whiteSpace: "pre-line" }}>
+                {review.body}
+              </p>
+              <span className="small muted">
+                {review.status === "pending" ? "Waiting for you to approve. " : review.status === "approved" ? "Live on the site. " : "Hidden. "}
+                <Link href={`/admin/reviews?tab=${review.status}`}>Manage reviews</Link>
+              </span>
+            </section>
+          )}
         </div>
 
         <aside className="stack">
@@ -410,6 +550,13 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
                   <input className="input" name="advance" inputMode="numeric" defaultValue={o.advancePercent} />
                 </label>
               </div>
+              <label className="field">
+                <span>
+                  Discount (₹) <em>(friend code, rewards, or your own)</em>
+                </span>
+                <input className="input" name="discount" inputMode="numeric" defaultValue={o.discount || ""} placeholder="0" />
+                <span className="hint">Taken off the price above. The student pays the rest.</span>
+              </label>
               {o.status === "requested" && (
               <p className="hint">Agree the price in the conversation, or type the final price here and save: the student's page then asks for the advance.</p>
             )}

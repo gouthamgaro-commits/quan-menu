@@ -10,18 +10,24 @@ import { CATEGORIES } from "@/lib/catalog";
 import { getSettings } from "@/lib/data";
 import { CURRENCIES, visitorCurrency } from "@/lib/fx";
 import { dbMode } from "@/lib/db";
-import { phonePretty } from "@/lib/format";
+import { inr, phonePretty } from "@/lib/format";
+import { currentInvite } from "@/lib/invite";
 import { waLink } from "@/lib/links";
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
   if (dbMode() === "missing") return <SetupNeeded />;
-  const [s, cur] = await Promise.all([getSettings(), visitorCurrency()]);
+  const [s, cur, invite] = await Promise.all([getSettings(), visitorCurrency(), currentInvite()]);
   const wa = s.whatsapp ? waLink(s.whatsapp, `Hey ${s.brandName}! I have a question about a project 👋`) : "";
 
   return (
     <div className="store has-tabbar">
       <Reveal />
       {s.announcement && <div className="topbar">{s.announcement}</div>}
+      {invite && (
+        <div className="topbar invite-bar">
+          🎁 {invite.friend}&apos;s friend code <b className="mono">{invite.code}</b> is on: {inr(invite.discount)} off your first order
+        </div>
+      )}
       <header className="header">
         <div className="container header-in">
           <Link href="/" className="logo" aria-label={`${s.brandName} home`}>

@@ -8,7 +8,13 @@ import CopyButton from "./CopyButton";
 
 type Method = "upi" | "paypal" | "card";
 type Props = {
-  token: string;
+  /** The order page's secret, or `seatToken` when a teammate pays from their squad link. */
+  token?: string;
+  seatToken?: string;
+  /** The order is split: payments from the order page count as the leader's share. */
+  squad?: boolean;
+  /** Extra line under the amount, e.g. "paying for everyone? pay ₹16,000". */
+  note?: string;
   code: string;
   amount: number;
   label: string;
@@ -23,7 +29,7 @@ type Props = {
  * How to pay the amount due: UPI (QR code + app button) for India, PayPal or a card link for
  * everyone else. Then the student types the transaction reference so the owner can check it.
  */
-export default function PayPanel({ token, code, amount, label, upi, paypal, card, approxText, preferAbroad }: Props) {
+export default function PayPanel({ token, seatToken, squad, note, code, amount, label, upi, paypal, card, approxText, preferAbroad }: Props) {
   const methods = [upi && "upi", paypal && "paypal", card && "card"].filter(Boolean) as Method[];
   const [tab, setTab] = useState<Method>(preferAbroad ? (methods.find((m) => m !== "upi") ?? methods[0]) : methods[0]);
   const [qr, setQr] = useState("");
@@ -50,6 +56,7 @@ export default function PayPanel({ token, code, amount, label, upi, paypal, card
         <span className="small muted">{label}</span>
         <b>{inr(amount)}</b>
         {approxText && <span className="approx">{approxText}</span>}
+        {note && <span className="small muted">{note}</span>}
       </div>
       {methods.length > 1 && (
         <div className="pay-tabs" role="tablist" aria-label="Payment method">
@@ -128,7 +135,8 @@ export default function PayPanel({ token, code, amount, label, upi, paypal, card
           startTransition(() => dispatch(fd));
         }}
       >
-        <input type="hidden" name="token" value={token} />
+        {seatToken ? <input type="hidden" name="seat" value={seatToken} /> : <input type="hidden" name="token" value={token} />}
+        {squad && !seatToken && <input type="hidden" name="squad" value="1" />}
         <input type="hidden" name="method" value={tab === "card" ? "card" : tab} />
         <b>paid? drop the transaction ID 👇</b>
         <div className="grid-2">

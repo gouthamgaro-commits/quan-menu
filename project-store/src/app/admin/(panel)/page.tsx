@@ -23,6 +23,8 @@ export default async function Dashboard() {
     { label: "New messages & offers", value: counts.messages ?? 0, href: "/admin/orders?status=messages", hot: (counts.messages ?? 0) > 0 },
     { label: "Prices to agree", value: counts.requested ?? 0, href: "/admin/orders?status=requested", hot: (counts.requested ?? 0) > 0 },
     { label: "Payments to check", value: counts.payments ?? 0, href: "/admin/orders?status=payments", hot: (counts.payments ?? 0) > 0 },
+    ...((counts.reviews ?? 0) > 0 ? [{ label: "Reviews to approve", value: counts.reviews ?? 0, href: "/admin/reviews", hot: true }] : []),
+    ...((counts.rewards ?? 0) > 0 ? [{ label: "Referral money you owe", value: counts.rewards ?? 0, href: "/admin/referrals", hot: true }] : []),
     { label: "Waiting for advance", value: counts.quoted ?? 0, href: "/admin/orders?status=quoted" },
     { label: "In progress", value: counts.in_progress ?? 0, href: "/admin/orders?status=in_progress" },
     { label: "Ready for demo", value: counts.ready ?? 0, href: "/admin/orders?status=ready" },

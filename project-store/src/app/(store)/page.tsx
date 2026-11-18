@@ -2,9 +2,10 @@ import { ArrowRight, Check } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { WhatsAppIcon } from "@/components/Icons";
+import { RatingLine, ReviewCard } from "@/components/Reviews";
 import { Meter, ProjectCard } from "@/components/Ui";
 import { CATEGORIES, DIFFICULTIES } from "@/lib/catalog";
-import { categoryCounts, countProjects, getSettings, listProjects } from "@/lib/data";
+import { categoryCounts, countProjects, getSettings, listProjects, listReviews, projectRatings, reviewSummary } from "@/lib/data";
 import { approx, inr } from "@/lib/format";
 import { getFx } from "@/lib/fx";
 import { waLink } from "@/lib/links";
@@ -33,7 +34,15 @@ const MARQUEE = [
 ];
 
 export default async function Home() {
-  const [s, featured, counts, total] = await Promise.all([getSettings(), listProjects({ limit: 8 }), categoryCounts(), countProjects()]);
+  const [s, featured, counts, total, ratings, reviews, summary] = await Promise.all([
+    getSettings(),
+    listProjects({ limit: 8 }),
+    categoryCounts(),
+    countProjects(),
+    projectRatings(),
+    listReviews({ status: "approved", limit: 6 }),
+    reviewSummary(),
+  ]);
   const fx = await getFx(s.localCurrency);
   const wa = s.whatsapp ? waLink(s.whatsapp, `Hey ${s.brandName}! I need help picking a project 👋`) : "";
   const hero = featured.find((p) => p.category === "web") ?? featured[0];
@@ -98,7 +107,7 @@ export default async function Home() {
           </div>
 
           <div className="hero-visual">
-            {hero && <ProjectCard p={hero} negotiable={s.negotiable} fx={fx} className="float" />}
+            {hero && <ProjectCard p={hero} negotiable={s.negotiable} fx={fx} rating={ratings[hero.id]} className="float" />}
             {s.negotiable && (
               <div className="chat-mock" aria-label="Example of how offers work">
                 <div className="cm-head">
@@ -186,9 +195,32 @@ export default async function Home() {
             </div>
             <div className="pgrid four">
               {featured.map((p) => (
-                <ProjectCard key={p.id} p={p} negotiable={s.negotiable} fx={fx} className="reveal" />
+                <ProjectCard key={p.id} p={p} negotiable={s.negotiable} fx={fx} rating={ratings[p.id]} className="reveal" />
               ))}
             </div>
+          </div>
+        </section>
+      )}
+
+      {summary.count > 0 && (
+        <section className="section" style={{ paddingTop: 0 }}>
+          <div className="container stack">
+            <div className="section-head reveal">
+              <div className="stack-xs">
+                <span className="sticker yellow">real ones only ⭐</span>
+                <h2 style={{ marginTop: 10 }}>what students say</h2>
+                <RatingLine avg={summary.avg} count={summary.count} />
+              </div>
+              <Link href="/reviews" className="btn">
+                all reviews <ArrowRight size={17} aria-hidden strokeWidth={2.6} />
+              </Link>
+            </div>
+            <div className="review-grid">
+              {reviews.map((r) => (
+                <ReviewCard key={r.id} r={r} brand={s.brandName} showProject />
+              ))}
+            </div>
+            <p className="small muted">Every review comes from a delivered order. We never edit what students write.</p>
           </div>
         </section>
       )}
@@ -266,6 +298,40 @@ export default async function Home() {
       )}
 
       <section className="section">
+        <div className="container squad-grid">
+          <div className="card squad-card reveal">
+            <span className="sticker white">team project? 👯</span>
+            <h2>split it with your squad</h2>
+            <p>
+              Order once, then split the price on your order page. Every teammate gets their own link and pays their own share by UPI,
+              PayPal or card. No more chasing your friends for money.
+            </p>
+            <div className="split-demo" aria-label="Example: a ₹16,000 project split four ways">
+              {["you", "priya", "arjun", "sam"].map((n) => (
+                <span key={n}>
+                  <b>{inr(4000)}</b>
+                  <small>{n}</small>
+                </span>
+              ))}
+            </div>
+          </div>
+          {s.referralOn && s.referralDiscount > 0 && (
+            <div className="card squad-card pink reveal">
+              <span className="sticker white">plug your friends 🔌</span>
+              <h2>
+                {inr(s.referralDiscount)} off for them
+                {s.referralReward > 0 ? <>, {inr(s.referralReward)} back for you</> : null}
+              </h2>
+              <p>
+                Every order comes with your own friend code. Your batchmate gets {inr(s.referralDiscount)} off their first project
+                {s.referralReward > 0 ? `, and once they've paid their advance, ${inr(s.referralReward)} comes off what you owe (or back to you if you've paid it all).` : "."}
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="section">
         <div className="container">
           <div className="section-head reveal">
             <div className="stack-xs">
@@ -301,8 +367,8 @@ export default async function Home() {
             </div>
             <div className="mint wide reveal">
               <span className="em">🎓</span>
-              <h3>batch deals for whole classes</h3>
-              <p>Ordering for your whole class or coding bootcamp batch? We do group pricing, and every student gets their own unique project. Hit us up on WhatsApp.</p>
+              <h3>squads & whole batches</h3>
+              <p>Split one project between teammates, each paying their own share. Ordering for a whole class or bootcamp batch? We do group pricing, and every student gets their own unique project.</p>
             </div>
           </div>
         </div>

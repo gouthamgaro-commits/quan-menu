@@ -8,6 +8,7 @@ import { approx, inr } from "@/lib/format";
 import { advanceFor, basePrice, estimateIdea, minOffer } from "@/lib/pricing";
 import type { Settings } from "@/lib/settings";
 import ContactFields from "./ContactFields";
+import FriendCode from "./FriendCode";
 import { Meter } from "./Ui";
 
 type Props = {
@@ -16,9 +17,11 @@ type Props = {
   initialCategory?: string;
   initialBranch?: string;
   fx?: { code: string; rate: number } | null;
+  invite?: { code: string; friend: string } | null;
 };
 
-export default function IdeaForm({ settings: s, today, initialCategory = "web", initialBranch = "", fx = null }: Props) {
+export default function IdeaForm({ settings: s, today, initialCategory = "web", initialBranch = "", fx = null, invite = null }: Props) {
+  const referralDiscount = s.referralOn ? s.referralDiscount : 0;
   const [state, dispatch, pending] = useActionState(submitIdea, null);
   const [category, setCategory] = useState(initialCategory);
   const [difficulty, setDifficulty] = useState(2);
@@ -241,6 +244,7 @@ export default function IdeaForm({ settings: s, today, initialCategory = "web", 
               <span>≈ {inr(advanceFor(est.total, s.advancePercent))}</span>
             </div>
           </div>
+          <FriendCode code={invite?.code} friend={invite?.friend} discount={referralDiscount} />
           <label className="check-plain small">
             <input type="checkbox" name="agree" value="1" required />
             <span>

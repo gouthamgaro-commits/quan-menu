@@ -4,7 +4,7 @@ import Link from "next/link";
 import SortSelect from "@/components/SortSelect";
 import { Meter, ProjectCard } from "@/components/Ui";
 import { BRANCHES, BUDGETS, CATEGORIES, DIFFICULTIES, LEVELS, branchName, categoryEmoji, categoryName } from "@/lib/catalog";
-import { getSettings, listProjects, SORTS } from "@/lib/data";
+import { getSettings, listProjects, projectRatings, SORTS } from "@/lib/data";
 import { getFx } from "@/lib/fx";
 
 type SP = Promise<Record<string, string | string[] | undefined>>;
@@ -45,7 +45,7 @@ export async function generateMetadata({ searchParams }: { searchParams: SP }): 
 export default async function ProjectsPage({ searchParams }: { searchParams: SP }) {
   const f = readFilters(await searchParams);
   const s = await getSettings();
-  const [projects, fx] = await Promise.all([
+  const [projects, fx, ratings] = await Promise.all([
     listProjects({
       q: f.q,
       branch: f.branch,
@@ -56,6 +56,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
       sort: f.sort,
     }),
     getFx(s.localCurrency),
+    projectRatings(),
   ]);
   const query = new URLSearchParams(Object.entries(f).filter(([k, v]) => v && !(k === "sort" && v === "popular"))).toString();
 
@@ -181,7 +182,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
           {projects.length ? (
             <div className="pgrid three">
               {projects.map((p) => (
-                <ProjectCard key={p.id} p={p} negotiable={s.negotiable} fx={fx} />
+                <ProjectCard key={p.id} p={p} negotiable={s.negotiable} fx={fx} rating={ratings[p.id]} />
               ))}
             </div>
           ) : (

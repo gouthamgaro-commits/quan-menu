@@ -29,11 +29,13 @@ export function ProjectCard({
   negotiable = true,
   className = "",
   fx = null,
+  rating = null,
 }: {
   p: Project;
   negotiable?: boolean;
   className?: string;
   fx?: { code: string; rate: number } | null;
+  rating?: { avg: number; count: number } | null;
 }) {
   return (
     <Link href={`/projects/${p.slug}`} className={`pcard cat-${p.category} ${className}`}>
@@ -43,6 +45,7 @@ export function ProjectCard({
           <span className="glass-chip">
             <Meter level={p.difficulty} />
           </span>
+          {p.demoUrl && <span className="glass-chip demo-chip">▶ demo</span>}
         </span>
       </CoverArt>
       <div className="pcard-body">
@@ -65,8 +68,15 @@ export function ProjectCard({
           {fx && <span className="approx">{approx(p.price, fx)}</span>}
           {negotiable && <span className="neg">negotiable 🤝</span>}
         </span>
-        <span className="days">
-          <Clock size={14} aria-hidden /> {p.deliveryDays} days
+        <span className="stack-xs" style={{ justifyItems: "end", textAlign: "right" }}>
+          {rating && rating.count > 0 && (
+            <span className="card-rating" aria-label={`${rating.avg} out of 5 from ${rating.count} reviews`}>
+              ★ {rating.avg.toFixed(1)} <span className="muted">({rating.count})</span>
+            </span>
+          )}
+          <span className="days">
+            <Clock size={14} aria-hidden /> {p.deliveryDays} days
+          </span>
         </span>
       </div>
     </Link>

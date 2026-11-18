@@ -5,7 +5,7 @@
  *
  * Raise SCHEMA_VERSION whenever SCHEMA_SQL changes; every statement must be safe to re-run.
  */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export const SCHEMA_SQL = /* sql */ `
 -- Checked first so the app can run as a login that may not create schemas (one that only owns \`store\`).
@@ -118,6 +118,60 @@ create table if not exists store.login_failures (
   at timestamptz not null default now()
 );
 create index if not exists login_failures_ip_idx on store.login_failures (ip, at desc);
+
+-- v4: a demo video and a live demo link on each project.
+alter table store.projects add column if not exists demo_url text not null default '';
+alter table store.projects add column if not exists live_url text not null default '';
+
+-- v4: reviews. Only a delivered order can leave one, and it shows once the owner approves it.
+create table if not exists store.reviews (
+  id         integer generated always as identity primary key,
+  order_id   integer not null unique references store.orders(id) on delete cascade,
+  project_id integer references store.projects(id) on delete set null,
+  rating     smallint not null check (rating between 1 and 5),
+  body       text not null default '' check (length(body) <= 1500),
+  name       text not null default '' check (length(name) <= 60),
+  context    text not null default '' check (length(context) <= 160),   -- "Final year · CS · VIT Vellore"
+  status     text not null default 'pending' check (status in ('pending', 'approved', 'hidden')),
+  reply      text not null default '' check (length(reply) <= 1000),   -- the owner's public answer
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists reviews_status_idx on store.reviews (status, created_at desc);
+create index if not exists reviews_project_idx on store.reviews (project_id, status);
+
+-- v4: referral codes. A friend's code takes money off a first order; the friend gets a reward
+-- (taken off what they still owe, or owed to them) once the new order's advance is paid.
+alter table store.orders add column if not exists ref_code text;
+alter table store.orders add column if not exists referred_by integer references store.orders(id) on delete set null;
+alter table store.orders add column if not exists discount integer not null default 0 check (discount >= 0);
+update store.orders set ref_code = coalesce(nullif(upper(left(regexp_replace(split_part(student_name, ' ', 1), '[^A-Za-z]', '', 'g'), 8)), ''), 'PLUG') || '-' || id
+ where ref_code is null;
+create unique index if not exists orders_ref_code_idx on store.orders (ref_code);
+create index if not exists orders_referred_by_idx on store.orders (referred_by);
+
+create table if not exists store.referral_rewards (
+  id                integer generated always as identity primary key,
+  referrer_order_id integer not null references store.orders(id) on delete cascade,
+  referred_order_id integer not null unique references store.orders(id) on delete cascade,
+  amount            integer not null check (amount > 0),
+  status            text not null check (status in ('applied', 'owed', 'paid')),
+  created_at        timestamptz not null default now(),
+  decided_at        timestamptz
+);
+create index if not exists referral_rewards_referrer_idx on store.referral_rewards (referrer_order_id);
+
+-- v4: squads. One order split between teammates, each with their own payment link.
+create table if not exists store.squad_members (
+  id         integer generated always as identity primary key,
+  order_id   integer not null references store.orders(id) on delete cascade,
+  seat       smallint not null check (seat between 1 and 8),            -- 1 is the student who ordered
+  name       text not null default '' check (length(name) <= 60),
+  token      text not null unique,                                     -- secret in the teammate's link
+  created_at timestamptz not null default now(),
+  unique (order_id, seat)
+);
+alter table store.payments add column if not exists seat smallint;    -- which teammate paid (squads only)
 
 -- On Supabase: keep these tables out of its public REST API. Only this app's server reads them.
 do $$

@@ -1,12 +1,14 @@
-import { ArrowRight, Check, ChevronRight, Clock, GraduationCap, HandCoins, Layers } from "lucide-react";
+import { ArrowRight, Check, ChevronRight, Clock, ExternalLink, GraduationCap, HandCoins, Layers, MonitorPlay } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CoverArt from "@/components/CoverArt";
+import DemoVideo from "@/components/DemoVideo";
 import { WhatsAppIcon } from "@/components/Icons";
+import { RatingLine, ReviewCard } from "@/components/Reviews";
 import { Meter, ProjectCard } from "@/components/Ui";
 import { INCLUDES, branchName, categoryEmoji, categoryName, difficultyName, levelName, type IncludeId } from "@/lib/catalog";
-import { getProjectBySlug, getSettings, relatedProjects } from "@/lib/data";
+import { getProjectBySlug, getSettings, listReviews, projectRatings, relatedProjects, reviewSummary } from "@/lib/data";
 import { approx, inr } from "@/lib/format";
 import { getFx } from "@/lib/fx";
 import { waLink } from "@/lib/links";
@@ -35,7 +37,14 @@ export default async function ProjectPage({ params }: { params: Params }) {
   const { slug } = await params;
   const p = await getProjectBySlug(slug);
   if (!p || !p.active) notFound();
-  const [s, related, base] = await Promise.all([getSettings(), relatedProjects(p), siteUrl()]);
+  const [s, related, base, reviews, summary, ratings] = await Promise.all([
+    getSettings(),
+    relatedProjects(p),
+    siteUrl(),
+    listReviews({ status: "approved", projectId: p.id, limit: 12 }),
+    reviewSummary(p.id),
+    projectRatings(),
+  ]);
   const fx = await getFx(s.localCurrency);
   const advance = advanceFor(p.price, s.advancePercent);
   const wa = s.whatsapp
@@ -49,6 +58,18 @@ export default async function ProjectPage({ params }: { params: Params }) {
     category: categoryName(p.category),
     brand: { "@type": "Brand", name: s.brandName },
     offers: { "@type": "Offer", price: p.price, priceCurrency: "INR", availability: "https://schema.org/InStock", url: `${base}/projects/${p.slug}` },
+    ...(summary.count > 0
+      ? {
+          aggregateRating: { "@type": "AggregateRating", ratingValue: summary.avg, reviewCount: summary.count, bestRating: 5, worstRating: 1 },
+          review: reviews.slice(0, 5).map((r) => ({
+            "@type": "Review",
+            reviewRating: { "@type": "Rating", ratingValue: r.rating, bestRating: 5 },
+            author: { "@type": "Person", name: r.name || "Student" },
+            reviewBody: r.body,
+            datePublished: new Date(r.createdAt).toISOString().slice(0, 10),
+          })),
+        }
+      : {}),
   };
 
   return (
@@ -99,6 +120,23 @@ export default async function ProjectPage({ params }: { params: Params }) {
               </div>
             </div>
           </section>
+
+          {(p.demoUrl || p.liveUrl) && (
+            <section className="card card-pad stack" id="demo">
+              <h2 className="card-title">
+                <MonitorPlay size={20} aria-hidden /> see it working ▶
+              </h2>
+              {p.demoUrl && <DemoVideo url={p.demoUrl} title={p.title} />}
+              {p.liveUrl && (
+                <div>
+                  <a href={p.liveUrl} className="btn" target="_blank" rel="noopener noreferrer nofollow">
+                    try the live demo <ExternalLink size={15} aria-hidden />
+                  </a>
+                </div>
+              )}
+              <p className="small muted">Your copy is built fresh for you, with your names and any changes you ask for.</p>
+            </section>
+          )}
 
           <section className="card card-pad stack">
             <h2 className="card-title">what it does 🧐</h2>
@@ -158,6 +196,7 @@ export default async function ProjectPage({ params }: { params: Params }) {
               <span className="small muted">
                 Pay {s.advancePercent}% ({inr(advance)}) to start, the rest after the demo
               </span>
+              {summary.count > 0 && <RatingLine avg={summary.avg} count={summary.count} href="#reviews" />}
             </div>
             <ul className="facts">
               <li>
@@ -195,12 +234,29 @@ export default async function ProjectPage({ params }: { params: Params }) {
         </aside>
       </div>
 
+      {reviews.length > 0 && (
+        <section className="stack" id="reviews">
+          <div className="row between">
+            <h2>what students say ⭐</h2>
+            <RatingLine avg={summary.avg} count={summary.count} />
+          </div>
+          <div className="review-grid">
+            {reviews.map((r) => (
+              <ReviewCard key={r.id} r={r} brand={s.brandName} />
+            ))}
+          </div>
+          <Link href="/reviews" className="small">
+            all reviews →
+          </Link>
+        </section>
+      )}
+
       {related.length > 0 && (
         <section className="stack">
           <h2>you might also like 👇</h2>
           <div className="pgrid three">
             {related.map((r) => (
-              <ProjectCard key={r.id} p={r} negotiable={s.negotiable} fx={fx} />
+              <ProjectCard key={r.id} p={r} negotiable={s.negotiable} fx={fx} rating={ratings[r.id]} />
             ))}
           </div>
         </section>

@@ -2,16 +2,23 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import { BRANCHES, CATEGORIES, YEARS, categoryName, difficultyName } from "@/lib/catalog";
+import { cookies } from "next/headers";
+import { BRANCHES, CATEGORIES, YEARS, branchName, categoryName, difficultyName } from "@/lib/catalog";
 import {
   addMessage,
   addPayment,
   answerOffer,
   createOrder,
   findOrderToken,
+  findReferrer,
   getOrderByToken,
   getProjectBySlug,
   getSettings,
+  getSquadSeat,
+  hasOrderFromPhone,
+  normalizeRefCode,
+  saveReview,
+  setSquad,
   recentOrdersFromPhone,
   recentMessagesFrom,
   recentOrdersTotal,
@@ -19,6 +26,7 @@ import {
   utrUsed,
 } from "@/lib/data";
 import { inr, phonePretty } from "@/lib/format";
+import { REF_COOKIE } from "@/lib/referral";
 import { notifyOwner } from "@/lib/notify";
 import { autoAccepts, daysUntil, estimateIdea, minOffer, pickAddons, todayIST } from "@/lib/pricing";
 import { siteUrl } from "@/lib/site";
@@ -65,6 +73,33 @@ async function checkLimits(phone: string): Promise<string | null> {
   return null;
 }
 
+/**
+ * A friend's code typed into an order form (or remembered from their link). Gives money off a
+ * student's first order. Returns nothing to apply when the field is empty or referrals are off.
+ */
+async function readReferral(
+  fd: FormData,
+  contact: { phone: string; email: string },
+): Promise<{ referredBy: number; discount: number; friend: string } | { error: string } | null> {
+  const code = normalizeRefCode(text(fd, "ref", 30));
+  if (!code) return null;
+  const s = await getSettings();
+  if (!s.referralOn || s.referralDiscount <= 0) return null;
+  const friend = await findReferrer(code);
+  if (!friend) return { error: "That friend code doesn't exist 🤔 Check it with your friend, or clear the field." };
+  if (friend.phone === contact.phone || (contact.email && friend.email && friend.email.toLowerCase() === contact.email.toLowerCase())) {
+    return { error: "Nice try 😅 You can't use your own friend code. Share it with your batchmates instead!" };
+  }
+  if (await hasOrderFromPhone(contact.phone)) {
+    return { error: "Friend codes are for first orders only. Clear the code field, and you can still make an offer on the price 😉" };
+  }
+  return { referredBy: friend.id, discount: s.referralDiscount, friend: friend.studentName.split(/\s+/)[0] };
+}
+
+async function forgetReferral() {
+  (await cookies()).delete(REF_COOKIE);
+}
+
 /** A student orders a ready-made project from the catalogue. The price is fixed, so it waits for the advance. */
 export async function placeOrder(_prev: FormState, fd: FormData): Promise<FormState> {
   if (text(fd, "website")) return { error: "Something went wrong. Please try again." }; // filled only by bots
@@ -77,6 +112,8 @@ export async function placeOrder(_prev: FormState, fd: FormData): Promise<FormSt
   if (!text(fd, "agree")) return { error: "Please accept the payment and refund policy." };
   const limited = await checkLimits(c.contact.phone);
   if (limited) return { error: limited };
+  const ref = await readReferral(fd, c.contact);
+  if (ref && "error" in ref) return { error: ref.error };
 
   const s = await getSettings();
   const addons = pickAddons(s, list(fd, "addons"));
@@ -105,6 +142,8 @@ export async function placeOrder(_prev: FormState, fd: FormData): Promise<FormSt
       estimateHigh: null,
       advancePercent: s.advancePercent,
       deadline: dl.deadline,
+      referredBy: ref?.referredBy ?? null,
+      discount: ref?.discount ?? 0,
     },
     offer
       ? {
@@ -123,9 +162,11 @@ export async function placeOrder(_prev: FormState, fd: FormData): Promise<FormSt
       (offer
         ? `🤝 Offer ${code}: ${inr(offer)} for ${project.title} (listed ${inr(listPrice)})${instant ? " · accepted automatically" : ""}\n`
         : `🛒 New order ${code}\n${project.title}\n${inr(listPrice)}${addons.length ? ` (incl. ${addons.map((a) => a.name).join(", ")})` : ""}\n`) +
-        `${c.contact.studentName} · ${phonePretty(c.contact.phone)}${c.contact.college ? ` · ${c.contact.college}` : ""}\n${base}/admin`,
+        `${c.contact.studentName} · ${phonePretty(c.contact.phone)}${c.contact.college ? ` · ${c.contact.college}` : ""}` +
+        `${ref ? `\n🎁 ${ref.friend}'s friend code: ${inr(ref.discount)} off` : ""}\n${base}/admin`,
     ),
   );
+  if (ref) await forgetReferral();
   redirect(`/track/${token}?new=1`);
 }
 
@@ -150,6 +191,8 @@ export async function submitIdea(_prev: FormState, fd: FormData): Promise<FormSt
   if (!text(fd, "agree")) return { error: "Please accept the payment and refund policy." };
   const limited = await checkLimits(c.contact.phone);
   if (limited) return { error: limited };
+  const ref = await readReferral(fd, c.contact);
+  if (ref && "error" in ref) return { error: ref.error };
 
   const s = await getSettings();
   const est = estimateIdea(s, { difficulty, category, deadline: dl.deadline, addons: list(fd, "addons") }, todayIST());
@@ -181,6 +224,8 @@ export async function submitIdea(_prev: FormState, fd: FormData): Promise<FormSt
       estimateHigh: est.high,
       advancePercent: s.advancePercent,
       deadline: dl.deadline,
+      referredBy: ref?.referredBy ?? null,
+      discount: ref?.discount ?? 0,
     },
     // Their budget becomes an offer you can accept in one tap.
     budget || message ? { body: message, offer: s.negotiable && budget ? budget : null } : undefined,
@@ -190,16 +235,21 @@ export async function submitIdea(_prev: FormState, fd: FormData): Promise<FormSt
     notifyOwner(
       `💡 New idea ${code}: ${title}\n${categoryName(category)} · ${difficultyName(difficulty)} · estimate ${inr(est.low)}–${inr(est.high)}` +
         `${budget ? ` · budget ${inr(budget)}` : ""}${dl.deadline ? ` · by ${dl.deadline}` : ""}\n` +
-        `${c.contact.studentName} · ${phonePretty(c.contact.phone)}\nQuote it: ${base}/admin`,
+        `${c.contact.studentName} · ${phonePretty(c.contact.phone)}${ref ? `\n🎁 ${ref.friend}'s friend code: ${inr(ref.discount)} off` : ""}\nQuote it: ${base}/admin`,
     ),
   );
+  if (ref) await forgetReferral();
   redirect(`/track/${token}?new=1`);
 }
 
 /** The student reports a UPI payment by its transaction number; the owner checks it in their bank app. */
 export async function submitPayment(_prev: FormState, fd: FormData): Promise<FormState> {
+  // A teammate pays from their own squad link; everyone else from the order page.
+  const seatToken = text(fd, "seat", 60);
+  const seat = seatToken ? await getSquadSeat(seatToken) : null;
+  if (seatToken && !seat) return { error: "This payment link isn't valid anymore. Ask your teammate for a fresh one." };
   const token = text(fd, "token", 60);
-  const order = await getOrderByToken(token);
+  const order = seat ? seat.order : await getOrderByToken(token);
   if (!order) return { error: "Order not found." };
   if (order.status === "cancelled") return { error: "This order was cancelled. Message us on WhatsApp." };
   if (order.price == null) return { error: "Please wait until the price is confirmed." };
@@ -211,13 +261,50 @@ export async function submitPayment(_prev: FormState, fd: FormData): Promise<For
   if ((await recentPaymentSubmissions(order.id, 60)) >= 5) return { error: "Too many attempts. Please message us on WhatsApp." };
 
   const method = ["upi", "paypal", "card", "other"].includes(text(fd, "method", 10)) ? text(fd, "method", 10) : "upi";
-  await addPayment({ orderId: order.id, amount, utr, method, verified: false });
+  // With a squad, payments from the order page count as the leader's (seat 1).
+  const squadSeat = seat ? seat.member.seat : text(fd, "squad") ? 1 : null;
+  await addPayment({ orderId: order.id, amount, utr, method, verified: false, seat: squadSeat });
   const base = await siteUrl();
+  const who = seat ? `${seat.member.name || `teammate ${seat.member.seat}`} (squad seat ${seat.member.seat})` : order.studentName;
   after(() =>
-    notifyOwner(`💰 Payment to check: ${inr(amount)} for ${order.code} (${order.title})\n${text(fd, "method", 10).toUpperCase() || "UPI"} ref ${utr} · ${order.studentName}\n${base}/admin`),
+    notifyOwner(`💰 Payment to check: ${inr(amount)} for ${order.code} (${order.title})\n${method.toUpperCase()} ref ${utr} · ${who}\n${base}/admin/orders/${order.id}`),
   );
-  revalidatePath(`/track/${token}`);
-  return { ok: "Got it 🙌 We'll check the payment and update your order, usually within a few hours." };
+  revalidatePath(`/track/${order.token}`);
+  if (seat) revalidatePath(`/squad/${seat.member.token}`);
+  return { ok: "Got it 🙌 We'll check the payment and update the order, usually within a few hours." };
+}
+
+/** The student who ordered splits the price between their teammates (2 to 6 people). */
+export async function setupSquad(_prev: FormState, fd: FormData): Promise<FormState> {
+  const order = await getOrderByToken(text(fd, "token", 60));
+  if (!order) return { error: "Order not found." };
+  if (order.status === "cancelled" || order.status === "delivered") return { error: "This order can't be split anymore." };
+  const size = int(fd, "size", 1, 6) ?? 1;
+  const names = [order.studentName.split(/\s+/)[0]];
+  for (let i = 2; i <= size; i++) names.push(text(fd, `name${i}`, 40) || `Teammate ${i}`);
+  const res = await setSquad(order.id, size >= 2 ? names : []);
+  if (res === "locked") return { error: "A teammate has already paid, so the split is locked. Message us if it needs to change." };
+  revalidatePath(`/track/${order.token}`);
+  return { ok: size >= 2 ? "Squad ready 👯 Send each teammate their link below." : "Split removed. You pay the whole thing." };
+}
+
+/** A delivered order leaves a review. It shows on the site once the owner approves it. */
+export async function submitReview(_prev: FormState, fd: FormData): Promise<FormState> {
+  const order = await getOrderByToken(text(fd, "token", 60));
+  if (!order) return { error: "Order not found." };
+  if (order.status !== "delivered") return { error: "You can review your project once it's delivered." };
+  const rating = int(fd, "rating", 1, 5);
+  if (!rating) return { error: "Tap the stars to rate us first ⭐" };
+  const body = longText(fd, "body", 1500);
+  if (body.length < 10) return { error: "Write a line or two about how it went (at least 10 letters)." };
+  const name = text(fd, "name", 40) || order.studentName.split(/\s+/)[0];
+  const showCollege = !!text(fd, "showCollege");
+  const context = [order.year, order.branch && branchName(order.branch, true), showCollege ? order.college : ""].filter(Boolean).join(" · ").slice(0, 160);
+  await saveReview({ orderId: order.id, projectId: order.projectId, rating, body, name, context });
+  const base = await siteUrl();
+  after(() => notifyOwner(`⭐ New review (${rating}★) on ${order.code} (${order.title})\n“${body.slice(0, 300)}”\nApprove it: ${base}/admin/reviews`));
+  revalidatePath(`/track/${order.token}`);
+  return { ok: "Thank you 🙏 Your review shows up on the site once we've had a look." };
 }
 
 /** Finds an order from its code and the phone number used. */

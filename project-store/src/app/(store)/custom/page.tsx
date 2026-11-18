@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import IdeaForm from "@/components/IdeaForm";
 import { BRANCHES, CATEGORIES } from "@/lib/catalog";
 import { getSettings } from "@/lib/data";
+import { currentInvite } from "@/lib/invite";
 import { getFx } from "@/lib/fx";
 import { todayIST } from "@/lib/pricing";
 
@@ -35,7 +36,7 @@ export default async function CustomPage({ searchParams }: { searchParams: Promi
           we&apos;ll agree the final price with you before you pay a thing.
         </p>
       </div>
-      <IdeaForm settings={s} today={todayIST()} initialCategory={cat} initialBranch={branch} fx={await getFx(s.localCurrency)} />
+      <IdeaForm settings={s} today={todayIST()} initialCategory={cat} initialBranch={branch} fx={await getFx(s.localCurrency)} invite={await currentInvite()} />
     </main>
   );
 }
