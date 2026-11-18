@@ -91,11 +91,11 @@ export type ProjectFilters = {
 };
 
 export const SORTS = [
-  { id: "popular", name: "Popular" },
-  { id: "price-asc", name: "Price: low to high" },
-  { id: "price-desc", name: "Price: high to low" },
-  { id: "easy", name: "Easiest first" },
-  { id: "new", name: "Newest" },
+  { id: "popular", name: "trending 🔥" },
+  { id: "price-asc", name: "cheapest first" },
+  { id: "price-desc", name: "priciest first" },
+  { id: "easy", name: "easiest first" },
+  { id: "new", name: "newest" },
 ] as const;
 
 export async function listProjects(f: ProjectFilters = {}): Promise<Project[]> {
@@ -157,6 +157,14 @@ export async function relatedProjects(p: Project, limit = 3): Promise<Project[]>
     [p.id, p.category, p.branches, p.price, limit],
   );
   return rows.map(toProject);
+}
+
+/** How many live projects each track has, for the home page. */
+export async function categoryCounts(): Promise<Record<string, number>> {
+  const rows = await sql<{ category: string; n: number }>(
+    "select category, count(*)::int as n from store.projects where active group by category",
+  );
+  return Object.fromEntries(rows.map((r) => [r.category, Number(r.n)]));
 }
 
 /** How many live projects each branch has, for the home page. */

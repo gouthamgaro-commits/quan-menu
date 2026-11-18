@@ -22,3 +22,8 @@ export function upiLink(p: { upiId: string; name: string; amount: number; note: 
 export function telLink(number: string) {
   return "tel:+" + (number || "").replace(/\D/g, "");
 }
+
+/** PayPal.me link that opens with the amount filled in: paypal.me/name/25.50USD */
+export function paypalLink(user: string, amount: number, currency: string) {
+  return `https://paypal.me/${encodeURIComponent(user)}/${amount}${currency}`;
+}

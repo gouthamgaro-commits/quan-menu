@@ -54,9 +54,13 @@ export default async function Dashboard() {
               </span>
             </li>
             <li>
-              {s.upiId ? <CircleCheck size={18} aria-hidden color="var(--ok)" /> : <CircleAlert size={18} aria-hidden color="var(--warn)" />}
+              {s.upiId || s.paypalMe || s.payLink || s.otherPay ? (
+                <CircleCheck size={18} aria-hidden color="var(--ok)" />
+              ) : (
+                <CircleAlert size={18} aria-hidden color="var(--warn)" />
+              )}
               <span>
-                UPI ID, so order pages show a payment QR code. <Link href="/admin/settings">Settings</Link>
+                A way to get paid: UPI ID for India, PayPal or a card link for everyone else. <Link href="/admin/settings">Settings</Link>
               </span>
             </li>
             <li>

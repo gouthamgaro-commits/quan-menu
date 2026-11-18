@@ -5,7 +5,7 @@
  *
  * Raise SCHEMA_VERSION whenever SCHEMA_SQL changes; every statement must be safe to re-run.
  */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const SCHEMA_SQL = /* sql */ `
 create schema if not exists store;
@@ -24,7 +24,7 @@ create table if not exists store.projects (
   features      text[] not null default '{}',
   branches      text[] not null default '{}',
   category      text not null default 'software',
-  level         text not null default 'major' check (level in ('mini', 'major')),
+  level         text not null default 'major' check (level in ('mini', 'major', 'portfolio')),
   difficulty    smallint not null default 2 check (difficulty between 1 and 4),
   price         integer not null default 0 check (price >= 0),
   tech          text[] not null default '{}',
@@ -37,6 +37,9 @@ create table if not exists store.projects (
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+-- v3: portfolio / bootcamp projects as a third level.
+alter table store.projects drop constraint if exists projects_level_check;
+alter table store.projects add constraint projects_level_check check (level in ('mini', 'major', 'portfolio'));
 create index if not exists projects_list_idx on store.projects (active, featured desc, orders_count desc);
 
 create table if not exists store.orders (

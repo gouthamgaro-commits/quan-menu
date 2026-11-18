@@ -117,7 +117,7 @@ export async function recordPaymentAction(_prev: FormState, fd: FormData): Promi
   if (!order) return { error: "Order not found." };
   const amount = int(fd, "amount", 1, 10_000_000);
   if (!amount) return { error: "Enter the amount received." };
-  const method = ["upi", "cash", "bank"].includes(text(fd, "method", 10)) ? text(fd, "method", 10) : "upi";
+  const method = ["upi", "paypal", "card", "cash", "bank"].includes(text(fd, "method", 10)) ? text(fd, "method", 10) : "upi";
   await addPayment({ orderId: order.id, amount, utr: text(fd, "ref", 40).toUpperCase(), method, verified: true });
   refresh(order.token);
   return { ok: "Payment recorded." };
@@ -219,6 +219,10 @@ export async function saveSettingsAction(_prev: FormState, fd: FormData): Promis
   const upiId = text(fd, "upiId", 80).replace(/\s/g, "");
   if (upiId && !/^[a-zA-Z0-9._-]{2,256}@[a-zA-Z0-9]{2,64}$/.test(upiId)) return { error: "A UPI ID looks like yourname@okaxis or 9876543210@ybl." };
 
+  const payLinkText = text(fd, "payLink", 500);
+  const payLink = safeUrl(payLinkText);
+  if (payLinkText && !payLink) return { error: "The card payment link must be a web address (https://…)." };
+
   const addons: Addon[] = [];
   const used = new Set<string>();
   for (let i = 0; i < 30; i++) {
@@ -246,6 +250,10 @@ export async function saveSettingsAction(_prev: FormState, fd: FormData): Promis
     announcement: text(fd, "announcement", 200),
     upiId,
     upiName: text(fd, "upiName", 80),
+    paypalMe: text(fd, "paypalMe", 100),
+    payLink: payLink,
+    otherPay: longText(fd, "otherPay", 1000),
+    localCurrency: !!text(fd, "localCurrency"),
     advancePercent: int(fd, "advancePercent", 0, 100) ?? current.advancePercent,
     tierPrices: [1, 2, 3, 4].map((l) => int(fd, `tier_${l}`, 0, 10_000_000) ?? current.tierPrices[l - 1]),
     factors: Object.fromEntries(CATEGORIES.map((c) => [c.id, num(fd, `factor_${c.id}`, 0.1, 20, current.factors[c.id])])),

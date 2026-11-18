@@ -30,7 +30,7 @@ function readContact(fd: FormData) {
   const studentName = text(fd, "name", 80);
   if (studentName.length < 2) return { error: "Please enter your name." } as const;
   const phone = normalizePhone(text(fd, "phone", 24));
-  if (!phone) return { error: "Please enter a valid WhatsApp number (10 digits)." } as const;
+  if (!phone) return { error: "That WhatsApp number doesn't look right. Outside India? Add your country code, like +1 555 123 4567." } as const;
   const email = text(fd, "email", 120);
   if (email && !isEmail(email)) return { error: "That email address doesn't look right." } as const;
   const branch = text(fd, "branch", 20);
@@ -111,7 +111,7 @@ export async function placeOrder(_prev: FormState, fd: FormData): Promise<FormSt
           body: message,
           offer,
           accepted: instant,
-          reply: instant ? `Deal! ${inr(offer)} it is. Pay the advance below and we'll start.` : undefined,
+          reply: instant ? `Deal! ${inr(offer)} it is 🤝 Pay the advance below and we'll start cooking.` : undefined,
         }
       : message
         ? { body: message, offer: null }
@@ -206,17 +206,18 @@ export async function submitPayment(_prev: FormState, fd: FormData): Promise<For
   const amount = int(fd, "amount", 1, 10_000_000);
   if (!amount) return { error: "Enter the amount you paid." };
   const utr = text(fd, "utr", 40).toUpperCase().replace(/[^A-Z0-9]/g, "");
-  if (utr.length < 6) return { error: "Enter the UPI transaction ID (UTR). It's in your payment app's receipt, usually 12 digits." };
+  if (utr.length < 6) return { error: "Enter the transaction ID from your payment receipt (for UPI it's the 12-digit UTR)." };
   if (await utrUsed(utr)) return { error: "This transaction ID has already been sent. We're checking it." };
   if ((await recentPaymentSubmissions(order.id, 60)) >= 5) return { error: "Too many attempts. Please message us on WhatsApp." };
 
-  await addPayment({ orderId: order.id, amount, utr, method: "upi", verified: false });
+  const method = ["upi", "paypal", "card", "other"].includes(text(fd, "method", 10)) ? text(fd, "method", 10) : "upi";
+  await addPayment({ orderId: order.id, amount, utr, method, verified: false });
   const base = await siteUrl();
   after(() =>
-    notifyOwner(`💰 Payment to check: ${inr(amount)} for ${order.code} (${order.title})\nUTR ${utr} · ${order.studentName}\n${base}/admin`),
+    notifyOwner(`💰 Payment to check: ${inr(amount)} for ${order.code} (${order.title})\n${text(fd, "method", 10).toUpperCase() || "UPI"} ref ${utr} · ${order.studentName}\n${base}/admin`),
   );
   revalidatePath(`/track/${token}`);
-  return { ok: "Thanks! We'll check the payment and update your order, usually within a few hours." };
+  return { ok: "Got it 🙌 We'll check the payment and update your order, usually within a few hours." };
 }
 
 /** Finds an order from its code and the phone number used. */
@@ -253,7 +254,7 @@ export async function studentMessage(_prev: FormState, fd: FormData): Promise<Fo
     ),
   );
   revalidatePath(`/track/${order.token}`);
-  return { ok: offer ? "Offer sent. We'll reply here, usually within a few hours." : "Sent." };
+  return { ok: offer ? "Offer sent 🎯 We'll reply here, usually within a few hours." : "Sent ✅" };
 }
 
 /** The student accepts or declines the owner's price offer. */

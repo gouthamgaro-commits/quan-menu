@@ -1,20 +1,33 @@
 import {
+  Binary,
+  Blocks,
   BrainCircuit,
-  CodeXml,
+  ChartColumn,
+  Cloud,
   Cog,
   Cpu,
   DraftingCompass,
   FlaskConical,
+  Gamepad2,
+  Globe,
   Microchip,
+  Plug,
   ShieldCheck,
+  Smartphone,
   Zap,
   type LucideProps,
 } from "lucide-react";
 
 const CATEGORY_ICONS = {
-  software: CodeXml,
+  web: Globe,
+  mobile: Smartphone,
   ai: BrainCircuit,
+  data: ChartColumn,
   security: ShieldCheck,
+  web3: Blocks,
+  games: Gamepad2,
+  cloud: Cloud,
+  systems: Binary,
   iot: Cpu,
   electrical: Zap,
   vlsi: Microchip,
@@ -24,7 +37,7 @@ const CATEGORY_ICONS = {
 } as const;
 
 export function CategoryIcon({ category, ...props }: { category: string } & LucideProps) {
-  const Icon = CATEGORY_ICONS[category as keyof typeof CATEGORY_ICONS] ?? CodeXml;
+  const Icon = CATEGORY_ICONS[category as keyof typeof CATEGORY_ICONS] ?? Globe;
   return <Icon aria-hidden {...props} />;
 }
 
@@ -38,10 +51,5 @@ export function WhatsAppIcon({ size = 18 }: { size?: number }) {
 }
 
 export function LogoMark({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M8 20V4h5.5a4.5 4.5 0 0 1 0 9H8" />
-      <path d="M15.5 17.5l2 2 3.5-4" />
-    </svg>
-  );
+  return <Plug size={size} strokeWidth={2.6} aria-hidden />;
 }

@@ -1,7 +1,7 @@
 import { Clock } from "lucide-react";
 import Link from "next/link";
-import { branchName, categoryName, difficultyName, levelName, STATUSES, type Status } from "@/lib/catalog";
-import { inr } from "@/lib/format";
+import { branchName, categoryEmoji, categoryName, difficultyName, levelName, STATUSES, type Status } from "@/lib/catalog";
+import { approx, inr } from "@/lib/format";
 import type { Project } from "@/lib/types";
 import CoverArt from "./CoverArt";
 
@@ -24,19 +24,31 @@ export function StatusBadge({ status, student = false }: { status: Status; stude
   return <span className={`badge tone-${s.tone}`}>{student && status !== "delivered" && status !== "cancelled" ? s.student : s.name}</span>;
 }
 
-export function ProjectCard({ p, negotiable = true, className = "" }: { p: Project; negotiable?: boolean; className?: string }) {
+export function ProjectCard({
+  p,
+  negotiable = true,
+  className = "",
+  fx = null,
+}: {
+  p: Project;
+  negotiable?: boolean;
+  className?: string;
+  fx?: { code: string; rate: number } | null;
+}) {
   return (
     <Link href={`/projects/${p.slug}`} className={`pcard cat-${p.category} ${className}`}>
       <CoverArt category={p.category} seed={p.slug}>
         <span className="cover-tags">
-          <span className="glass-chip">{levelName(p.level)}</span>
+          <span className="glass-chip">{levelName(p.level, true)}</span>
           <span className="glass-chip">
             <Meter level={p.difficulty} />
           </span>
         </span>
       </CoverArt>
       <div className="pcard-body">
-        <span className="pcard-cat">{categoryName(p.category, true)}</span>
+        <span className="pcard-cat">
+          {categoryEmoji(p.category)} {categoryName(p.category, true)}
+        </span>
         <h3>{p.title}</h3>
         <p>{p.summary}</p>
         <div className="chips">
@@ -50,7 +62,8 @@ export function ProjectCard({ p, negotiable = true, className = "" }: { p: Proje
       <div className="pcard-foot">
         <span className="stack-xs">
           <span className="price">{inr(p.price)}</span>
-          {negotiable && <span className="neg">Negotiable</span>}
+          {fx && <span className="approx">{approx(p.price, fx)}</span>}
+          {negotiable && <span className="neg">negotiable 🤝</span>}
         </span>
         <span className="days">
           <Clock size={14} aria-hidden /> {p.deliveryDays} days

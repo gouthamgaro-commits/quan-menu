@@ -78,6 +78,33 @@ export default async function SettingsPage() {
             Order pages show a UPI QR code for the exact amount due. A free business UPI ID (PhonePe Business, Paytm for Business,
             Google Pay for Business) works most smoothly with payment links.
           </p>
+          <b className="small">Students outside India</b>
+          <div className="grid-2">
+            <label className="field">
+              <span>
+                PayPal.me username <em>(optional)</em>
+              </span>
+              <input className="input mono" name="paypalMe" maxLength={60} defaultValue={s.paypalMe} placeholder="yourname" autoCapitalize="off" />
+              <span className="hint">From paypal.me/yourname. Students get a PayPal link with the amount already converted to their currency.</span>
+            </label>
+            <label className="field">
+              <span>
+                Card payment link <em>(optional)</em>
+              </span>
+              <input className="input" name="payLink" type="url" maxLength={500} defaultValue={s.payLink} placeholder="https://… (Stripe, Razorpay or any payment page)" />
+              <span className="hint">Any page where people pay by card. Shown as a “pay by card” button.</span>
+            </label>
+          </div>
+          <label className="field">
+            <span>
+              Other ways to pay <em>(optional: bank transfer, Wise, crypto…)</em>
+            </span>
+            <textarea className="textarea" name="otherPay" rows={3} maxLength={1000} defaultValue={s.otherPay} style={{ minHeight: 0 }} />
+          </label>
+          <label className="check-plain">
+            <input type="checkbox" name="localCurrency" value="1" defaultChecked={s.localCurrency} /> Show approximate prices in each
+            visitor&apos;s own currency (≈ $, €, £…) next to rupee prices
+          </label>
         </section>
 
         <section className="card card-pad stack">

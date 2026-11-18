@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import OrderForm from "@/components/OrderForm";
 import { getProjectBySlug, getSettings } from "@/lib/data";
 import { inr } from "@/lib/format";
+import { getFx } from "@/lib/fx";
 import { todayIST } from "@/lib/pricing";
 
 type Params = Promise<{ slug: string }>;
@@ -37,7 +38,7 @@ export default async function OrderPage({
         <span aria-current="page">Order</span>
       </nav>
       <div className="stack-xs">
-        <h1 style={{ fontSize: "clamp(26px, 4.6vw, 36px)" }}>{wantsOffer && s.negotiable ? "Make an offer" : "Order your project"}</h1>
+        <h1 style={{ fontSize: "clamp(26px, 4.6vw, 36px)" }}>{wantsOffer && s.negotiable ? "shoot your shot 🎯" : "lock it in 🔒"}</h1>
         <p className="muted">
           {p.title} · {inr(p.price)} · ready in {p.deliveryDays} days
         </p>
@@ -50,6 +51,7 @@ export default async function OrderPage({
         negotiable={s.negotiable}
         minOfferPercent={s.minOfferPercent}
         startWithOffer={wantsOffer}
+        fx={await getFx(s.localCurrency)}
       />
     </main>
   );

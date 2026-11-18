@@ -6,7 +6,7 @@ export default function SortSelect({ value, query, options }: { value: string; q
   const router = useRouter();
   return (
     <label className="sort">
-      Sort
+      sort
       <select
         className="select"
         value={value}

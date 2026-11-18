@@ -15,6 +15,14 @@ export type Settings = {
   announcement: string;
   upiId: string;
   upiName: string;
+  /** PayPal.me username, for students paying from abroad (links carry the exact amount). */
+  paypalMe: string;
+  /** Any payment page for cards (a Stripe/Razorpay payment link, Wise…). */
+  payLink: string;
+  /** Free text with other ways to pay (bank transfer, Wise, crypto…). */
+  otherPay: string;
+  /** Show approximate prices in the visitor's own currency next to rupee prices. */
+  localCurrency: boolean;
   /** Share of the price paid before work starts. */
   advancePercent: number;
   /** Base price of a custom idea for each difficulty (1 Easy … 4 Expert), in rupees. */
@@ -51,19 +59,26 @@ export const DEFAULT_POLICIES = `## Ordering
 - If we can't start your project, the advance is refunded in full.
 - Once work has started, the advance is not refundable, but you can switch to another project of the same price.
 
+## Paying from outside India
+- Pay by PayPal or the card payment link on your order page. Amounts in your currency are approximate; small differences from exchange rates are fine.
+
 ## Use of the projects
 - Projects are delivered as reference implementations and learning material, with an explanation of how they work.
 - Check your college's rules on outside help before you submit work.`;
 
 export const DEFAULTS: Settings = {
-  brandName: "ProjectMitra",
-  tagline: "Engineering projects, built for you",
+  brandName: "ProjectPlug",
+  tagline: "ur project plug. coding & engineering projects, built for you",
   whatsapp: "",
   email: "",
   city: "",
   announcement: "",
   upiId: "",
   upiName: "",
+  paypalMe: "",
+  payLink: "",
+  otherPay: "",
+  localCurrency: true,
   advancePercent: 50,
   tierPrices: [12000, 15000, 22000, 30000],
   factors: Object.fromEntries(CATEGORIES.map((c) => [c.id, c.factor])) as Record<CategoryId, number>,
@@ -115,6 +130,10 @@ export function normalizeSettings(raw: unknown): Settings {
     announcement: str(r.announcement, d.announcement, 200).trim(),
     upiId: str(r.upiId, d.upiId, 80).trim(),
     upiName: str(r.upiName, d.upiName, 80).trim(),
+    paypalMe: str(r.paypalMe, d.paypalMe, 60).trim().replace(/^.*paypal\.me\//i, "").replace(/[^A-Za-z0-9._-]/g, ""),
+    payLink: str(r.payLink, d.payLink, 500).trim(),
+    otherPay: str(r.otherPay, d.otherPay, 1000).trim(),
+    localCurrency: typeof r.localCurrency === "boolean" ? r.localCurrency : d.localCurrency,
     advancePercent: Math.round(num(r.advancePercent, d.advancePercent, 0, 100)),
     tierPrices: [0, 1, 2, 3].map((i) => Math.round(num(tiers[i], d.tierPrices[i]))) as Settings["tierPrices"],
     factors: Object.fromEntries(
@@ -133,6 +152,6 @@ export function normalizeSettings(raw: unknown): Settings {
 export function setupMissing(s: Settings) {
   return [
     !s.whatsapp && "WhatsApp number",
-    !s.upiId && "UPI ID for payments",
+    !s.upiId && !s.paypalMe && !s.payLink && !s.otherPay && "a way to get paid (UPI ID, PayPal or a payment link)",
   ].filter(Boolean) as string[];
 }

@@ -10,9 +10,9 @@ const site = configuredSiteUrl();
 export const metadata: Metadata = {
   // Absolute share-image and canonical links (WhatsApp and Google need them).
   metadataBase: site ? new URL(site) : undefined,
-  title: { default: "Engineering projects for students", template: "%s" },
+  title: { default: "Coding & engineering projects, built for you", template: "%s" },
   description:
-    "Final-year and mini projects for CSE, IT, AI & DS, ECE, EEE, Mechanical and Civil, with source code, report, PPT and viva support. Or send your own idea and get a price in 30 seconds.",
+    "Working coding and engineering projects for students and self-taught devs worldwide: web, mobile, AI, data, cybersecurity, web3, games, cloud, core CS and hardware. Source code, docs, demo and a walkthrough. Prices are negotiable.",
   appleWebApp: { capable: true, statusBarStyle: "default" },
   formatDetection: { telephone: false },
 };
@@ -21,7 +21,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#060914",
+  themeColor: "#fff6e5",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -33,7 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;600&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=JetBrains+Mono:wght@500;600;700&display=swap"
         />
       </head>
       <body>{children}</body>

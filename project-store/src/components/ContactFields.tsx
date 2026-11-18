@@ -39,8 +39,8 @@ export default function ContactFields({ defaultBranch = "" }: { defaultBranch?: 
     <div ref={ref} className="stack" onChange={remember}>
       <div className="grid-2">
         <label className="field">
-          <span>Your name</span>
-          <input className="input" name="name" required minLength={2} maxLength={80} autoComplete="name" placeholder="Priya Sharma" />
+          <span>your name</span>
+          <input className="input" name="name" required minLength={2} maxLength={80} autoComplete="name" placeholder="Alex / Priya / Sam" />
         </label>
         <label className="field">
           <span>WhatsApp number</span>
@@ -53,26 +53,26 @@ export default function ContactFields({ defaultBranch = "" }: { defaultBranch?: 
             minLength={10}
             maxLength={18}
             autoComplete="tel"
-            placeholder="98765 43210"
+            placeholder="98765 43210 or +1 555 123 4567"
           />
-          <span className="hint">We send your price and updates here.</span>
+          <span className="hint">Outside India? Add your country code. We send updates here.</span>
         </label>
       </div>
       <div className="grid-2">
         <label className="field">
           <span>
-            Email <em>(optional)</em>
+            email <em>(optional)</em>
           </span>
           <input className="input" name="email" type="email" maxLength={120} autoComplete="email" placeholder="you@example.com" />
         </label>
         <label className="field">
-          <span>College</span>
-          <input className="input" name="college" maxLength={120} autoComplete="organization" placeholder="Your college name" />
+          <span>college / bootcamp</span>
+          <input className="input" name="college" maxLength={120} autoComplete="organization" placeholder="where you study" />
         </label>
       </div>
       <div className="grid-3">
         <label className="field">
-          <span>Branch</span>
+          <span>field</span>
           <select className="select" name="branch" defaultValue={defaultBranch}>
             <option value="">Select…</option>
             {BRANCHES.map((b) => (
@@ -83,7 +83,7 @@ export default function ContactFields({ defaultBranch = "" }: { defaultBranch?: 
           </select>
         </label>
         <label className="field">
-          <span>Year</span>
+          <span>year / stage</span>
           <select className="select" name="year" defaultValue="">
             <option value="">Select…</option>
             {YEARS.map((y) => (
@@ -94,12 +94,12 @@ export default function ContactFields({ defaultBranch = "" }: { defaultBranch?: 
           </select>
         </label>
         <label className="field">
-          <span>Team size</span>
+          <span>team size</span>
           <select className="select" name="team" defaultValue="1">
-            <option value="1">Just me</option>
+            <option value="1">just me</option>
             {[2, 3, 4, 5, 6].map((n) => (
               <option key={n} value={n}>
-                {n} students
+                {n} people
               </option>
             ))}
           </select>

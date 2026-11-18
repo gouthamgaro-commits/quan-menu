@@ -48,3 +48,11 @@ export function phonePretty(digits: string) {
 export function plural(n: number, one: string, many = one + "s") {
   return `${n} ${n === 1 ? one : many}`;
 }
+
+/** "≈ $210" for a rupee amount in the visitor's currency (rounded to look like a price). */
+export function approx(n: number | null | undefined, fx: { code: string; rate: number } | null) {
+  if (!fx || n == null) return "";
+  const v = Number(n) * fx.rate;
+  const rounded = v >= 1000 ? Math.round(v / 10) * 10 : v >= 100 ? Math.round(v / 5) * 5 : Math.round(v);
+  return "≈ " + new Intl.NumberFormat("en", { style: "currency", currency: fx.code, currencyDisplay: "narrowSymbol", maximumFractionDigits: 0 }).format(rounded);
+}

@@ -4,16 +4,21 @@ import Link from "next/link";
 import { startTransition, useActionState, useMemo, useState } from "react";
 import { submitIdea } from "@/app/(store)/actions";
 import { CATEGORIES, DIFFICULTIES } from "@/lib/catalog";
-import { inr } from "@/lib/format";
+import { approx, inr } from "@/lib/format";
 import { advanceFor, basePrice, estimateIdea, minOffer } from "@/lib/pricing";
 import type { Settings } from "@/lib/settings";
 import ContactFields from "./ContactFields";
-import { CategoryIcon } from "./Icons";
 import { Meter } from "./Ui";
 
-type Props = { settings: Settings; today: string; initialCategory?: string; initialBranch?: string };
+type Props = {
+  settings: Settings;
+  today: string;
+  initialCategory?: string;
+  initialBranch?: string;
+  fx?: { code: string; rate: number } | null;
+};
 
-export default function IdeaForm({ settings: s, today, initialCategory = "software", initialBranch = "" }: Props) {
+export default function IdeaForm({ settings: s, today, initialCategory = "web", initialBranch = "", fx = null }: Props) {
   const [state, dispatch, pending] = useActionState(submitIdea, null);
   const [category, setCategory] = useState(initialCategory);
   const [difficulty, setDifficulty] = useState(2);
@@ -39,21 +44,21 @@ export default function IdeaForm({ settings: s, today, initialCategory = "softwa
       <div className="stack">
         <section className="card form-card">
           <h2>
-            <span className="n">1</span> Your idea
+            <span className="n">1</span> your idea 💡
           </h2>
           <label className="field">
-            <span>Project title</span>
+            <span>project title</span>
             <input
               className="input"
               name="title"
               required
               minLength={5}
               maxLength={140}
-              placeholder="E.g. Smart dustbin that alerts the municipality when full"
+              placeholder="e.g. AI app that roasts your code 🔥"
             />
           </label>
           <label className="field">
-            <span>Describe it</span>
+            <span>describe it</span>
             <textarea
               className="textarea"
               name="idea"
@@ -61,12 +66,12 @@ export default function IdeaForm({ settings: s, today, initialCategory = "softwa
               minLength={20}
               maxLength={4000}
               rows={5}
-              placeholder={"What should it do? Any must-have features, software or components? What did your guide ask for?\n\nE.g. An ultrasonic sensor checks how full the bin is, sends the level to a web dashboard, and texts the municipality when it is 80% full."}
+              placeholder={"What should it do? Must-have features, tech stack, anything your guide or bootcamp asked for?\n\ne.g. Paste a GitHub repo, the app reviews the code, gives a score and roasts the worst function. React frontend, Python backend."}
             />
           </label>
           <label className="field">
             <span>
-              Reference link <em>(optional: base paper, synopsis on Google Drive…)</em>
+              reference link <em>(optional: base paper, synopsis, Figma, repo…)</em>
             </span>
             <input className="input" name="reference" type="url" inputMode="url" maxLength={500} placeholder="https://…" />
           </label>
@@ -74,16 +79,16 @@ export default function IdeaForm({ settings: s, today, initialCategory = "softwa
 
         <section className="card form-card">
           <h2>
-            <span className="n">2</span> Domain & difficulty
+            <span className="n">2</span> track &amp; difficulty 🎚️
           </h2>
           <fieldset>
-            <legend className="legend">Which area is it in?</legend>
+            <legend className="legend">what track is it?</legend>
             <div className="choices three">
               {CATEGORIES.map((c) => (
                 <label key={c.id} className={`choice cat-${c.id}`} style={{ gridTemplateColumns: "auto 1fr", alignItems: "center", gap: 10 }}>
                   <input type="radio" name="category" value={c.id} checked={category === c.id} onChange={() => setCategory(c.id)} />
-                  <span className="cat-icon" style={{ width: 32, height: 32, borderRadius: 9 }}>
-                    <CategoryIcon category={c.id} size={17} />
+                  <span aria-hidden style={{ fontSize: 22, lineHeight: 1 }}>
+                    {c.emoji}
                   </span>
                   <b style={{ fontSize: 13.5 }}>{c.name}</b>
                 </label>
@@ -91,7 +96,7 @@ export default function IdeaForm({ settings: s, today, initialCategory = "softwa
             </div>
           </fieldset>
           <fieldset>
-            <legend className="legend">How difficult is it?</legend>
+            <legend className="legend">how hard is it?</legend>
             <div className="choices four">
               {DIFFICULTIES.map((d) => (
                 <label key={d.level} className="choice">
@@ -102,17 +107,17 @@ export default function IdeaForm({ settings: s, today, initialCategory = "softwa
                 </label>
               ))}
             </div>
-            <span className="hint">Not sure? Pick your best guess. We check it and confirm the price before you pay anything.</span>
+            <span className="hint">Not sure? Best guess is fine. We check it and agree the price before you pay anything.</span>
           </fieldset>
         </section>
 
         <section className="card form-card">
           <h2>
-            <span className="n">3</span> Deadline &amp; extras
+            <span className="n">3</span> deadline &amp; extras ⏰
           </h2>
           <label className="field" style={{ maxWidth: 260 }}>
             <span>
-              Submission date <em>(optional)</em>
+              submission date <em>(optional)</em>
             </span>
             <input className="input" type="date" name="deadline" min={today} value={deadline} onChange={(e) => setDeadline(e.target.value)} />
           </label>
@@ -120,15 +125,15 @@ export default function IdeaForm({ settings: s, today, initialCategory = "softwa
             <div className="notice warn" role="status">
               <Timer size={18} aria-hidden />
               <span>
-                Needed in {est.daysLeft === 0 ? "less than a day" : `${est.daysLeft} day${est.daysLeft === 1 ? "" : "s"}`}: a {est.rushPercent}% rush
-                charge applies. A later date costs less.
+                Needed in {est.daysLeft === 0 ? "less than a day" : `${est.daysLeft} day${est.daysLeft === 1 ? "" : "s"}`}? That&apos;s a {est.rushPercent}% rush
+                charge. A later date costs less 😉
               </span>
             </div>
           )}
           {est.daysLeft != null && est.daysLeft < 3 && (
             <div className="notice err" role="status">
               <CircleAlert size={18} aria-hidden />
-              <span>That's very close. Message us on WhatsApp right after sending so we can confirm we can make it.</span>
+              <span>That&apos;s cutting it close 😬 DM us on WhatsApp right after sending so we can confirm we can make it.</span>
             </div>
           )}
           {s.addons.length > 0 && (
@@ -154,12 +159,12 @@ export default function IdeaForm({ settings: s, today, initialCategory = "softwa
 
         <section className="card form-card">
           <h2>
-            <span className="n">4</span> {s.negotiable ? "Your budget" : "Your budget (optional)"}
+            <span className="n">4</span> your budget 💸
           </h2>
           <div className="grid-2">
             <label className="field">
               <span>
-                {s.negotiable ? "What can you pay?" : "Budget"} <em>(optional)</em>
+                {s.negotiable ? "what can you pay? (₹)" : "budget (₹)"} <em>(optional)</em>
               </span>
               <span className="money-input">
                 <span>₹</span>
@@ -173,16 +178,16 @@ export default function IdeaForm({ settings: s, today, initialCategory = "softwa
             </label>
             <label className="field">
               <span>
-                A note for us <em>(optional)</em>
+                a note for us <em>(optional)</em>
               </span>
-              <textarea className="textarea" name="message" rows={3} maxLength={1000} placeholder="E.g. Our guide wants a working hardware model, not just a simulation." style={{ minHeight: 0 }} />
+              <textarea className="textarea" name="message" rows={3} maxLength={1000} placeholder="e.g. it needs to be deployed live, and our demo is on the 20th" style={{ minHeight: 0 }} />
             </label>
           </div>
         </section>
 
         <section className="card form-card">
           <h2>
-            <span className="n">5</span> Your details
+            <span className="n">5</span> about you 👋
           </h2>
           <ContactFields defaultBranch={initialBranch} />
         </section>
@@ -191,10 +196,17 @@ export default function IdeaForm({ settings: s, today, initialCategory = "softwa
       <aside className="form-side stack">
         <div className="card form-card">
           <div className="estimate">
-            <span className="eyebrow">Instant estimate</span>
+            <span className="sticker white" style={{ fontSize: 12 }}>
+              instant estimate ⚡
+            </span>
             <span className="range" aria-live="polite">
               {range}
             </span>
+            {fx && (
+              <span className="approx">
+                {approx(est.low, fx)} – {approx(est.high, fx).replace("≈ ", "")}
+              </span>
+            )}
             <span className="small muted">
               {s.negotiable
                 ? "Tell us your budget below. We agree the final price with you before you pay anything."
@@ -210,7 +222,7 @@ export default function IdeaForm({ settings: s, today, initialCategory = "softwa
             </div>
             {est.rush > 0 && (
               <div className="line">
-                <span>Rush charge ({est.rushPercent}%)</span>
+                <span>rush charge ({est.rushPercent}%)</span>
                 <span>+{inr(est.rush)}</span>
               </div>
             )}
@@ -221,18 +233,18 @@ export default function IdeaForm({ settings: s, today, initialCategory = "softwa
               </div>
             ))}
             <div className="line total">
-              <span>Typical price</span>
+              <span>typical price</span>
               <span>{inr(est.total)}</span>
             </div>
             <div className="line small muted">
-              <span>Advance once confirmed ({s.advancePercent}%)</span>
+              <span>advance once agreed ({s.advancePercent}%)</span>
               <span>≈ {inr(advanceFor(est.total, s.advancePercent))}</span>
             </div>
           </div>
           <label className="check-plain small">
             <input type="checkbox" name="agree" value="1" required />
             <span>
-              I accept the{" "}
+              I&apos;m cool with the{" "}
               <Link href="/policies" target="_blank">
                 payment & refund policy
               </Link>
@@ -244,19 +256,19 @@ export default function IdeaForm({ settings: s, today, initialCategory = "softwa
             </p>
           )}
           <button className="btn btn-primary btn-lg btn-block" type="submit" disabled={pending}>
-            {pending ? "Sending…" : "Send my idea"}
+            {pending ? "sending…" : "send my idea 🚀"}
           </button>
-          <p className="tiny muted center">Free to ask. You pay only after you accept the price.</p>
+          <p className="tiny muted center">Free to ask. You only pay after you accept the price.</p>
         </div>
       </aside>
 
       <div className="mobile-total">
         <span className="stack-xs">
-          <span className="tiny muted">Instant estimate</span>
+          <span className="tiny muted">instant estimate ⚡</span>
           <b>{range}</b>
         </span>
         <button className="btn btn-primary" type="submit" disabled={pending}>
-          {pending ? "Sending…" : "Send idea"}
+          {pending ? "sending…" : "send idea 🚀"}
         </button>
       </div>
     </form>

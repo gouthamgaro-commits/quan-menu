@@ -348,7 +348,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
             )}
             <details>
               <summary className="small strong" style={{ cursor: "pointer" }}>
-                Record a payment yourself (cash, bank transfer…)
+                Record a payment yourself (PayPal, card, bank transfer, cash…)
               </summary>
               <ActionForm action={recordPaymentAction} submit="Record payment" className="stack-sm" buttonClass="btn btn-sm">
                 <input type="hidden" name="id" value={o.id} />
@@ -361,8 +361,10 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
                     <span>Method</span>
                     <select className="select" name="method" defaultValue="upi">
                       <option value="upi">UPI</option>
-                      <option value="cash">Cash</option>
+                      <option value="paypal">PayPal</option>
+                      <option value="card">Card</option>
                       <option value="bank">Bank transfer</option>
+                      <option value="cash">Cash</option>
                     </select>
                   </label>
                   <label className="field">

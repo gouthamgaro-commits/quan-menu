@@ -3,7 +3,7 @@ import { CircleAlert, Clock, HandCoins, Rocket } from "lucide-react";
 import Link from "next/link";
 import { startTransition, useActionState, useMemo, useState } from "react";
 import { placeOrder } from "@/app/(store)/actions";
-import { inr } from "@/lib/format";
+import { approx, inr } from "@/lib/format";
 import { advanceFor, daysUntil, minOffer } from "@/lib/pricing";
 import type { Addon } from "@/lib/settings";
 import ContactFields from "./ContactFields";
@@ -16,9 +16,10 @@ type Props = {
   negotiable: boolean;
   minOfferPercent: number;
   startWithOffer: boolean;
+  fx?: { code: string; rate: number } | null;
 };
 
-export default function OrderForm({ project, addons, advancePercent, today, negotiable, minOfferPercent, startWithOffer }: Props) {
+export default function OrderForm({ project, addons, advancePercent, today, negotiable, minOfferPercent, startWithOffer, fx = null }: Props) {
   const [state, dispatch, pending] = useActionState(placeOrder, null);
   const [picked, setPicked] = useState<string[]>([]);
   const [deadline, setDeadline] = useState("");
@@ -52,30 +53,31 @@ export default function OrderForm({ project, addons, advancePercent, today, nego
         {negotiable && (
           <section className="card form-card">
             <h2>
-              <span className="n">{++n}</span> Your price
+              <span className="n">{++n}</span> your price 💸
             </h2>
             <div className="mode-choice">
               <label className="choice">
                 <input type="radio" name="pricing" checked={!offering} onChange={() => setMode("list")} />
                 <span className="row" style={{ gap: 8 }}>
-                  <Rocket size={18} aria-hidden /> <b>Order at the listed price</b>
+                  <Rocket size={18} aria-hidden /> <b>lock it in at the listed price</b>
                 </span>
                 <span className="big">{inr(total)}</span>
-                <small>We start as soon as the advance is paid.</small>
+                {fx && <span className="approx">{approx(total, fx)}</span>}
+                <small>We start cooking as soon as the advance lands.</small>
               </label>
               <label className="choice offer">
                 <input type="radio" name="pricing" checked={offering} onChange={() => setMode("offer")} />
                 <span className="row" style={{ gap: 8 }}>
-                  <HandCoins size={18} aria-hidden /> <b>Make an offer</b>
+                  <HandCoins size={18} aria-hidden /> <b>shoot your shot 🎯</b>
                 </span>
-                <span className="big warm-text">Your price</span>
-                <small>Tell us what you can pay. We reply on your order page, usually within a few hours.</small>
+                <span className="big">your price</span>
+                <small>Tell us what you can pay. We reply in your order chat, usually within a few hours.</small>
               </label>
             </div>
             {offering && (
               <div className="grid-2">
                 <label className="field">
-                  <span>Your offer</span>
+                  <span>your offer (₹)</span>
                   <span className="money-input">
                     <span>₹</span>
                     <input
@@ -92,13 +94,14 @@ export default function OrderForm({ project, addons, advancePercent, today, nego
                   </span>
                   <span className="hint">
                     Listed at {inr(total)}.{floor ? ` We consider offers from ${inr(floor)}.` : ""}
+                    {fx && offer > 0 ? ` Your offer ${approx(offer, fx)}.` : ""}
                   </span>
                 </label>
                 <label className="field">
                   <span>
-                    A note with your offer <em>(optional)</em>
+                    a note with your offer <em>(optional)</em>
                   </span>
-                  <textarea className="textarea" name="message" rows={3} maxLength={1000} placeholder="E.g. We're a team of 3 and this is our combined budget." style={{ minHeight: 0 }} />
+                  <textarea className="textarea" name="message" rows={3} maxLength={1000} placeholder="e.g. we're 3 broke students and this is our combined budget 😭" style={{ minHeight: 0 }} />
                 </label>
               </div>
             )}
@@ -114,7 +117,7 @@ export default function OrderForm({ project, addons, advancePercent, today, nego
         {addons.length > 0 && (
           <section className="card form-card">
             <h2>
-              <span className="n">{++n}</span> Extras <span className="muted small">(optional)</span>
+              <span className="n">{++n}</span> extras ✨ <span className="muted small">(optional)</span>
             </h2>
             <div className="choices">
               {addons.map((a) => (
@@ -138,11 +141,11 @@ export default function OrderForm({ project, addons, advancePercent, today, nego
 
         <section className="card form-card">
           <h2>
-            <span className="n">{++n}</span> When do you need it?
+            <span className="n">{++n}</span> deadline? ⏰
           </h2>
           <label className="field" style={{ maxWidth: 260 }}>
             <span>
-              Submission date <em>(optional)</em>
+              submission date <em>(optional)</em>
             </span>
             <input className="input" type="date" name="deadline" min={today} value={deadline} onChange={(e) => setDeadline(e.target.value)} />
           </label>
@@ -162,18 +165,18 @@ export default function OrderForm({ project, addons, advancePercent, today, nego
 
         <section className="card form-card">
           <h2>
-            <span className="n">{++n}</span> Your details
+            <span className="n">{++n}</span> about you 👋
           </h2>
           <ContactFields defaultBranch={project.branch} />
           <label className="field">
             <span>
-              Anything to change? <em>(optional)</em>
+              any changes? <em>(optional)</em>
             </span>
             <textarea
               className="textarea"
               name="notes"
               maxLength={2000}
-              placeholder="E.g. add an admin login, use MySQL instead of SQLite, our college needs a 60-page report…"
+              placeholder="e.g. add an admin login, use MySQL instead of SQLite, my college needs a 60-page report…"
             />
             <span className="hint">Changes beyond the listed features may change the price. We'll agree it with you first.</span>
           </label>
@@ -181,9 +184,9 @@ export default function OrderForm({ project, addons, advancePercent, today, nego
       </div>
 
       <aside className="form-side stack">
-        <div className="card form-card glow">
+        <div className="card form-card" style={{ background: "#fffbe9" }}>
           <div className="stack-xs">
-            <span className="eyebrow">Your order</span>
+            <span className="sticker lime" style={{ fontSize: 12 }}>your order 🧾</span>
             <b>{project.title}</b>
           </div>
           <div className="lines">
@@ -199,24 +202,27 @@ export default function OrderForm({ project, addons, advancePercent, today, nego
             ))}
             {offering ? (
               <div className="line total">
-                <span>Your offer</span>
-                <span className="warm-text">{offer > 0 ? inr(Math.min(offer, total)) : "—"}</span>
+                <span>your offer 🎯</span>
+                <span>{offer > 0 ? inr(Math.min(offer, total)) : "—"}</span>
               </div>
             ) : (
               <div className="line total">
-                <span>Total</span>
-                <span>{inr(total)}</span>
+                <span>total</span>
+                <span>
+                  {inr(total)}
+                  {fx && <span className="approx" style={{ display: "block", textAlign: "right" }}>{approx(total, fx)}</span>}
+                </span>
               </div>
             )}
             <div className="line due">
-              <span>{offering ? "If accepted, pay to start" : "Pay now to start"} ({advancePercent}%)</span>
+              <span>{offering ? "if accepted, pay to start" : "pay now to start"} ({advancePercent}%)</span>
               <span>{offering && !offer ? "—" : inr(advance)}</span>
             </div>
           </div>
           <label className="check-plain small">
             <input type="checkbox" name="agree" value="1" required />
             <span>
-              I accept the{" "}
+              I&apos;m cool with the{" "}
               <Link href="/policies" target="_blank">
                 payment & refund policy
               </Link>
@@ -228,21 +234,21 @@ export default function OrderForm({ project, addons, advancePercent, today, nego
             </p>
           )}
           <button className={`btn btn-lg btn-block ${offering ? "btn-offer" : "btn-primary"}`} type="submit" disabled={pending}>
-            {pending ? "Sending…" : offering ? "Send my offer" : "Place order"}
+            {pending ? "sending…" : offering ? "send my offer 🎯" : "lock it in 🔒"}
           </button>
           <p className="tiny muted center">
-            {offering ? "No payment now. You pay only after we agree on the price." : "You'll see the UPI payment details on the next screen."}
+            {offering ? "No payment now. You only pay once we agree on the price." : "You'll see how to pay (UPI, PayPal or card) on the next screen."}
           </p>
         </div>
       </aside>
 
       <div className="mobile-total">
         <span className="stack-xs">
-          <span className="tiny muted">{offering ? "Your offer" : `Total · pay ${inr(advance)} now`}</span>
+          <span className="tiny muted">{offering ? "your offer 🎯" : `total · pay ${inr(advance)} now`}</span>
           <b>{offering ? (offer > 0 ? inr(Math.min(offer, total)) : "—") : inr(total)}</b>
         </span>
         <button className={`btn ${offering ? "btn-offer" : "btn-primary"}`} type="submit" disabled={pending}>
-          {pending ? "Sending…" : offering ? "Send offer" : "Place order"}
+          {pending ? "sending…" : offering ? "send offer 🎯" : "lock it in 🔒"}
         </button>
       </div>
     </form>

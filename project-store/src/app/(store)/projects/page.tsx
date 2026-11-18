@@ -3,8 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import SortSelect from "@/components/SortSelect";
 import { Meter, ProjectCard } from "@/components/Ui";
-import { BRANCHES, BUDGETS, CATEGORIES, DIFFICULTIES, LEVELS, branchName } from "@/lib/catalog";
+import { BRANCHES, BUDGETS, CATEGORIES, DIFFICULTIES, LEVELS, branchName, categoryEmoji, categoryName } from "@/lib/catalog";
 import { getSettings, listProjects, SORTS } from "@/lib/data";
+import { getFx } from "@/lib/fx";
 
 type SP = Promise<Record<string, string | string[] | undefined>>;
 
@@ -18,7 +19,7 @@ function readFilters(sp: Record<string, string | string[] | undefined>) {
   const budget = BUDGETS.some((b) => b.id === get("budget")) ? get("budget") : "";
   const sort = SORTS.some((s) => s.id === get("sort")) ? get("sort") : "popular";
   const q = get("q").slice(0, 80);
-  return { q, branch, category, difficulty, level, budget, sort };
+  return { q, category, branch, difficulty, level, budget, sort };
 }
 type Filters = ReturnType<typeof readFilters>;
 
@@ -33,53 +34,61 @@ function hrefWith(f: Filters, key: keyof Filters, value: string) {
 
 export async function generateMetadata({ searchParams }: { searchParams: SP }): Promise<Metadata> {
   const [f, s] = [readFilters(await searchParams), await getSettings()];
-  const what = f.branch ? `${branchName(f.branch, true)} projects` : "Engineering projects";
+  const what = f.category ? `${categoryName(f.category)} projects` : f.branch ? `${branchName(f.branch)} projects` : "Coding & engineering projects";
   return {
-    title: `${what} with source code & report · ${s.brandName}`,
-    description: `${what} for final-year and mini projects: source code, report, PPT and viva support. Filter by difficulty and budget.`,
-    alternates: { canonical: f.branch ? `/projects?branch=${f.branch}` : "/projects" },
+    title: `${what} with source code · ${s.brandName}`,
+    description: `${what} for students, bootcamps and self-taught devs: source code, docs, demo and a walkthrough. Filter by track, difficulty and budget.`,
+    alternates: { canonical: f.category ? `/projects?category=${f.category}` : f.branch ? `/projects?branch=${f.branch}` : "/projects" },
   };
 }
 
 export default async function ProjectsPage({ searchParams }: { searchParams: SP }) {
   const f = readFilters(await searchParams);
   const s = await getSettings();
-  const projects = await listProjects({
-    q: f.q,
-    branch: f.branch,
-    category: f.category,
-    difficulty: f.difficulty ? Number(f.difficulty) : undefined,
-    level: f.level,
-    budget: f.budget,
-    sort: f.sort,
-  });
+  const [projects, fx] = await Promise.all([
+    listProjects({
+      q: f.q,
+      branch: f.branch,
+      category: f.category,
+      difficulty: f.difficulty ? Number(f.difficulty) : undefined,
+      level: f.level,
+      budget: f.budget,
+      sort: f.sort,
+    }),
+    getFx(s.localCurrency),
+  ]);
   const query = new URLSearchParams(Object.entries(f).filter(([k, v]) => v && !(k === "sort" && v === "popular"))).toString();
 
   const active: { key: keyof Filters; label: string }[] = [];
   if (f.q) active.push({ key: "q", label: `“${f.q}”` });
+  if (f.branch) active.push({ key: "branch", label: branchName(f.branch) });
   if (f.difficulty) active.push({ key: "difficulty", label: DIFFICULTIES[Number(f.difficulty) - 1].name });
   if (f.budget) active.push({ key: "budget", label: BUDGETS.find((b) => b.id === f.budget)!.name });
-  if (f.category) active.push({ key: "category", label: CATEGORIES.find((c) => c.id === f.category)!.name });
   if (f.level) active.push({ key: "level", label: LEVELS.find((l) => l.id === f.level)!.name });
 
   return (
     <main className="container page stack-lg">
       <div className="page-hero stack">
-        <div className="stack-xs">
-          <span className="eyebrow">{projects.length} projects · {f.branch ? branchName(f.branch, true) : "all branches"}</span>
-          <h1>
-            {f.branch ? (
+        <span className="deco-emoji" aria-hidden>
+          {f.category ? categoryEmoji(f.category) : "🔍"}
+        </span>
+        <div className="stack-sm">
+          <span className="sticker white">
+            {projects.length} {projects.length === 1 ? "project" : "projects"} {f.category ? `in ${categoryName(f.category, true)}` : "for every stack"}
+          </span>
+          <h1 style={{ fontSize: "clamp(32px, 6vw, 56px)" }}>
+            {f.category ? (
               <>
-                <span className="grad-text">{branchName(f.branch, true)}</span> projects
+                <span className="hl">{categoryName(f.category).toLowerCase()}</span> projects
               </>
             ) : (
               <>
-                Find your <span className="grad-text">project</span>
+                find your next <span className="hl pink">project</span>
               </>
             )}
           </h1>
-          <p className="muted">
-            Source code, report and PPT with every project.{s.negotiable ? " Like one but not the price? Make an offer." : ""}
+          <p style={{ fontWeight: 600 }}>
+            Code + docs + demo with every project.{s.negotiable ? " Like one but not the price? Make an offer 🤝" : ""}
           </p>
         </div>
         <form className="searchbar" action="/projects" role="search">
@@ -87,27 +96,20 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
             k !== "q" && v && !(k === "sort" && v === "popular") ? <input key={k} type="hidden" name={k} value={v} /> : null,
           )}
           <div className="search-wrap">
-            <Search size={18} aria-hidden />
-            <input
-              className="input"
-              type="search"
-              name="q"
-              defaultValue={f.q}
-              placeholder="Search: face recognition, Arduino, ANSYS…"
-              aria-label="Search projects"
-            />
+            <Search size={18} aria-hidden strokeWidth={2.6} />
+            <input className="input" type="search" name="q" defaultValue={f.q} placeholder="try: discord bot, react, arduino…" aria-label="Search projects" />
           </div>
           <button className="btn btn-primary" type="submit">
-            Search
+            search
           </button>
         </form>
-        <div className="hscroll" aria-label="Branch">
-          <Link className="fpill" href={hrefWith(f, "branch", f.branch)} aria-current={!f.branch ? "true" : undefined}>
-            All branches
+        <div className="hscroll" aria-label="Track">
+          <Link className="fpill" href={hrefWith(f, "category", f.category)} aria-current={!f.category ? "true" : undefined}>
+            ✨ all
           </Link>
-          {BRANCHES.map((b) => (
-            <Link key={b.id} className="fpill" href={hrefWith(f, "branch", b.id)} aria-current={f.branch === b.id ? "true" : undefined}>
-              {b.short}
+          {CATEGORIES.map((c) => (
+            <Link key={c.id} className="fpill" href={hrefWith(f, "category", c.id)} aria-current={f.category === c.id ? "true" : undefined}>
+              {c.emoji} {c.short}
             </Link>
           ))}
         </div>
@@ -117,11 +119,11 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
         <div className="filter-toggle">
           <input type="checkbox" id="show-filters" className="sr-only ft-check" />
           <label htmlFor="show-filters" className="btn btn-block ft-label">
-            <SlidersHorizontal size={16} aria-hidden /> Filters{active.length ? ` (${active.length})` : ""}
+            <SlidersHorizontal size={16} aria-hidden /> filters{active.length ? ` (${active.length})` : ""}
           </label>
           <div className="card filters-box filters">
             <div className="filter-group">
-              <h4>Difficulty</h4>
+              <h4>difficulty</h4>
               {DIFFICULTIES.map((d) => (
                 <Link key={d.level} className="filter-opt" href={hrefWith(f, "difficulty", String(d.level))} aria-current={f.difficulty === String(d.level) ? "true" : undefined}>
                   <Meter level={d.level} />
@@ -129,7 +131,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
               ))}
             </div>
             <div className="filter-group">
-              <h4>Budget</h4>
+              <h4>budget</h4>
               {BUDGETS.map((b) => (
                 <Link key={b.id} className="filter-opt" href={hrefWith(f, "budget", b.id)} aria-current={f.budget === b.id ? "true" : undefined}>
                   {b.name}
@@ -137,7 +139,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
               ))}
             </div>
             <div className="filter-group">
-              <h4>Type</h4>
+              <h4>what&apos;s it for</h4>
               {LEVELS.map((l) => (
                 <Link key={l.id} className="filter-opt" href={hrefWith(f, "level", l.id)} aria-current={f.level === l.id ? "true" : undefined}>
                   {l.name}
@@ -145,16 +147,16 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
               ))}
             </div>
             <div className="filter-group">
-              <h4>Domain</h4>
-              {CATEGORIES.map((c) => (
-                <Link key={c.id} className="filter-opt" href={hrefWith(f, "category", c.id)} aria-current={f.category === c.id ? "true" : undefined}>
-                  {c.name}
+              <h4>your field</h4>
+              {BRANCHES.map((b) => (
+                <Link key={b.id} className="filter-opt" href={hrefWith(f, "branch", b.id)} aria-current={f.branch === b.id ? "true" : undefined}>
+                  {b.name}
                 </Link>
               ))}
             </div>
-            {(active.length > 0 || f.branch) && (
+            {(active.length > 0 || f.category) && (
               <Link href="/projects" className="btn btn-sm">
-                Clear all filters
+                clear all filters
               </Link>
             )}
           </div>
@@ -162,13 +164,13 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
 
         <section className="stack" aria-label="Results">
           <div className="results-head">
-            <b>
+            <b style={{ fontSize: 17 }}>
               {projects.length} {projects.length === 1 ? "project" : "projects"}
             </b>
             <SortSelect value={f.sort} query={query} options={[...SORTS]} />
           </div>
           {active.length > 0 && (
-            <div className="row" style={{ gap: 6 }}>
+            <div className="row" style={{ gap: 8 }}>
               {active.map((a) => (
                 <Link key={a.key} className="fpill" href={hrefWith(f, a.key, f[a.key])}>
                   {a.label} <X size={14} className="x" aria-label="Remove" />
@@ -179,20 +181,22 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
           {projects.length ? (
             <div className="pgrid three">
               {projects.map((p) => (
-                <ProjectCard key={p.id} p={p} negotiable={s.negotiable} />
+                <ProjectCard key={p.id} p={p} negotiable={s.negotiable} fx={fx} />
               ))}
             </div>
           ) : (
             <div className="card empty">
-              <Search size={32} aria-hidden />
-              <h3>No ready project matches that</h3>
-              <p className="muted">Try fewer filters, or tell us exactly what you need. We build custom projects too.</p>
+              <span style={{ fontSize: 44 }} aria-hidden>
+                🫠
+              </span>
+              <h3>nothing matches that (yet)</h3>
+              <p className="muted">Try fewer filters, or pitch exactly what you need. We build custom projects too.</p>
               <div className="row" style={{ justifyContent: "center" }}>
                 <Link href="/projects" className="btn">
-                  Clear filters
+                  clear filters
                 </Link>
-                <Link href="/custom" className="btn btn-primary">
-                  Price my own idea <ArrowRight size={16} aria-hidden />
+                <Link href="/custom" className="btn btn-offer">
+                  pitch my idea <ArrowRight size={16} aria-hidden />
                 </Link>
               </div>
             </div>

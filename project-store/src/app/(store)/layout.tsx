@@ -5,16 +5,18 @@ import { LogoMark, WhatsAppIcon } from "@/components/Icons";
 import { TabBar, TopNav } from "@/components/Nav";
 import Reveal from "@/components/Reveal";
 import SetupNeeded from "@/components/SetupNeeded";
-import { BRANCHES } from "@/lib/catalog";
+import CurrencyPicker from "@/components/CurrencyPicker";
+import { CATEGORIES } from "@/lib/catalog";
 import { getSettings } from "@/lib/data";
+import { CURRENCIES, visitorCurrency } from "@/lib/fx";
 import { dbMode } from "@/lib/db";
 import { phonePretty } from "@/lib/format";
 import { waLink } from "@/lib/links";
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
   if (dbMode() === "missing") return <SetupNeeded />;
-  const s = await getSettings();
-  const wa = s.whatsapp ? waLink(s.whatsapp, `Hi ${s.brandName}! I have a question about a project.`) : "";
+  const [s, cur] = await Promise.all([getSettings(), visitorCurrency()]);
+  const wa = s.whatsapp ? waLink(s.whatsapp, `Hey ${s.brandName}! I have a question about a project 👋`) : "";
 
   return (
     <div className="store has-tabbar">
@@ -26,13 +28,13 @@ export default async function StoreLayout({ children }: { children: React.ReactN
             <span className="logo-mark">
               <LogoMark />
             </span>
-            <span className="logo-name">{s.brandName}</span>
+            <span className="logo-name">{s.brandName.toLowerCase()}</span>
           </Link>
           <TopNav />
           <div className="header-cta">
             {wa && (
               <a className="btn btn-wa btn-sm" href={wa} target="_blank" rel="noopener noreferrer">
-                <WhatsAppIcon size={16} /> Chat
+                <WhatsAppIcon size={16} /> DM us
               </a>
             )}
           </div>
@@ -48,34 +50,41 @@ export default async function StoreLayout({ children }: { children: React.ReactN
               <span className="logo-mark">
                 <LogoMark />
               </span>
-              {s.brandName}
+              {s.brandName.toLowerCase()}
             </span>
             <p className="muted small">{s.tagline}{s.city ? ` · ${s.city}` : ""}</p>
             <p className="muted small">
-              Ready-made and custom projects with source code, report, PPT and viva support.{s.negotiable ? " Every price is negotiable." : ""}
+              Working projects for coders and engineers everywhere: source code, docs, demo and a walkthrough so you actually
+              get it.{s.negotiable ? " Every price is negotiable 🤝" : ""}
             </p>
+            {s.localCurrency && <CurrencyPicker value={cur} options={CURRENCIES} />}
             <InstallApp />
           </div>
           <div>
-            <h4>Projects by branch</h4>
+            <h4>tracks</h4>
             <ul>
-              {BRANCHES.map((b) => (
-                <li key={b.id}>
-                  <Link href={`/projects?branch=${b.id}`}>{b.short} projects</Link>
+              {CATEGORIES.slice(0, 9).map((c) => (
+                <li key={c.id}>
+                  <Link href={`/projects?category=${c.id}`}>
+                    {c.emoji} {c.short}
+                  </Link>
                 </li>
               ))}
+              <li>
+                <Link href="/projects?category=iot">🔌 Hardware & engineering</Link>
+              </li>
             </ul>
           </div>
           <div>
-            <h4>Help</h4>
+            <h4>help</h4>
             <ul>
-              <li><Link href="/custom">Price my own idea</Link></li>
+              <li><Link href="/custom">Pitch your own idea</Link></li>
               <li><Link href="/track">Track my order</Link></li>
               <li><Link href="/policies">Payments, delivery & refunds</Link></li>
             </ul>
           </div>
           <div hidden={!s.whatsapp && !s.email}>
-            <h4>Contact</h4>
+            <h4>talk to us</h4>
             <ul>
               {wa && (
                 <li>
@@ -103,8 +112,12 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         </div>
         <div className="footer-base">
           <div className="container row between">
-            <span>© {new Date().getFullYear()} {s.brandName}</span>
-            <Link href="/admin" className="muted tiny">Owner login</Link>
+            <span>
+              © {new Date().getFullYear()} {s.brandName} · made with 💚 for coders everywhere
+            </span>
+            <Link href="/admin" className="muted tiny">
+              Owner login
+            </Link>
           </div>
         </div>
       </footer>

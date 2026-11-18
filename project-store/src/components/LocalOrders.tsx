@@ -34,7 +34,7 @@ export function MyOrders() {
   if (!orders?.length) return null;
   return (
     <section className="card card-pad stack-sm">
-      <h2 style={{ fontSize: 18 }}>Orders on this phone</h2>
+      <h2 style={{ fontSize: 20 }}>your orders on this phone 📱</h2>
       <ul className="plist">
         {orders.map((o) => (
           <li key={o.token} style={{ padding: 0 }}>

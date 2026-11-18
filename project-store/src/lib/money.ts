@@ -12,10 +12,10 @@ export function money(o: Pick<Order, "price" | "advancePercent" | "paid" | "pend
   if (o.price != null && o.status !== "cancelled" && o.status !== "requested") {
     if (!advancePaid) {
       dueNow = advance - o.paid;
-      dueLabel = o.paid > 0 ? "Rest of the advance" : `Advance to start (${o.advancePercent}%)`;
+      dueLabel = o.paid > 0 ? "rest of the advance" : `advance to start (${o.advancePercent}%)`;
     } else if (balance > 0) {
       dueNow = balance;
-      dueLabel = o.status === "ready" || o.status === "delivered" ? "Balance due" : "Balance (pay after the demo)";
+      dueLabel = o.status === "ready" || o.status === "delivered" ? "balance due" : "balance (pay after the demo)";
     }
   }
   return { price, advance, balance, advancePaid, fullyPaid: o.price != null && balance === 0, dueNow, dueLabel };

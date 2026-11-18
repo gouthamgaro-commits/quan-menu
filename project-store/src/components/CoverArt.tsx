@@ -1,15 +1,15 @@
 import type { ReactNode } from "react";
-import { CategoryIcon } from "./Icons";
+import { categoryEmoji } from "@/lib/catalog";
 
 /**
- * Artwork for a project, drawn on the server from its domain: circuit traces for IoT, a neural
- * network for AI, gears for fabrication… Each project gets its own variation (seeded by its
- * address), so the catalogue looks varied without any image files.
+ * Artwork for a project, drawn on the server from its track: a browser full of code for web,
+ * a neural network for AI, pixels for games, gears for mechanical… in black line art on a flat
+ * colour, with a big emoji sticker. Each project gets its own variation (seeded by its address).
  */
 
 const W = 320;
 const H = 170;
-const ink = (o: number) => `rgb(255 255 255 / ${o.toFixed(2)})`;
+const ink = (o: number) => `rgb(13 13 18 / ${o.toFixed(2)})`;
 
 function seeded(seed: string) {
   let h = 1779033703 ^ seed.length;
@@ -26,20 +26,6 @@ function seeded(seed: string) {
 }
 
 type R = () => number;
-
-function code(r: R) {
-  const out: ReactNode[] = [];
-  let indent = 0;
-  for (let i = 0; i < 9; i++) {
-    indent = Math.max(0, Math.min(3, indent + (r() < 0.4 ? 1 : r() < 0.5 ? -1 : 0)));
-    const x = 16 + indent * 16;
-    const w1 = 24 + r() * 60;
-    const w2 = 20 + r() * 80;
-    out.push(<rect key={`a${i}`} x={x} y={14 + i * 17} width={w1} height={6} rx={3} fill={ink(0.32)} />);
-    out.push(<rect key={`b${i}`} x={x + w1 + 8} y={14 + i * 17} width={w2} height={6} rx={3} fill={ink(0.14 + r() * 0.12)} />);
-  }
-  return out;
-}
 
 function neural(r: R) {
   const layers = [4, 5, 5, 3];
@@ -188,8 +174,149 @@ function molecules(r: R) {
   return out;
 }
 
+
+function browser(r: R) {
+  const out: ReactNode[] = [];
+  const x = 18 + r() * 20;
+  const y = 16;
+  const w = 210;
+  const h = 132;
+  out.push(<rect key="win" x={x} y={y} width={w} height={h} rx={10} fill="rgb(255 255 255 / 0.55)" stroke={ink(0.85)} strokeWidth={2.5} />);
+  out.push(<line key="bar" x1={x} y1={y + 22} x2={x + w} y2={y + 22} stroke={ink(0.85)} strokeWidth={2.5} />);
+  [0, 1, 2].forEach((i) => out.push(<circle key={`d${i}`} cx={x + 14 + i * 12} cy={y + 11} r={3.5} fill={ink(0.8)} />));
+  let indent = 0;
+  for (let i = 0; i < 6; i++) {
+    indent = Math.max(0, Math.min(3, indent + (r() < 0.45 ? 1 : r() < 0.5 ? -1 : 0)));
+    const lx = x + 14 + indent * 14;
+    const w1 = 18 + r() * 40;
+    const w2 = 16 + r() * 60;
+    out.push(<rect key={`a${i}`} x={lx} y={y + 34 + i * 15} width={w1} height={6} rx={3} fill={ink(0.75)} />);
+    out.push(<rect key={`b${i}`} x={lx + w1 + 6} y={y + 34 + i * 15} width={Math.min(w2, x + w - lx - w1 - 20)} height={6} rx={3} fill={ink(0.25)} />);
+  }
+  return out;
+}
+
+function phones(r: R) {
+  const out: ReactNode[] = [];
+  const drawPhone = (k: string, x: number, y: number, rot: number) => {
+    const icons: ReactNode[] = [];
+    for (let i = 0; i < 9; i++)
+      icons.push(<rect key={`${k}i${i}`} x={x + 12 + (i % 3) * 22} y={y + 22 + Math.floor(i / 3) * 24} width={14} height={14} rx={4} fill={ink(r() < 0.35 ? 0.75 : 0.22)} />);
+    out.push(
+      <g key={k} transform={`rotate(${rot} ${x + 40} ${y + 70})`}>
+        <rect x={x} y={y} width={80} height={140} rx={14} fill="rgb(255 255 255 / 0.6)" stroke={ink(0.85)} strokeWidth={2.5} />
+        <rect x={x + 30} y={y + 7} width={20} height={5} rx={2.5} fill={ink(0.8)} />
+        {icons}
+      </g>,
+    );
+  };
+  drawPhone("p1", 30 + r() * 20, 20, -8);
+  drawPhone("p2", 130 + r() * 20, 30, 7);
+  return out;
+}
+
+function bars(r: R) {
+  const out: ReactNode[] = [];
+  out.push(<line key="ax" x1={20} y1={150} x2={260} y2={150} stroke={ink(0.85)} strokeWidth={2.5} />);
+  const pts: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const h = 25 + r() * 95;
+    const x = 30 + i * 32;
+    out.push(<rect key={`b${i}`} x={x} y={150 - h} width={20} height={h} rx={3} fill={i % 3 === 0 ? ink(0.8) : "rgb(255 255 255 / 0.65)"} stroke={ink(0.85)} strokeWidth={2} />);
+    pts.push(`${x + 10},${(150 - h - 14 - r() * 10).toFixed(0)}`);
+  }
+  out.push(<polyline key="line" points={pts.join(" ")} fill="none" stroke={ink(0.8)} strokeWidth={2.5} strokeDasharray="6 4" />);
+  return out;
+}
+
+function chain(r: R) {
+  const out: ReactNode[] = [];
+  const n = 4;
+  for (let i = 0; i < n; i++) {
+    const x = 22 + i * 64;
+    const y = 52 + (i % 2 ? 24 : 0) + r() * 10;
+    if (i < n - 1) out.push(<line key={`l${i}`} x1={x + 44} y1={y + 22} x2={x + 64} y2={52 + ((i + 1) % 2 ? 24 : 0) + 22} stroke={ink(0.85)} strokeWidth={3} />);
+    out.push(
+      <g key={`c${i}`}>
+        <rect x={x} y={y} width={44} height={44} rx={6} fill="rgb(255 255 255 / 0.6)" stroke={ink(0.85)} strokeWidth={2.5} />
+        <path d={`M${x} ${y} l10 -10 h44 l-10 10 M${x + 44} ${y} l10 -10 v44 l-10 10`} fill="none" stroke={ink(0.85)} strokeWidth={2.5} strokeLinejoin="round" />
+        <text x={x + 22} y={y + 29} textAnchor="middle" fontSize={14} fontWeight={800} fill={ink(0.8)} fontFamily="monospace">
+          #{i + 1}
+        </text>
+      </g>,
+    );
+  }
+  return out;
+}
+
+function pixels(r: R) {
+  const out: ReactNode[] = [];
+  const s = 10;
+  for (let row = 0; row < 17; row++)
+    for (let col = 0; col < 32; col++) {
+      const v = r();
+      if (v < 0.07) out.push(<rect key={`${row}-${col}`} x={col * s} y={row * s} width={s} height={s} fill={ink(0.75)} />);
+      else if (v < 0.13) out.push(<rect key={`${row}-${col}`} x={col * s} y={row * s} width={s} height={s} fill="rgb(255 255 255 / 0.7)" />);
+    }
+  const cx = 70;
+  const cy = 95;
+  out.push(<path key="dpad" d={`M${cx - 12} ${cy - 36} h24 v24 h24 v24 h-24 v24 h-24 v-24 h-24 v-24 h24 z`} fill="rgb(255 255 255 / 0.9)" stroke={ink(0.9)} strokeWidth={3} strokeLinejoin="round" />);
+  out.push(<circle key="b1" cx={170} cy={80} r={14} fill={ink(0.85)} />);
+  out.push(<circle key="b2" cx={200} cy={110} r={14} fill="rgb(255 255 255 / 0.9)" stroke={ink(0.9)} strokeWidth={3} />);
+  return out;
+}
+
+function clouds(r: R) {
+  const out: ReactNode[] = [];
+  const cloud = (k: string, x: number, y: number, sc: number) =>
+    out.push(
+      <path
+        key={k}
+        transform={`translate(${x} ${y}) scale(${sc})`}
+        d="M20 60 a20 20 0 0 1 4 -39 a28 28 0 0 1 52 -6 a22 22 0 0 1 24 22 a20 20 0 0 1 -6 23 z"
+        fill="rgb(255 255 255 / 0.75)"
+        stroke={ink(0.85)}
+        strokeWidth={2.5 / sc}
+        strokeLinejoin="round"
+      />,
+    );
+  cloud("c1", 20 + r() * 20, 14, 1.15);
+  cloud("c2", 150 + r() * 20, 6, 0.8);
+  for (let i = 0; i < 3; i++) {
+    const x = 40 + i * 70;
+    out.push(<line key={`w${i}`} x1={x + 25} y1={88} x2={x + 25} y2={112} stroke={ink(0.7)} strokeWidth={2.5} strokeDasharray="4 4" />);
+    out.push(<rect key={`s${i}`} x={x} y={112} width={50} height={36} rx={5} fill="rgb(255 255 255 / 0.6)" stroke={ink(0.85)} strokeWidth={2.5} />);
+    out.push(<line key={`s${i}a`} x1={x + 8} y1={124} x2={x + 42} y2={124} stroke={ink(0.6)} strokeWidth={2.5} />);
+    out.push(<circle key={`s${i}b`} cx={x + 40} cy={138} r={3} fill={ink(0.8)} />);
+  }
+  return out;
+}
+
+function tree(r: R) {
+  const out: ReactNode[] = [];
+  const nodes: { x: number; y: number }[] = [];
+  const levels = [1, 2, 4, 8];
+  levels.forEach((n, li) => {
+    for (let i = 0; i < n; i++) nodes.push({ x: ((i + 0.5) * 300) / n + 10, y: 22 + li * 40 });
+  });
+  for (let i = 1; i < nodes.length; i++) {
+    const parent = nodes[Math.floor((i - 1) / 2)];
+    out.push(<line key={`e${i}`} x1={parent.x} y1={parent.y} x2={nodes[i].x} y2={nodes[i].y} stroke={ink(0.75)} strokeWidth={2.5} />);
+  }
+  nodes.forEach((p, i) =>
+    out.push(<circle key={`n${i}`} cx={p.x} cy={p.y} r={i < 3 ? 11 : 8} fill={r() < 0.3 ? ink(0.85) : "rgb(255 255 255 / 0.85)"} stroke={ink(0.85)} strokeWidth={2.5} />),
+  );
+  return out;
+}
+
 const ART: Record<string, (r: R) => ReactNode[]> = {
-  software: code,
+  web: browser,
+  mobile: phones,
+  data: bars,
+  web3: chain,
+  games: pixels,
+  cloud: clouds,
+  systems: tree,
   ai: neural,
   security: hexes,
   iot: circuit,
@@ -212,17 +339,15 @@ export default function CoverArt({
   children?: ReactNode;
 }) {
   const r = seeded(seed);
-  const draw = ART[category] ?? code;
-  const shift = Math.round(r() * 36 - 18); // each project's own shade of its domain colour
+  const draw = ART[category] ?? browser;
+  const tilt = Math.round(r() * 16 - 8);
   return (
-    <div className={`cover cat-${category}${tall ? " tall" : ""}`} style={{ filter: `hue-rotate(${shift}deg)` }}>
+    <div className={`cover cat-${category}${tall ? " tall" : ""}`}>
       <svg className="art" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" aria-hidden>
-        <circle cx={W * 0.15} cy={-10} r={120} fill={ink(0.12)} />
         {draw(r)}
-        <rect x={0} y={H - 60} width={W} height={60} fill="rgb(0 0 0 / 0.12)" />
       </svg>
-      <span className="cover-icon">
-        <CategoryIcon category={category} size={tall ? 64 : 42} strokeWidth={1.6} />
+      <span className="cover-emoji" style={{ rotate: `${tilt}deg` }} aria-hidden>
+        {categoryEmoji(category)}
       </span>
       {children}
     </div>

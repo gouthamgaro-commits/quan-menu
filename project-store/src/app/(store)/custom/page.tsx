@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import IdeaForm from "@/components/IdeaForm";
 import { BRANCHES, CATEGORIES } from "@/lib/catalog";
 import { getSettings } from "@/lib/data";
+import { getFx } from "@/lib/fx";
 import { todayIST } from "@/lib/pricing";
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings();
   return {
-    title: `Price my project idea · ${s.brandName}`,
-    description: "Describe your own engineering project idea, pick the difficulty and deadline, and see the price at once.",
+    title: `Pitch your project idea · ${s.brandName}`,
+    description: "Describe your own coding or engineering project idea, pick the track, difficulty and deadline, and see the price at once.",
     alternates: { canonical: "/custom" },
   };
 }
@@ -21,17 +22,20 @@ export default async function CustomPage({ searchParams }: { searchParams: Promi
 
   return (
     <main className="container page stack">
-      <div className="page-hero stack-xs">
-        <span className="eyebrow">Your own idea</span>
-        <h1>
-          Your idea. <span className="grad-text">Your price.</span>
+      <div className="page-hero stack-sm" style={{ background: "var(--pink)" }}>
+        <span className="deco-emoji" aria-hidden>
+          💡
+        </span>
+        <span className="sticker white">pitch your idea</span>
+        <h1 style={{ fontSize: "clamp(32px, 6vw, 56px)" }}>
+          your idea. <span className="hl">your price.</span>
         </h1>
-        <p className="lead">
-          Describe the project and pick its domain, difficulty and deadline. The estimate updates as you go. Add what you can
-          pay, and we'll agree the final price with you before you pay anything.
+        <p style={{ fontWeight: 600, maxWidth: "60ch" }}>
+          Describe it, pick the track, difficulty and deadline, and watch the estimate update live. Add what you can pay, and
+          we&apos;ll agree the final price with you before you pay a thing.
         </p>
       </div>
-      <IdeaForm settings={s} today={todayIST()} initialCategory={cat} initialBranch={branch} />
+      <IdeaForm settings={s} today={todayIST()} initialCategory={cat} initialBranch={branch} fx={await getFx(s.localCurrency)} />
     </main>
   );
 }

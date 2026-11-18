@@ -1,6 +1,6 @@
 # Quán
 
-> This repository also holds a second, separate app: **[project-store/](project-store/)**, a store where engineering students buy ready-made projects or get a price for their own idea. See its README.
+> This repository also holds a second, separate app: **[project-store/](project-store/)** (ProjectPlug), a store where students worldwide get coding and engineering projects, make offers and chat about the price. See its README.
 
 **Live demo:** https://quan-menu-indol.vercel.app · example menu: https://quan-menu-indol.vercel.app/m/demo
 

@@ -15,7 +15,7 @@ export default function FindOrderForm() {
     >
       <div className="grid-2">
         <label className="field">
-          <span>Order code</span>
+          <span>order code</span>
           <input className="input mono" name="code" required maxLength={12} placeholder="K7Q3MZ" autoCapitalize="characters" autoComplete="off" />
         </label>
         <label className="field">
@@ -30,7 +30,7 @@ export default function FindOrderForm() {
       )}
       <div>
         <button className="btn btn-primary" type="submit" disabled={pending}>
-          {pending ? "Looking…" : "Find my order"}
+          {pending ? "looking…" : "find my order 🔍"}
         </button>
       </div>
     </form>

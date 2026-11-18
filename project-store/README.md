@@ -1,34 +1,37 @@
-# Project store for engineering students
+# ProjectPlug: coding & engineering projects, built for students
 
-A website and installable phone app where engineering students buy final-year and mini projects. Projects are priced like a premium service (from ₹12,000), and **every price is negotiable**: students can order at the listed price or **make an offer**, and you settle it in a chat on their order page with offers and counter-offers. They can also **describe their own idea** and get an instant estimate. Then they pay a UPI advance, track progress and download the files. You run everything from an owner panel.
+**ProjectPlug** ("ur project plug 🔌") is a website and installable phone app where students anywhere in the world get working projects: CS students, coding bootcamp batches, self-taught devs and engineering students. There are 68 ready projects across web, mobile, AI, data, cybersecurity, web3, games, cloud, core CS and hardware, or students can pitch their own idea and get an instant estimate. Prices start at ₹12,000 and **every price is negotiable**: students make an offer, and you settle it in a chat on their order page. They pay by UPI, PayPal or card, track progress and download the files. You run everything from an owner panel.
+
+The name is only a default: change it, the tagline and everything else in **Admin → Settings**.
 
 | Home | Catalogue |
 |---|---|
 | <img src="docs/01-home.webp" width="420"> | <img src="docs/02-catalogue.webp" width="420"> |
 
-| Project page | Make an offer | Your counter-offer | Pay by UPI |
-|---|---|---|---|
-| <img src="docs/03-project.webp" width="180"> | <img src="docs/04-make-offer.webp" width="180"> | <img src="docs/05-counter-offer.webp" width="180"> | <img src="docs/07-pay-by-upi.webp" width="180"> |
+| Project page | Make an offer | Your counter-offer | Pay by UPI | Paying from abroad |
+|---|---|---|---|---|
+| <img src="docs/03-project.webp" width="150"> | <img src="docs/04-make-offer.webp" width="150"> | <img src="docs/05-counter-offer.webp" width="150"> | <img src="docs/07-pay-upi.webp" width="150"> | <img src="docs/08-pay-abroad.webp" width="150"> |
 
 | Owner: the conversation on an order | Owner dashboard |
 |---|---|
-| <img src="docs/06-owner-chat.webp" width="420"> | <img src="docs/08-owner-dashboard.webp" width="420"> |
+| <img src="docs/06-owner-chat.webp" width="420"> | <img src="docs/09-owner-dashboard.webp" width="420"> |
 
-**Look:** a dark, premium theme for students (animated gradient hero, tech ticker, glowing cards, scroll-in motion that respects "reduce motion"), and a clean light owner panel.
+**Look:** Gen Z all the way for students: cream paper, thick black outlines, chunky "press-down" buttons, loud lime / pink / yellow, sticker badges, emoji, lowercase headlines, a scrolling ticker, and casual copy ("shoot your shot 🎯", "lock it in 🔒", "we're cooking 🧑‍🍳"). Motion switches off for people who ask for reduced motion. The owner panel stays clean and plain.
 
 **Stack:** Next.js 15 (App Router, TypeScript) · Postgres (free Supabase database in production, a built-in one for development) · deploys to Vercel. No paid services needed.
 
 ## What students can do
 
-- **Browse 44 sample projects** (₹12,000 – ₹38,000) for CSE, IT, AI & DS, ECE, EEE, Mechanical and Civil, with search and filters for branch, difficulty (Easy, Medium, Hard, Expert), budget, domain and mini/final-year. Every project has its own artwork drawn from its domain.
-- **See exactly what they get:** source code, report, PPT, demo video, viva Q&A, and the hardware kit or working model for hardware projects.
+- **Browse 68 sample projects** (₹12,000 – ₹38,000) in 15 tracks: 🌐 web apps & bots, 📱 mobile, 🤖 AI/ML, 📊 data, 🔐 cyber, ⛓️ web3, 🎮 games, ☁️ cloud & DevOps, 🧠 core CS (compilers, distributed systems, DSA), plus 🔌 IoT, ⚡ power & EV, 💾 VLSI, 📐 CAD, 🛠️ mechanical builds and 🧪 research. Filter by track, difficulty (Easy, Medium, Hard, Expert), budget, what it's for (mini project, final-year/capstone, portfolio/bootcamp) and field of study. Every project has its own artwork drawn from its track.
+- **See exactly what they get:** source code, docs/report, slides, demo video, viva or interview Q&A, a README and deployment help for portfolio projects, and the hardware kit or working model for hardware projects.
 - **Order** at the listed price with optional extras (viva-prep call, code walkthrough video, IEEE paper write-up, priority delivery) and a deadline.
 - **Make an offer instead:** "Make an offer" on any project lets them name their price with a note ("we're a team of 3, this is our budget"). Nothing to pay until you agree.
 - **Bargain in a chat:** their order page has a conversation with you. They see your counter-offer with **Accept** / **Decline** buttons, can send their own counter-offer, or just ask questions. The page refreshes by itself, so replies appear without reloading.
 - **Price their own idea:** they pick the domain, difficulty and deadline, see the estimate change as they go, and add what they can pay. Their budget arrives as an offer you can accept in one tap.
-- **Pay by UPI:** the order page shows a QR code and a "Pay with a UPI app" button for the exact amount (GPay, PhonePe, Paytm…). Then they type the transaction ID (UTR) so you can check it.
-- **Track the order** (Price agreed → Advance paid → Being built → Demo ready → Delivered) and download the files when it's done. Their orders are remembered on their phone, or they can find one with the order code and phone number.
-- **WhatsApp everywhere:** every page can open a chat with you, with the project or order already typed in.
+- **Pay from anywhere:** in India, a UPI QR code and "pay with a UPI app" button for the exact amount. Abroad, a PayPal button with the amount already converted to their currency, or your card payment link. Then they type the transaction ID so you can check it.
+- **See prices in their own currency:** a student in the US sees "≈ $190" next to "₹16,500", one in Europe "≈ €160". Picked automatically from their country, or chosen in the footer. (Rates update twice a day; built-in rates are used if the rate service can't be reached.)
+- **Track the order** (price agreed 🤝 → advance paid 💸 → cooking 🧑‍🍳 → demo time 👀 → delivered 🎉) and download the files when it's done. Their orders are remembered on their phone, or they can find one with the order code and phone number.
+- **WhatsApp everywhere:** every page can open a chat with you, with the project or order already typed in. Phone numbers from any country work (with their country code).
 - **Install it as an app:** on Android, "Install the app" adds it to the home screen with a bottom tab bar; on iPhone, Share → Add to Home Screen.
 - **Share links that look good:** a shared project shows a preview card with its title, price and difficulty in WhatsApp and Instagram.
 
@@ -56,11 +59,12 @@ base price for the difficulty × domain multiplier  +  rush charge  +  extras
 
 | Difficulty | Base (default) | | Domain | Multiplier (default) |
 |---|---|---|---|---|
-| Easy | ₹12,000 | | Web & mobile apps, CAD & analysis, research studies | ×1 |
-| Medium | ₹15,000 | | AI & ML, security & blockchain | ×1.15 |
-| Hard | ₹22,000 | | VLSI & signal processing | ×1.2 |
-| Expert | ₹30,000 | | IoT/embedded, power & EV (kit included) | ×1.25 |
-| | | | Fabrication & working models | ×1.5 |
+| Easy | ₹12,000 | | Web apps & bots, data, CAD, research | ×1 |
+| Medium | ₹15,000 | | Mobile, games, cloud & DevOps | ×1.1 |
+| Hard | ₹22,000 | | AI/ML, cybersecurity, core CS | ×1.15 |
+| Expert | ₹30,000 | | Web3, VLSI | ×1.2 |
+| | | | IoT, power & EV (kit included) | ×1.25 |
+| | | | Mechanical builds | ×1.5 |
 
 Rush charge: +30% if the deadline is within 7 days, +15% within 14 days. Extras: viva-prep call ₹1,000, code walkthrough video ₹1,500, IEEE paper write-up ₹4,000, priority delivery ₹2,500. Students see a range (10% below to 20% above the estimate), and the final price is whatever you agree. Change any of these numbers in **Admin → Settings & prices**; the sample projects' own prices are edited in **Admin → Projects**.
 
@@ -86,7 +90,7 @@ Open http://localhost:3000. There is nothing to set up: during development the a
    | `ADMIN_PASSWORD` | a long password for `/admin` (at least 12 characters) |
    | `NEXT_PUBLIC_SITE_URL` | your site's address, e.g. `https://yourbrand.vercel.app` (or your own domain later) |
 
-3. **Settings.** Open `https://YOUR-SITE/admin`, sign in, and in **Settings & prices** enter your business name, WhatsApp number and UPI ID. Then go through **Projects**: hide the ones you can't deliver and set your own prices.
+3. **Settings.** Open `https://YOUR-SITE/admin`, sign in, and in **Settings & prices** enter your business name (or keep ProjectPlug), WhatsApp number and UPI ID. For students abroad, also add your PayPal.me username and/or a card payment link (Stripe/Razorpay payment page). Then go through **Projects**: hide the ones you can't deliver and set your own prices.
 4. **Check.** Open `https://YOUR-SITE/api/health`. It lists anything still missing and shows `"ok": true` when everything is set.
 
 `vercel.json` runs the server in Mumbai (`bom1`), next to a Mumbai database. It also calls `/api/keepalive` once a day, because Supabase's free plan pauses a database after a week without visits.
@@ -127,7 +131,9 @@ The site is already an installable app (PWA). To list it on Google Play, enter y
 | `src/lib/seed.ts` | The 44 sample projects. |
 | `src/lib/data.ts` | Every database query. |
 | `src/lib/pricing.ts` | The estimate formula and the offer rules (lowest offer, auto-accept), shared by the student forms and the server. |
-| `src/components/CoverArt.tsx` | Each project's artwork, drawn as SVG from its domain (circuits, neural networks, gears…) with a variation per project. |
+| `src/lib/fx.ts` | Approximate prices in the visitor's currency (from their country or the footer picker) and PayPal amounts, with live rates and built-in fallbacks. |
+| `src/lib/catalog.ts` | The tracks (with emoji and price multipliers), fields of study, difficulty levels and order statuses. |
+| `src/components/CoverArt.tsx` | Each project's artwork: black line art on a flat track colour (a browser of code, phones, pixels and a d-pad, a neural network, gears…) with an emoji sticker, varied per project. |
 | `src/components/Thread.tsx`, `ChatComposer.tsx` | The order conversation: chat bubbles, offer cards with Accept/Decline, and the message box with "Add a price offer". |
 | `src/lib/settings.ts` | Owner settings with their defaults, including the default policy text. |
 | `src/lib/auth.ts` | Owner sign-in: one password, a signed cookie for 30 days, at most 10 wrong tries per 15 minutes from one address. |

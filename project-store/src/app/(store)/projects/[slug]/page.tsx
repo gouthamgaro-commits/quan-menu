@@ -5,9 +5,10 @@ import { notFound } from "next/navigation";
 import CoverArt from "@/components/CoverArt";
 import { WhatsAppIcon } from "@/components/Icons";
 import { Meter, ProjectCard } from "@/components/Ui";
-import { INCLUDES, branchName, categoryName, difficultyName, levelName, type IncludeId } from "@/lib/catalog";
+import { INCLUDES, branchName, categoryEmoji, categoryName, difficultyName, levelName, type IncludeId } from "@/lib/catalog";
 import { getProjectBySlug, getSettings, relatedProjects } from "@/lib/data";
-import { inr } from "@/lib/format";
+import { approx, inr } from "@/lib/format";
+import { getFx } from "@/lib/fx";
 import { waLink } from "@/lib/links";
 import { advanceFor } from "@/lib/pricing";
 import { siteUrl } from "@/lib/site";
@@ -35,9 +36,10 @@ export default async function ProjectPage({ params }: { params: Params }) {
   const p = await getProjectBySlug(slug);
   if (!p || !p.active) notFound();
   const [s, related, base] = await Promise.all([getSettings(), relatedProjects(p), siteUrl()]);
+  const fx = await getFx(s.localCurrency);
   const advance = advanceFor(p.price, s.advancePercent);
   const wa = s.whatsapp
-    ? waLink(s.whatsapp, `Hi ${s.brandName}! I'm interested in “${p.title}” (${inr(p.price)}). ${base}/projects/${p.slug}`)
+    ? waLink(s.whatsapp, `Hey ${s.brandName}! I'm interested in “${p.title}” (${inr(p.price)}) 👀 ${base}/projects/${p.slug}`)
     : "";
   const jsonLd = {
     "@context": "https://schema.org",
@@ -69,14 +71,18 @@ export default async function ProjectPage({ params }: { params: Params }) {
           <section className={`card detail-hero cat-${p.category}`}>
             <CoverArt category={p.category} seed={p.slug} tall>
               <span className="cover-tags">
-                <span className="glass-chip">{categoryName(p.category)}</span>
+                <span className="glass-chip">
+                  {categoryEmoji(p.category)} {categoryName(p.category)}
+                </span>
                 <span className="glass-chip">
                   <Meter level={p.difficulty} />
                 </span>
               </span>
             </CoverArt>
             <div className="dh-body">
-              <span className="pcard-cat">{levelName(p.level)}</span>
+              <span className="sticker lime" style={{ fontSize: 12.5 }}>
+                {levelName(p.level)}
+              </span>
               <h1 style={{ fontSize: "clamp(26px, 4.6vw, 40px)" }}>{p.title}</h1>
               <p className="lead">{p.summary}</p>
               <div className="row">
@@ -95,7 +101,7 @@ export default async function ProjectPage({ params }: { params: Params }) {
           </section>
 
           <section className="card card-pad stack">
-            <h2 className="card-title">About this project</h2>
+            <h2 className="card-title">what it does 🧐</h2>
             <div className="prose">
               {p.description.split(/\n{2,}/).map((para, i) => (
                 <p key={i}>{para}</p>
@@ -103,7 +109,7 @@ export default async function ProjectPage({ params }: { params: Params }) {
             </div>
             {p.features.length > 0 && (
               <>
-                <h3>Key features</h3>
+                <h3>key features</h3>
                 <ul className="checklist">
                   {p.features.map((f) => (
                     <li key={f}>
@@ -117,7 +123,7 @@ export default async function ProjectPage({ params }: { params: Params }) {
 
           {p.tech.length > 0 && (
             <section className="card card-pad stack-sm">
-              <h2 className="card-title">Built with</h2>
+              <h2 className="card-title">tech stack 🛠️</h2>
               <div className="tags">
                 {p.tech.map((t) => (
                   <span key={t} className="tag">
@@ -129,7 +135,7 @@ export default async function ProjectPage({ params }: { params: Params }) {
           )}
 
           <section className="card card-pad stack">
-            <h2 className="card-title">What you get</h2>
+            <h2 className="card-title">what&apos;s in the box 📦</h2>
             <ul className="checklist cols">
               {p.includes.map((i) => (
                 <li key={i}>
@@ -137,17 +143,18 @@ export default async function ProjectPage({ params }: { params: Params }) {
                 </li>
               ))}
             </ul>
-            <p className="small muted">Need a feature added or a different technology? Write it in the notes when you order and we'll agree the price.</p>
+            <p className="small muted">Want a feature added or a different stack? Drop it in the notes when you order and we&apos;ll sort the price.</p>
           </section>
         </div>
 
         <aside className="detail-side stack">
-          <div className="card pricebox glow">
+          <div className="card pricebox">
             <div className="stack-xs">
               <div className="row between">
                 <span className="price-lg">{inr(p.price)}</span>
-                {s.negotiable && <span className="neg">Negotiable</span>}
+                {s.negotiable && <span className="neg">negotiable 🤝</span>}
               </div>
+              {fx && <span className="approx">{approx(p.price, fx)}</span>}
               <span className="small muted">
                 Pay {s.advancePercent}% ({inr(advance)}) to start, the rest after the demo
               </span>
@@ -164,25 +171,25 @@ export default async function ProjectPage({ params }: { params: Params }) {
               </li>
             </ul>
             <Link href={`/projects/${p.slug}/order`} className="btn btn-primary btn-lg btn-block">
-              Order this project <ArrowRight size={18} aria-hidden />
+              lock it in 🔒 <ArrowRight size={18} aria-hidden strokeWidth={2.6} />
             </Link>
             {s.negotiable && (
               <Link href={`/projects/${p.slug}/order?offer=1`} className="btn btn-offer btn-block">
-                <HandCoins size={18} aria-hidden /> Make an offer
+                <HandCoins size={18} aria-hidden /> make an offer 🎯
               </Link>
             )}
             {wa && (
               <a href={wa} className="btn btn-wa btn-block" target="_blank" rel="noopener noreferrer">
-                <WhatsAppIcon /> Ask a question
+                <WhatsAppIcon /> ask us anything
               </a>
             )}
           </div>
           <div className="card card-pad stack-sm">
-            <b>How ordering works</b>
-            <ol className="small muted" style={{ paddingLeft: 18, display: "grid", gap: 6, margin: 0 }}>
-              <li>Order at this price{s.negotiable ? ", or make an offer and agree the price with us" : ""}.</li>
-              <li>Pay the {s.advancePercent}% advance by UPI. We build it and keep you posted.</li>
-              <li>See the working demo, pay the rest, and download everything.</li>
+            <b>how it works</b>
+            <ol className="small" style={{ paddingLeft: 18, display: "grid", gap: 6, margin: 0 }}>
+              <li>Lock it in at this price{s.negotiable ? ", or shoot your shot with an offer" : ""}.</li>
+              <li>Pay the {s.advancePercent}% advance (UPI, PayPal or card). We cook 🧑‍🍳</li>
+              <li>See the demo, pay the rest, download everything.</li>
             </ol>
           </div>
         </aside>
@@ -190,10 +197,10 @@ export default async function ProjectPage({ params }: { params: Params }) {
 
       {related.length > 0 && (
         <section className="stack">
-          <h2>Similar projects</h2>
+          <h2>you might also like 👇</h2>
           <div className="pgrid three">
             {related.map((r) => (
-              <ProjectCard key={r.id} p={r} negotiable={s.negotiable} />
+              <ProjectCard key={r.id} p={r} negotiable={s.negotiable} fx={fx} />
             ))}
           </div>
         </section>
@@ -202,15 +209,15 @@ export default async function ProjectPage({ params }: { params: Params }) {
       <div className="sticky-buy">
         <span className="stack-xs grow">
           <b className="price">{inr(p.price)}</b>
-          <span className="tiny muted">{s.negotiable ? "Negotiable" : `${inr(advance)} to start`}</span>
+          <span className="tiny muted">{fx ? approx(p.price, fx) : s.negotiable ? "negotiable 🤝" : `${inr(advance)} to start`}</span>
         </span>
         {s.negotiable && (
           <Link href={`/projects/${p.slug}/order?offer=1`} className="btn btn-offer btn-sm">
-            Offer
+            offer 🎯
           </Link>
         )}
         <Link href={`/projects/${p.slug}/order`} className="btn btn-primary">
-          Order now
+          lock it in
         </Link>
       </div>
     </main>
