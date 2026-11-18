@@ -8,7 +8,13 @@
 export const SCHEMA_VERSION = 3;
 
 export const SCHEMA_SQL = /* sql */ `
-create schema if not exists store;
+-- Checked first so the app can run as a login that may not create schemas (one that only owns \`store\`).
+do $$
+begin
+  if not exists (select 1 from pg_namespace where nspname = 'store') then
+    create schema store;
+  end if;
+end $$;
 
 create table if not exists store.meta (
   key   text primary key,

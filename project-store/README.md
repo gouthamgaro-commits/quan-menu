@@ -80,7 +80,7 @@ Open http://localhost:3000. There is nothing to set up: during development the a
 
 ## Put it online (free database + Vercel)
 
-1. **Database (Supabase, free).** Create a project at [supabase.com](https://supabase.com); choose the **Mumbai** region and note the database password. Click **Connect** at the top, choose **Transaction pooler**, and copy the connection string (it ends in `:6543/postgres`). Replace `[YOUR-PASSWORD]` with your database password. If the password has symbols like `@ # / ?`, reset it to letters and numbers first (Project Settings → Database).
+1. **Database (Supabase, free).** Create a project at [supabase.com](https://supabase.com); choose the **Singapore** region (the server runs there, see below) and note the database password. Click **Connect** at the top, choose **Transaction pooler**, and copy the connection string (it ends in `:6543/postgres`). Replace `[YOUR-PASSWORD]` with your database password. If the password has symbols like `@ # / ?`, reset it to letters and numbers first (Project Settings → Database).
    You don't need to run any SQL: the app creates its tables and loads the sample projects the first time it starts. Everything lives in its own `store` schema, so you can also use your existing Supabase project instead of a new one.
 2. **Vercel.** At [vercel.com/new](https://vercel.com/new), import this repository and set **Root Directory** to `project-store`. Add these environment variables, then deploy:
 
@@ -93,7 +93,7 @@ Open http://localhost:3000. There is nothing to set up: during development the a
 3. **Settings.** Open `https://YOUR-SITE/admin`, sign in, and in **Settings & prices** enter your business name (or keep ProjectPlug), WhatsApp number and UPI ID. For students abroad, also add your PayPal.me username and/or a card payment link (Stripe/Razorpay payment page). Then go through **Projects**: hide the ones you can't deliver and set your own prices.
 4. **Check.** Open `https://YOUR-SITE/api/health`. It lists anything still missing and shows `"ok": true` when everything is set.
 
-`vercel.json` runs the server in Mumbai (`bom1`), next to a Mumbai database. It also calls `/api/keepalive` once a day, because Supabase's free plan pauses a database after a week without visits.
+`vercel.json` runs the server in Singapore (`sin1`), next to a Singapore database. If your database is somewhere else, change `regions` to the nearest one (Mumbai is `bom1`), because every page talks to the database several times. It also calls `/api/keepalive` once a day, because Supabase's free plan pauses a database after a week without visits.
 
 **Good to know:**
 - Vercel's free *Hobby* plan is meant for non-commercial use. For a paying business, Vercel asks for the Pro plan; the app also runs on any other Next.js host (Netlify, Render, Railway…).
