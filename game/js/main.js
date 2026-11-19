@@ -904,10 +904,12 @@ function updatePlayer(dt) {
     if (u >= 1) { P.mantle = null; P.vel.set(0, 0, 0); P.onGround = true; }
     return;
   }
-  let f = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0), s = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
+  let f = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0), s = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
   if (P.lockT > 0) { f = 0; s = 0; }
   if (keys.ArrowLeft) P.yaw += dt * 2.3;
   if (keys.ArrowRight) P.yaw -= dt * 2.3;
+  if (keys.ArrowUp) P.pitch = Math.min(1.5, P.pitch + dt * 1.5);
+  if (keys.ArrowDown) P.pitch = Math.max(-1.5, P.pitch - dt * 1.5);
   const sy = Math.sin(P.yaw), cy = Math.cos(P.yaw);
   let wx = -sy * f + cy * s, wz = -cy * f - sy * s;
   const wl = Math.hypot(wx, wz);
@@ -1000,7 +1002,7 @@ function swordHit(heavy) {
     any = true;
     const unaware = g.state !== 'alert';
     const facing = (-dx * Math.sin(g.yaw) - dz * Math.cos(g.yaw)) / Math.max(d, 0.01) > 0.3;
-    if (!unaware && g.stun <= 0 && facing && Math.random() < (g.type === 'marshal' ? 0.4 : 0.2)) {
+    if (!unaware && g.stun <= 0 && facing && Math.random() < (g.type === 'marshal' ? 0.45 : 0.28)) {
       sfx.clang(); burst('spark', g.pos.x - dx / d * 0.5, g.pos.y + 1.3, g.pos.z - dz / d * 0.5, 6, 2.5, 0.14, 0.3);
       continue;
     }
@@ -1069,7 +1071,7 @@ const vmScene = new THREE.Scene(), vmCam = new THREE.PerspectiveCamera(58, 1, 0.
 const vmAmb = new THREE.AmbientLight(0x93a4cc, 1), vmKey = new THREE.DirectionalLight(0xffd9b0, 1.2);
 vmKey.position.set(-0.6, 1, 0.8); vmScene.add(vmAmb, vmKey);
 const VM = {
-  steel: sm(0xcbd3de, { metalness: 0.9, roughness: 0.25 }), gold: sm(0xe9b84a, { metalness: 1, roughness: 0.35 }), leather: sm(0x4a2f1d),
+  steel: sm(0xc2cad6, { metalness: 0.3, roughness: 0.35, emissive: 0x2a3038 }), fuller: sm(0x8c95a3, { metalness: 0.3, roughness: 0.5 }), gold: sm(0xe0a93a, { metalness: 0.35, roughness: 0.4 }), leather: sm(0x4a2f1d),
   glove: sm(0x2a211c), sleeve: sm(0x1b202b), wood: sm(0x6b4a2b), dark: sm(0x2c221b), string: new THREE.LineBasicMaterial({ color: 0xe2dbc6 }),
 };
 function vb(parent, mat, w, h, d, x, y, z) { const m = new THREE.Mesh(UB, mat); m.scale.set(w, h, d); m.position.set(x, y, z); parent.add(m); return m; }
@@ -1079,9 +1081,11 @@ function arm(parent, x, y, z, rx, ry) {
   parent.add(a); return a;
 }
 const vmSword = new THREE.Group();
-vb(vmSword, VM.steel, 0.055, 0.86, 0.014, 0, 0.53, 0); vb(vmSword, VM.steel, 0.02, 0.86, 0.022, 0, 0.53, 0);
-vb(vmSword, VM.gold, 0.25, 0.035, 0.05, 0, 0.09, 0); vb(vmSword, VM.leather, 0.035, 0.18, 0.035, 0, -0.01, 0); vb(vmSword, VM.gold, 0.055, 0.055, 0.055, 0, -0.12, 0);
-arm(vmSword, 0.01, -0.02, 0.03, 0.75, 0);
+vb(vmSword, VM.steel, 0.085, 0.74, 0.014, 0, 0.48, 0); vb(vmSword, VM.fuller, 0.024, 0.6, 0.018, 0, 0.42, 0);
+vb(vmSword, VM.steel, 0.06, 0.06, 0.014, 0, 0.85, 0).rotation.z = Math.PI / 4;
+vb(vmSword, VM.gold, 0.3, 0.04, 0.055, 0, 0.09, 0); vb(vmSword, VM.leather, 0.04, 0.18, 0.04, 0, -0.01, 0); vb(vmSword, VM.gold, 0.06, 0.06, 0.06, 0, -0.12, 0);
+arm(vmSword, 0.01, -0.02, 0.03, 0.9, 0);
+vmSword.scale.setScalar(0.86);
 const vmBow = new THREE.Group();
 {
   const limb = new THREE.TorusGeometry(0.5, 0.013, 6, 22, Math.PI * 0.8);
@@ -1105,7 +1109,7 @@ const vmXbow = new THREE.Group();
   arm(vmXbow, 0.02, -0.07, 0.12, 0.3, -0.25); arm(vmXbow, -0.03, -0.07, -0.22, 0.35, 0.7);
 }
 const vmKnife = new THREE.Group();
-vb(vmKnife, VM.steel, 0.032, 0.24, 0.008, 0, 0.19, 0); vb(vmKnife, VM.dark, 0.03, 0.12, 0.03, 0, 0.01, 0); vb(vmKnife, VM.gold, 0.07, 0.015, 0.03, 0, 0.07, 0);
+vb(vmKnife, VM.steel, 0.042, 0.24, 0.01, 0, 0.19, 0); vb(vmKnife, VM.dark, 0.03, 0.12, 0.03, 0, 0.01, 0); vb(vmKnife, VM.gold, 0.07, 0.015, 0.03, 0, 0.07, 0);
 arm(vmKnife, 0.01, -0.02, 0.03, 0.75, 0);
 const vmRoot = new THREE.Group();
 vmRoot.add(vmSword, vmBow, vmXbow, vmKnife); vmScene.add(vmRoot);
@@ -1125,16 +1129,16 @@ function updateVM(dt) {
   const k = 1 - Math.exp(-22 * dt);
 
   if (vmSword.visible) {
-    let px = 0.4, py = -0.52, pz = -0.8, rx = -0.62, ry = -0.15, rz = 0.42, snap = false;
+    let px = 0.4, py = -0.4, pz = -0.66, rx = -0.5, ry = -0.5, rz = 0.3, snap = false;
     if (P.swing) {
       const u = P.swing.t / P.swing.dur, e = ease(Math.min(1, u / 0.5)), back = ease(clamp((u - 0.55) / 0.45, 0, 1));
       let sx, sy2, sz = -0.7, srx, srz;
       if (P.swing.dir === 0) { sx = lerp(0.6, -0.4, e); sy2 = -0.3; srx = -1.3; srz = lerp(-1.35, 1.75, e); }
       else if (P.swing.dir === 1) { sx = lerp(-0.45, 0.6, e); sy2 = -0.28; srx = -1.3; srz = lerp(1.75, -1.35, e); }
       else { sx = 0.16; sy2 = lerp(-0.1, -0.55, e); srx = lerp(0.6, -2.05, e); srz = 0.12; sz = -0.68; }
-      px = lerp(sx, px, back); py = lerp(sy2, py, back); pz = lerp(sz, pz, back); rx = lerp(srx, rx, back); rz = lerp(srz, rz, back); ry = 0;
+      px = lerp(sx, px, back); py = lerp(sy2, py, back); pz = lerp(sz, pz, back); rx = lerp(srx, rx, back); rz = lerp(srz, rz, back); ry = lerp(0, ry, back);
       snap = true;
-    } else if (P.blocking) { px = 0.1; py = -0.26; pz = -0.62; rx = -0.12; ry = 0.25; rz = 1.22; }
+    } else if (P.blocking) { px = 0.16; py = -0.34; pz = -0.7; rx = -0.2; ry = 0.2; rz = 1.15; }
     const q = snap ? 1 : k;
     vmSword.position.set(lerp(vmSword.position.x, px, q), lerp(vmSword.position.y, py, q), lerp(vmSword.position.z, pz, q));
     vmSword.rotation.set(lerp(vmSword.rotation.x, rx, q), lerp(vmSword.rotation.y, ry, q), lerp(vmSword.rotation.z, rz, q));
@@ -1167,8 +1171,8 @@ function updateVM(dt) {
     }
     if (stab) vmKnife.children[0].visible = vmKnife.children[2].visible = true;
   }
-  vmAmb.intensity = 0.45 + P.light * 1.5;
-  vmKey.intensity = 0.5 + P.light * 2.2;
+  vmAmb.intensity = 0.9 + P.light * 1.3;
+  vmKey.intensity = 0.9 + P.light * 2;
   input.mdx = input.mdy = 0;
 }
 
@@ -1198,7 +1202,7 @@ function requestLock() {
   setTimeout(() => {
     if (document.pointerLockElement !== canvas && G.state === 'play' && !freeLook) {
       freeLook = true;
-      toast('Mouse capture is unavailable here: move the mouse to look, or turn with the arrow keys.');
+      toast('Mouse capture is unavailable here: move the mouse to look, or use the arrow keys.');
     }
   }, 900);
 }

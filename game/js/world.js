@@ -246,8 +246,8 @@ export function buildWorld(scene) {
     clothRed: std(T.cloth, 0xb23a2e), clothBlue: std(T.cloth, 0x3c5f9a), clothTan: std(T.cloth, 0xb9a57e),
     iron: std(null, 0x2a2c30, { roughness: 0.6, metalness: 0.7 }),
     gold: std(null, 0xffc94a, { roughness: 0.3, metalness: 1, emissive: 0x6a4500 }),
-    winLit: new THREE.MeshBasicMaterial({ color: new THREE.Color(1.5, 0.78, 0.24) }),
-    winBlue: new THREE.MeshBasicMaterial({ color: new THREE.Color(0.3, 0.6, 1.5) }),
+    winLit: new THREE.MeshBasicMaterial({ color: new THREE.Color(0.95, 0.47, 0.13) }),
+    winBlue: new THREE.MeshBasicMaterial({ color: new THREE.Color(0.16, 0.36, 0.95) }),
     winDark: std(null, 0x0a0e16, { roughness: 0.25, metalness: 0.4 }),
   };
   for (const k of ['winLit', 'winBlue', 'winDark']) M[k].userData.noShadow = true;
@@ -293,6 +293,12 @@ export function buildWorld(scene) {
     const a = ry ? 0.3 : 0.45, b = ry ? 0.45 : 0.3;
     col(x - a, x + a, z - b, z + b, y, y + 0.6);
   };
+  // a window pane with a wooden cross; faceX means the pane faces along x
+  function pane(x, y, z, w, h, faceX, mat) {
+    box(x, y, z, faceX ? 0.08 : w, h, faceX ? w : 0.08, mat, { col: false });
+    box(x, y, z, faceX ? 0.13 : 0.07, h, faceX ? 0.07 : 0.13, M.darkwood, { col: false });
+    for (let k = 1; k * 0.55 < h; k++) box(x, y + k * 0.55 - 0.03, z, faceX ? 0.13 : w, 0.06, faceX ? w : 0.13, M.darkwood, { col: false });
+  }
   function merlonsX(x0, x1, z, y) { for (let x = x0 + 0.8; x < x1 - 0.3; x += 2) box(x, y, z, 1.1, 0.9, 0.5, M.stone, { col: false }); }
   function merlonsZ(z0, z1, x, y) { for (let z = z0 + 0.8; z < z1 - 0.3; z += 2) box(x, y, z, 0.5, 0.9, 1.1, M.stone, { col: false }); }
   function lampPost(x, z, y = 3) {
@@ -471,7 +477,7 @@ export function buildWorld(scene) {
   boxR(-14, 14, -54, -32, 7, 7.25, M.darkwood, { col: false });
   boxR(-13, 13, -53, -33, 0, 0.04, M.wood, { col: false });
   roof(0, 7.25, -43, 28, 22, 5.5, 'x', M.roofSlate, M.stone);
-  for (const x of [-9, -5, 5, 9]) box(x, 3, -31.95, 0.8, 2.6, 0.1, M.winLit, { col: false });
+  for (const x of [-9, 9]) pane(x, 3, -31.95, 0.9, 2.6, false, M.winLit);
   W.indoor = { x0: -13, x1: 13, z0: -53, z1: -33 };
   // hall furniture
   for (const sx of [-1, 1]) {
@@ -533,7 +539,7 @@ export function buildWorld(scene) {
           const px = nx ? cx + nx * (w / 2 + out) : cx + o, pz = nz ? cz + nz * (d / 2 + out) : cz + o;
           if (nx === doorSide && wy < 2 && i === (n >> 1)) { box(px, 0, pz, 0.1, 2.05, 1.1, M.darkwood, { col: false }); continue; }
           const m = rnd() < 0.3 ? M.winLit : M.winDark;
-          box(px, wy, pz, nx ? 0.08 : 0.85, 1.05, nx ? 0.85 : 0.08, m, { col: false });
+          pane(px, wy, pz, 0.85, 1.05, !!nx, m);
         }
       }
     }
@@ -562,7 +568,7 @@ export function buildWorld(scene) {
   roof(-41, 8, -6, 12, 20, 5, 'z', M.roofSlate, M.stone);
   box(-41, 0, 7, 6, 18, 6, M.stoneDark);
   cone(-41, 18, 7, 4.7, 9, 4, M.roofSlate, Math.PI / 4);
-  for (const z of [-12, -7, -2]) { box(-34.95, 2.4, z, 0.08, 3.4, 1.1, M.winBlue, { col: false }); box(-47.05, 2.4, z, 0.08, 3.4, 1.1, M.winBlue, { col: false }); }
+  for (const z of [-12, -7, -2]) { pane(-34.95, 2.4, z, 1.1, 3.4, true, M.winBlue); pane(-47.05, 2.4, z, 1.1, 3.4, true, M.winBlue); }
   box(-41, 0, 10.05, 1.6, 2.6, 0.1, M.darkwood, { col: false });
   box(-41, 12.5, 10.05, 0.9, 1.6, 0.1, M.winLit, { col: false });
   torch(-39.4, 3, 10.3); torch(-42.6, 3, 10.3);
