@@ -60,27 +60,6 @@ export async function productCardsByIds(ids: string[]): Promise<ProductCard[]> {
   return ids.map((id) => byId.get(id)).filter((p): p is ProductCard => !!p);
 }
 
-const getDepartmentsOfIn = unstable_cache(
-  async (store: string | null, ids: string[]): Promise<[string, string][]> => {
-    if (!SUPABASE_CONFIGURED || !ids.length) return [];
-    const { data, error } = await supabasePublic(store).from("products").select("id, category_id, categories(parent_id)").in("id", ids);
-    log("departments of products", error);
-    return (data ?? []).map((p) => {
-      const category = p.categories as { parent_id: string | null } | null;
-      return [p.id, category?.parent_id ?? p.category_id ?? ""];
-    });
-  },
-  ["departments-of"],
-  CACHE,
-);
-
-/** Each product's department: its category's parent, or the category itself at the top. */
-export async function departmentsOf(ids: string[]): Promise<Map<string, string>> {
-  return new Map(await getDepartmentsOfIn(await contextStoreId(), [...new Set(ids)].sort()));
-}
-
-export { alternateDepartments, distinctPicks } from "./departments";
-
 const getFacetsIn = unstable_cache(
   async (store: string | null, q: string | null, category: string | null, collection: string | null): Promise<Facets | null> => {
     if (!SUPABASE_CONFIGURED) return null;
