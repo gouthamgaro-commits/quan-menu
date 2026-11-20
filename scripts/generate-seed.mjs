@@ -98,7 +98,7 @@ const categories = [
     description: "Shirting, knitwear, denim and outerwear, cut with care." },
   { slug: "unisex", name: "Unisex", image: tall("1521572163474-6864f9cf17ab"), banner: wide("1562157873-818bc0726f68"), sort: 3,
     description: "Wardrobe essentials designed to fit everyone." },
-  { slug: "accessories", name: "Accessories", image: tall("1624687943971-e86af76d57de"), banner: wide("1760624089496-01ae68a92d58"), sort: 4,
+  { slug: "accessories", name: "Accessories", image: tall("1760624294514-ca40aafe3d96"), banner: img("1635500574974-114cb4f49759", "16:9", "faces"), sort: 4,
     description: "Bags, sunglasses, hats, belts and jewellery." },
   { slug: "shoes", name: "Shoes", image: tall("1793058420644-1b25580b5b29"), banner: wide("1758542988948-b95a6c4aa68b"), sort: 5,
     description: "Chunky sneakers, platform boots, Mary Janes and slides." },
