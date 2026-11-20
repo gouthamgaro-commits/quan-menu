@@ -156,5 +156,35 @@ export class Sfx {
       for (const [f, g] of [[220, 0.2], [440, 0.12], [554, 0.08], [659, 0.07], [1108, 0.03]]) this.tone(f, 2.4, { gain: g });
     }, i * 900);
   }
+  howl(vol = 1) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime, o = this.ctx.createOscillator(), f = this.ctx.createBiquadFilter();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(380, t); o.frequency.linearRampToValueAtTime(640, t + 0.7);
+    o.frequency.linearRampToValueAtTime(580, t + 1.7); o.frequency.linearRampToValueAtTime(330, t + 2.5);
+    f.type = 'bandpass'; f.frequency.value = 760; f.Q.value = 5;
+    o.connect(f); f.connect(this.env(2.6, 0.16 * vol, 0.45));
+    o.start(t); o.stop(t + 2.7);
+  }
+  growl(vol = 1) { this.tone(95, 0.7, { type: 'sawtooth', gain: 0.12, f2: 70, vol, attack: 0.1 }); this.noise(0.6, { type: 'lowpass', f: 420, gain: 0.15, vol, attack: 0.1 }); }
+  roar(vol = 1, pitch = 1) {
+    this.tone(72 * pitch, 1.6, { type: 'sawtooth', gain: 0.32, f2: 38 * pitch, vol, attack: 0.12 });
+    this.tone(108 * pitch, 1.3, { type: 'square', gain: 0.08, f2: 55 * pitch, vol, attack: 0.12 });
+    this.noise(1.4, { type: 'lowpass', f: 700 * pitch, f2: 140, gain: 0.45, vol, attack: 0.08 });
+  }
+  screech(vol = 1) { this.tone(1300, 0.3, { type: 'sawtooth', gain: 0.06, f2: 2600, vol }); this.noise(0.22, { f: 3200, q: 3, gain: 0.09, vol }); }
+  boom(vol = 1) { this.tone(58, 1.4, { gain: 0.7, f2: 24, vol }); this.noise(1.2, { type: 'lowpass', f: 2200, f2: 70, gain: 0.8, vol }); }
+  rattle(vol = 1) { for (let i = 0; i < 6; i++) setTimeout(() => this.noise(0.04, { f: 2200 + Math.random() * 1800, q: 7, gain: 0.18, vol }), i * 45); }
+  scream(vol = 1, pitch = 1) { this.tone(600 * pitch, 0.75, { type: 'sawtooth', gain: 0.06, f2: 900 * pitch, vol, attack: 0.05 }); this.tone(612 * pitch, 0.7, { type: 'triangle', gain: 0.05, f2: 870 * pitch, vol, attack: 0.05 }); }
+  caw(vol = 1) { this.tone(540, 0.2, { type: 'sawtooth', gain: 0.07, f2: 360, vol }); this.noise(0.16, { f: 1300, q: 2, gain: 0.06, vol }); }
+  cluck(vol = 1) { for (let i = 0; i < 3; i++) setTimeout(() => this.tone(880, 0.06, { type: 'square', gain: 0.04, f2: 560, vol }), i * 90); }
+  flap(vol = 1) { for (let i = 0; i < 5; i++) setTimeout(() => this.noise(0.06, { f: 700, q: 1, gain: 0.12, vol }), i * 65); }
+  fireball(vol = 1) { this.noise(0.6, { f: 380, f2: 1400, q: 0.8, gain: 0.28, vol, attack: 0.06 }); this.tone(140, 0.5, { type: 'sawtooth', gain: 0.06, f2: 60, vol }); }
+  choir() {
+    if (!this.ctx) return;
+    [[293.66, 0], [369.99, 0], [440, 0], [587.33, 0], [293.66, 1.6], [392, 1.6], [493.88, 1.6], [587.33, 1.6], [293.66, 3.2], [369.99, 3.2], [440, 3.2], [739.99, 3.2]].forEach(([f, d]) => setTimeout(() => {
+      this.tone(f, 2.4, { type: 'sine', gain: 0.05, attack: 0.6 }); this.tone(f * 1.004, 2.4, { type: 'triangle', gain: 0.025, attack: 0.7 });
+    }, d * 1000));
+  }
   fanfare() { [293.66, 349.23, 440, 587.33].forEach((f, i) => setTimeout(() => this.pluck(f, 0.14), i * 170)); }
 }

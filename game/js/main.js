@@ -1,7 +1,9 @@
-// Crows of Ravenmoor — first-person medieval stealth and combat.
+// Crows of Ravenmoor — medieval stealth and combat, in first or third person.
 import * as THREE from 'three';
 import { buildWorld, terrainHeight, WATER, CAMP, mergeGeos } from './world.js';
 import { Sfx } from './audio.js';
+import { makeHumanoid, poseHumanoid, hold, setShadow } from './actors.js';
+import { createLife } from './life.js';
 
 const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -27,6 +29,9 @@ camera.rotation.order = 'YXZ';
 const W = buildWorld(scene);
 const C = W.colliders;
 const sfx = new Sfx();
+let life = null;
+const actors = [];   // every creature that can be hit: guards plus everything life.js spawns
+const live = (a) => !!a && !a.dead && !a.gone;
 
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
@@ -194,7 +199,7 @@ function findPath(sx, sz, tx, tz) {
 }
 
 // ---------------------------------------------------------------- game + player state
-const G = { state: 'menu', t: 0 };
+const G = { state: 'menu', t: 0, view: (() => { try { return +localStorage.getItem('ravenmoor.view') || 3; } catch (e) { return 3; } })() };
 const P = { pos: new V3(), vel: new V3() };
 const keys = {};
 const input = { fire: false, firePressed: false, alt: false, jump: false, mdx: 0, mdy: 0 };
@@ -204,7 +209,8 @@ let touchMode = matchMedia('(hover: none) and (pointer: coarse)').matches;
 function resetState() {
   Object.assign(G, {
     t: 0, stage: 0, gold: 0, hasKey: false, hasCrown: false, doorOpen: false, alarm: false, marshalDead: false,
-    stats: { kills: 0, stealth: 0, alerts: 0, picked: 0, time: 0 }, keyDrop: null, endT: 0,
+    stats: { kills: 0, stealth: 0, alerts: 0, picked: 0, time: 0, innocents: 0, beasts: 0, demons: 0 }, keyDrop: null, endT: 0,
+    blessing: false, contract: false, shake: 0, alertN: 0,
   });
   P.pos.set(0, terrainHeight(0, 124), 124); P.vel.set(0, 0, 0);
   Object.assign(P, {
@@ -212,6 +218,7 @@ function resetState() {
     weapon: 0, swT: 0, cd: 0, swing: null, combo: 0, comboT: -9, blocking: false, blockStart: 0, wasBlock: false,
     drawing: false, draw: 0, loaded: true, reload: 0, throwT: 0, lockT: 0, mantle: null, dead: false,
     arrows: 16, bolts: 6, knives: 5, potions: 2, smoke: 3, light: 0.2, vis: 0.2, hidden: false, sprint: false, hurtT: 0, roll: 0,
+    violentT: 0, lastTarget: null, lastTargetT: -9, recoil: 0,
   });
 }
 
@@ -236,6 +243,8 @@ const compassMarks = [['N', 0, -1], ['E', 1, 0], ['S', 0, 1], ['W', -1, 0]].map(
   return { el, dx, dz };
 });
 const objMark = document.createElement('span'); objMark.className = 'cm objm'; objMark.textContent = '◆'; $('compass').appendChild(objMark);
+const xMarks = [];
+for (let i = 0; i < 4; i++) { const el = document.createElement('span'); el.className = 'cm xm'; $('compass').appendChild(el); xMarks.push(el); }
 const detEls = [];
 for (let i = 0; i < 6; i++) { const el = document.createElement('div'); el.className = 'det'; $('dets').appendChild(el); detEls.push(el); }
 
@@ -297,6 +306,19 @@ function updateHUD(dt) {
   const od = Math.hypot(ox - P.pos.x, oz - P.pos.z);
   objMark.style.transform = `translateX(${clamp(relAngle(ox - P.pos.x, oz - P.pos.z) * 57.3 * 2.2, -half, half).toFixed(1)}px)`;
   setText('objD', od.toFixed(0) + ' m');
+  const ms = life.marks();
+  xMarks.forEach((el, i) => {
+    const m = ms[i];
+    if (!m) { el.style.display = 'none'; return; }
+    const px = relAngle(m.x - P.pos.x, m.z - P.pos.z) * 57.3 * 2.2;
+    el.style.display = Math.abs(px) < half ? 'block' : 'none';
+    if (el.textContent !== m.label) { el.textContent = m.label; el.className = 'cm xm ' + m.cls; }
+    el.style.transform = `translateX(${px.toFixed(1)}px)`;
+  });
+  const bs = life.status();
+  setStyle('broF', 'width', (bs.hp * 100).toFixed(0) + '%');
+  setText('broL', bs.label);
+  toggleClass('broBox', 'down', bs.down);
 
   // stealth read-out
   let maxDet = 0, alertN = 0, di = 0;
@@ -313,16 +335,16 @@ function updateHUD(dt) {
     }
   }
   for (; di < detEls.length; di++) detEls[di].style.display = 'none';
-  G.alertN = alertN;
+  G.alertN = alertN + life.threatN;
   let label = 'UNSEEN', cls = 'ok';
-  if (alertN) { label = 'HUNTED'; cls = 'bad'; }
+  if (G.alertN) { label = 'HUNTED'; cls = 'bad'; }
   else if (maxDet > 0.4) { label = 'SUSPECTED'; cls = 'warn'; }
   else if (P.hidden) label = 'HIDDEN';
   else if (P.vis > 0.55) { label = 'EXPOSED'; cls = 'warn'; }
   else if (P.vis > 0.25) label = 'IN SHADOW';
   setText('eyeT', label);
   if (hudCache.eyeCls !== cls) { hudCache.eyeCls = cls; $('eye').className = cls; }
-  setStyle('eyeF', 'width', (alertN ? 100 : maxDet * 100).toFixed(0) + '%');
+  setStyle('eyeF', 'width', (G.alertN ? 100 : maxDet * 100).toFixed(0) + '%');
   setStyle('gemF', 'opacity', (0.12 + P.vis * 0.88).toFixed(2));
   setStyle('gemF', 'transform', `scale(${(0.55 + P.vis * 0.45).toFixed(2)})`);
 
@@ -336,9 +358,11 @@ function updateHUD(dt) {
     const g = stealthTarget();
     if (g) {
       acts.push({ k: 'F', id: 'kill', label: 'Assassinate', icon: 'i-dagger', cls: 'kill', act: assassinate });
-      if (!g.picked && g.state !== 'alert' && g.stun <= 0 && P.onGround) acts.push({ k: 'E', id: 'pick', label: 'Pick pocket', icon: 'i-hand', act: () => pickpocket(g) });
+      if (!g.picked && g.pocket > 0 && (g.kind === 'guard' ? g.state !== 'alert' : !g.aware) && g.stun <= 0 && P.onGround) acts.push({ k: 'E', id: 'pick', label: 'Pick pocket', icon: 'i-hand', act: () => pickpocket(g) });
     }
-    if (acts.length < 2) { const it = findInteract(); if (it) acts.push({ k: 'E', id: 'use:' + it.label, label: it.label, icon: 'i-hand', act: it.act }); }
+    const lp = life.prompts();
+    if (lp.length && !acts.some((x) => x.k === 'E')) acts.push(lp[0]);
+    if (acts.length < 2 && !acts.some((x) => x.k === 'E')) { const it = findInteract(); if (it) acts.push({ k: 'E', id: 'use:' + it.label, label: it.label, icon: 'i-hand', act: it.act }); }
   }
   const eAct = acts.find((a) => a.k === 'E');
   promptAct = eAct ? eAct.act : null;
@@ -357,6 +381,7 @@ function updateHUD(dt) {
 
 // ---------------------------------------------------------------- particles
 const partMat = {
+  bone: new THREE.SpriteMaterial({ map: W.tex.puff, color: 0xe8e0c8, depthWrite: false }),
   blood: new THREE.SpriteMaterial({ map: W.tex.puff, color: 0x9a0d0d, depthWrite: false }),
   spark: new THREE.SpriteMaterial({ map: W.tex.flame, color: 0xffc070, blending: THREE.AdditiveBlending, depthWrite: false }),
   dust: new THREE.SpriteMaterial({ map: W.tex.puff, color: 0xc9bb8a, opacity: 0.5, depthWrite: false }),
@@ -399,32 +424,18 @@ function part(parent, mat, w, h, d, x, y, z) {
   return m;
 }
 function makeModel(type) {
-  const grp = new THREE.Group(), tab = type === 'marshal' ? GM.black : type === 'archer' ? GM.green : GM.red;
-  const leg = (x) => { const l = new THREE.Group(); l.position.set(x, 0.88, 0); part(l, GM.leather, 0.2, 0.88, 0.22, 0, -0.44, 0); grp.add(l); return l; };
-  const legL = leg(-0.13), legR = leg(0.13);
-  const body = new THREE.Group(); body.position.y = 0.88; grp.add(body);
-  part(body, GM.mail, 0.54, 0.64, 0.28, 0, 0.36, 0);
-  part(body, tab, 0.4, 0.6, 0.3, 0, 0.34, 0);
-  part(body, GM.leather, 0.57, 0.1, 0.31, 0, 0.06, 0);
-  const head = new THREE.Group(); head.position.set(0, 0.7, 0); body.add(head);
-  part(head, GM.skin, 0.25, 0.27, 0.25, 0, 0.14, 0);
-  part(head, type === 'marshal' ? GM.gold : GM.steel, 0.3, 0.17, 0.3, 0, 0.3, 0);
-  part(head, type === 'marshal' ? GM.gold : GM.steel, 0.05, 0.16, 0.04, 0, 0.16, 0.14);
-  const arm = (x) => { const a = new THREE.Group(); a.position.set(x, 0.62, 0); part(a, GM.mail, 0.15, 0.62, 0.17, 0, -0.28, 0); part(a, GM.skin, 0.12, 0.1, 0.13, 0, -0.62, 0); body.add(a); return a; };
-  const armL = arm(-0.36), armR = arm(0.36);
-  if (type === 'archer') {
-    part(armL, GM.wood, 0.04, 1.25, 0.05, 0, -0.62, 0.12);
-    part(body, GM.leather, 0.14, 0.5, 0.12, 0.12, 0.4, -0.2);
-  } else {
-    const L = type === 'marshal' ? 1.15 : 0.9;
-    part(armR, GM.steel, 0.045, 0.02, L, 0, -0.62, L / 2 + 0.06);
-    part(armR, type === 'marshal' ? GM.gold : GM.leather, 0.2, 0.04, 0.04, 0, -0.62, 0.07);
-    if (type === 'marshal') part(body, GM.cape, 0.6, 0.95, 0.05, 0, 0.12, -0.18);
-    else part(armL, GM.wood, 0.05, 0.5, 0.42, -0.1, -0.4, 0.02);
-  }
-  if (type === 'marshal') grp.scale.setScalar(1.14);
-  scene.add(grp);
-  return { grp, legL, legR, body, head, armL, armR };
+  const skin = pick([0xc79a78, 0xb98a68, 0xd9a882, 0xa8785a]);
+  const o = type === 'marshal'
+    ? { armor: 'plate', cape: 0x6a1010, head: 'crown', hair: 0x2a1d14, beard: 0x2a1d14, skin: 0xc49170, scale: 1.12, gloves: 0x2a2a2a, tallBoots: true }
+    : type === 'archer'
+      ? { top: 0x2f5a34, pants: 0x3a3027, head: 'kettle', tabard: 0x2a4a2c, skin, gloves: 0x3d2b1e, tallBoots: true }
+      : { armor: 'mail', tabard: 0x8e2222, head: 'helm', skin, gloves: 0x3d2b1e, tallBoots: true, beard: Math.random() < 0.4 ? 0x4a2c18 : undefined };
+  const rig = makeHumanoid(o);
+  if (type === 'archer') hold(rig, 'L', 'bow');
+  else if (type === 'marshal') hold(rig, 'R', 'greatsword');
+  else { hold(rig, 'R', 'sword'); hold(rig, 'L', 'shield', { color: 0x7a1c1c }); }
+  scene.add(rig.root);
+  return rig;
 }
 
 const guards = [];
@@ -433,13 +444,13 @@ function makeGuard(s) {
   if (!s.fixed) p.y = navH(p.x, p.z);
   const hp = s.type === 'marshal' ? 280 : s.type === 'archer' ? 70 : 100;
   const g = {
-    s, type: s.type, m: makeModel(s.type), pos: p, yaw: s.yaw || 0, look: s.yaw || 0, headYaw: 0, hp, state: 'patrol', det: 0,
+    s, type: s.type, kind: 'guard', team: 'town', R: 0.42, H: s.type === 'marshal' ? 2.05 : 1.8, body: true, canAssassinate: true, foe: null, foeT: Math.random() * 0.5, hy: 0, mv: 0, m: makeModel(s.type), pos: p, yaw: s.yaw || 0, look: s.yaw || 0, headYaw: 0, hp, state: 'patrol', det: 0,
     path: null, pi: 0, wp: 0, wait: 0, repath: 0, pgx: 1e9, pgz: 1e9, seenT: 0, last: new V3(), goal: new V3(), stun: 0, atk: null, atkCd: 0,
     shootCd: rand(0.5, 2), searchT: 0, susT: 0, lookT: 0, dead: false, deathT: 0, found: false, picked: false, walk: 0, sw: 0,
     pocket: s.type === 'marshal' ? 150 : 12 + (Math.random() * 30 | 0), barkCd: 0, bodyT: Math.random(), seed: Math.random() * 10,
     pitch: s.type === 'marshal' ? 0.72 : rand(0.9, 1.2), dmg: s.type === 'marshal' ? 27 : 16, run: s.type === 'marshal' ? 4.5 : 4.75,
   };
-  guards.push(g);
+  guards.push(g); actors.push(g);
   poseGuard(g, false);
   return g;
 }
@@ -448,6 +459,7 @@ const LINES = {
   sus: ['Hm? What was that?', 'Is someone there?', 'Show yourself.', 'I heard something.'],
   lost: ['Must have been rats.', 'Nothing. Just the wind.', 'Jumping at shadows again.', 'Bah. Nobody.'],
   alert: ['INTRUDER!', 'Thief! Seize them!', 'To arms! To arms!', "You'll hang for this!"],
+  monster: ['Monster! To arms!', 'Beast at the walls!', 'Kill it! Kill it!', 'Stand your ground, lads!'],
   body: ['A body! Sound the alarm!', "Murder! Someone's killed him!"],
   search: ['Come out, coward!', "They can't have gone far.", 'Spread out! Find them!'],
 };
@@ -472,6 +484,7 @@ function investigate(g, pos, time, quiet) {
   if (!quiet) bark(g, 'sus');
 }
 function makeNoise(pos, radius) {
+  if (life) life.onNoise(pos, radius);
   for (const g of guards) if (!g.dead && g.state !== 'alert' && Math.hypot(g.pos.x - pos.x, g.pos.z - pos.z) < radius && Math.abs(g.pos.y - pos.y) < 9) investigate(g, pos, 9);
 }
 function turn(a, target, amt) {
@@ -496,26 +509,27 @@ function goTo(g, x, z, speed, dt) {
   g.pos.x += dx / d * st; g.pos.z += dz / d * st;
   g.pos.y = lerp(g.pos.y, navH(g.pos.x, g.pos.z), 0.25);
   g.yaw = turn(g.yaw, Math.atan2(dx, dz), dt * 8);
-  g.walk += st * 2.7;
+  g.walk += st * 4.2;
   return 'move';
 }
 function poseGuard(g, moving) {
   const m = g.m;
-  m.grp.position.copy(g.pos); m.grp.rotation.y = g.yaw;
-  g.sw = lerp(g.sw, moving ? Math.sin(g.walk) * 0.7 : 0, 0.3);
-  m.legL.rotation.x = g.sw; m.legR.rotation.x = -g.sw; m.armL.rotation.x = -g.sw * 0.7;
-  let ar = g.sw * 0.7;
-  if (g.atk) { const u = g.atk.t, w = g.atk.wind; ar = u < w ? -2.7 * (u / w) : -2.7 + 3.3 * Math.min(1, (u - w) / 0.16); }
-  else if (g.state === 'alert' && g.type !== 'archer') ar = -0.95;
-  m.armR.rotation.x = lerp(m.armR.rotation.x, ar, 0.45);
-  m.head.rotation.y = lerp(m.head.rotation.y, g.headYaw, 0.15);
-  m.body.rotation.x = lerp(m.body.rotation.x, g.stun > 0 ? 0.55 : 0, 0.2);
-  g.look = g.yaw + m.head.rotation.y;
+  m.root.position.copy(g.pos); m.root.rotation.y = g.yaw;
+  g.hy = lerp(g.hy, g.headYaw, 0.15);
+  g.look = g.yaw + g.hy;
+  const fighting = g.state === 'alert' || !!g.foe;
+  g.mv = lerp(g.mv, moving ? (fighting ? 1.7 : g.state === 'search' ? 1.15 : 0.85) : 0, 0.2);
+  const p = { t: G.t + g.seed, phase: g.walk, move: g.mv, look: g.hy, lean: g.stun > 0 ? 0.35 : 0, atk: -1, dead: g.dead ? g.deathT : 0 };
+  if (g.atk) { p.atk = g.atk.t < g.atk.wind ? g.atk.t / g.atk.wind * 0.42 : 0.42 + (g.atk.t - g.atk.wind) / 0.45 * 0.58; p.style = g.type === 'marshal' ? 'overhead' : 'slash'; }
+  if (g.type === 'archer') { p.aim = fighting ? 1 : 0; p.draw = clamp(1 - g.shootCd / 1.5, 0, 1); }
+  else if (fighting && !g.atk) p.block = 0.35;
+  poseHumanoid(m, p);
 }
-function guardShoot(g) {
+function guardShoot(g, T = P) {
   const o = new V3(g.pos.x + Math.sin(g.yaw) * 0.5, g.pos.y + 1.5, g.pos.z + Math.cos(g.yaw) * 0.5);
-  const sp = 44, d0 = o.distanceTo(P.pos), tt = d0 / sp;
-  const tgt = new V3(P.pos.x + P.vel.x * tt * 0.7, P.pos.y + (P.crouch ? 0.6 : 1.1) + 4.5 * tt * tt, P.pos.z + P.vel.z * tt * 0.7);
+  const tp = T === P ? P.pos : T.pos, tv = T === P ? P.vel : { x: 0, z: 0 };
+  const sp = 44, d0 = o.distanceTo(tp), tt = d0 / sp;
+  const tgt = new V3(tp.x + tv.x * tt * 0.7, tp.y + (T === P ? (P.crouch ? 0.6 : 1.1) : T.H * 0.55) + 4.5 * tt * tt, tp.z + tv.z * tt * 0.7);
   const dir = tgt.sub(o).normalize();
   dir.x += rand(-0.03, 0.03); dir.y += rand(-0.02, 0.02); dir.z += rand(-0.03, 0.03);
   spawnShot('bolt', o, dir.normalize(), sp, g.type === 'archer' ? 14 : 11, g);
@@ -525,11 +539,7 @@ function guardShoot(g) {
 function updateGuard(g, dt) {
   const m = g.m;
   if (g.dead) {
-    if (g.deathT < 1) {
-      g.deathT = Math.min(1, g.deathT + dt * 2.4);
-      m.grp.rotation.x = -ease(g.deathT) * 1.5; m.grp.position.y = g.pos.y + g.deathT * 0.14;
-      m.armL.rotation.x = -g.deathT * 1.2; m.armR.rotation.x = -g.deathT * 0.6;
-    }
+    if (g.deathT < 1) { g.deathT = Math.min(1, g.deathT + dt * 2.4); poseGuard(g, false); }
     return;
   }
   g.barkCd -= dt; g.atkCd -= dt; g.shootCd -= dt;
@@ -560,8 +570,8 @@ function updateGuard(g, dt) {
   g.bodyT -= dt;
   if (g.bodyT <= 0 && !alert) {
     g.bodyT = 0.6;
-    for (const o of guards) {
-      if (!o.dead || o.found) continue;
+    for (const o of actors) {
+      if (!o.dead || o.found || !o.body) continue;
       const bx = o.pos.x - g.pos.x, bz = o.pos.z - g.pos.z, bd = Math.hypot(bx, bz);
       if (bd > 15 || Math.abs(o.pos.y - g.pos.y) > 3 || bd < 0.01) continue;
       if ((bx * Math.sin(g.look) + bz * Math.cos(g.look)) / bd < 0.3) continue;
@@ -572,6 +582,17 @@ function updateGuard(g, dt) {
       g.det = Math.max(g.det, 0.6);
       break;
     }
+  }
+
+  // soldiers turn on monsters that come into sight
+  g.foeT -= dt;
+  if (g.foeT <= 0) {
+    g.foeT = 0.5;
+    if (alert) g.foe = null;
+    else if (!live(g.foe) || g.foe.pos.distanceTo(g.pos) > 30) { const f = life.nearestFoe(g, 18); if (f && !g.foe) bark(g, 'monster'); g.foe = f; }
+  }
+  if (g.foe && !alert && g.stun <= 0) {
+    if (g.det >= 1) { g.foe = null; alertGuard(g); } else { fightFoe(g, dt); return; }
   }
 
   let moving = false, head = 0;
@@ -642,24 +663,80 @@ function updateGuard(g, dt) {
   poseGuard(g, moving);
 }
 
+function fightFoe(g, dt) {
+  const f = g.foe;
+  if (!live(f)) { g.foe = null; return; }
+  const dx = f.pos.x - g.pos.x, dz = f.pos.z - g.pos.z, d = Math.hypot(dx, dz);
+  let moving = false;
+  const face = () => { g.yaw = turn(g.yaw, Math.atan2(dx, dz), dt * 7); };
+  if (g.atk) {
+    g.atk.t += dt; face();
+    if (!g.atk.hit && g.atk.t >= g.atk.wind) { g.atk.hit = true; sfx.swing(volAt(g.pos)); if (d < 2.3 + f.R) hurtActor(f, g.dmg, { from: g }); }
+    if (g.atk.t >= g.atk.wind + 0.45) { g.atk = null; g.atkCd = rand(0.4, 0.9); }
+  } else if (g.s.fixed) {
+    face();
+    if (g.shootCd <= 0 && los(g.pos.x, g.pos.y + 1.6, g.pos.z, f.pos.x, f.pos.y + f.H * 0.6, f.pos.z)) { guardShoot(g, f); g.shootCd = rand(1.8, 2.6); }
+  } else if (d < 1.7 + f.R) { face(); if (g.atkCd <= 0) g.atk = { t: 0, wind: 0.55, hit: false }; }
+  else moving = goTo(g, f.pos.x, f.pos.z, g.run, dt) === 'move';
+  g.headYaw = 0;
+  poseGuard(g, moving);
+}
 function hurtGuard(g, dmg, o = {}) {
   if (g.dead) return;
+  g.lastHit = o.from;
   g.hp -= dmg;
   burst('blood', g.pos.x, g.pos.y + 1.3, g.pos.z, 7, 2.2, 0.16, 0.5);
-  if (g.hp <= 0) { killGuard(g, o.silent); return; }
+  if (g.hp <= 0) { killGuard(g, o.silent, o.from); return; }
   sfx.grunt(volAt(g.pos));
   g.stun = Math.max(g.stun, 0.22);
-  alertGuard(g);
+  const f = o.from;
+  if (f && f !== P && typeof f === 'object' && f.kind !== 'bro' && live(f)) g.foe = f;
+  else if (f !== 'god') alertGuard(g);
 }
-function killGuard(g, silent) {
-  g.dead = true; g.state = 'dead'; g.deathT = 0; g.atk = null;
-  G.stats.kills++;
-  if (silent) G.stats.stealth++; else makeNoise(g.pos, 11);
+function killGuard(g, silent, from = P) {
+  g.dead = true; g.state = 'dead'; g.deathT = 0; g.atk = null; g.foe = null;
+  const byUs = from === P || (life && from === life.bro);
+  if (byUs) { G.stats.kills++; if (silent) G.stats.stealth++; }
+  if (!silent) makeNoise(g.pos, 11);
+  if (life) life.onKill(g, { from, silent });
   if (g.type === 'marshal') {
-    G.marshalDead = true;
-    toast('Lord Marshal Varek is dead. The contract is fulfilled.', 'gold');
+    G.marshalDead = true; G.contract = byUs;
+    toast(byUs ? 'Lord Marshal Varek is dead. The contract is fulfilled.' : 'Lord Marshal Varek is dead.', 'gold');
     if (!G.hasKey) dropKey(g.pos);
   }
+}
+// who may hurt whom: a guard only fights the player once he has been raised to the alarm
+function hostile(a, b) {
+  const ta = a === P ? 'player' : a.team, tb = b === P ? 'player' : b.team;
+  if (ta === tb || ta === 'critter' || tb === 'critter') return false;
+  if (ta === 'town' && tb === 'player') return a.kind === 'guard' && a.state === 'alert';
+  return true;
+}
+function hurtActor(a, dmg, o = {}) {
+  if (!live(a)) return;
+  if (a.kind === 'guard') hurtGuard(a, dmg, o); else a.hurt(dmg, o);
+}
+function damageArea(pos, r, dmg, from) {
+  const team = from && typeof from === 'object' ? (from === P ? 'player' : from.team) : null;
+  if (team !== 'player' && !P.dead) {
+    const d = Math.hypot(P.pos.x - pos.x, P.pos.y + 0.8 - pos.y, P.pos.z - pos.z);
+    if (d < r) hurtPlayer(dmg * (1 - 0.6 * d / r), pos, null);
+  }
+  for (const a of actors.slice()) {
+    if (!live(a) || a === from || (team && a.team === team)) continue;
+    const d = Math.hypot(a.pos.x - pos.x, a.pos.y + a.H * 0.4 - pos.y, a.pos.z - pos.z);
+    if (d < r + a.R) hurtActor(a, dmg * (1 - 0.6 * Math.min(1, d / r)), { from, area: true });
+  }
+}
+function onLifeDeath(a, h) {
+  const byUs = h.from === P || h.from === life.bro;
+  if (byUs) {
+    if (a.kind === 'villager') { G.stats.innocents++; toast('An innocent dies.', 'bad'); }
+    else if (a.team === 'wild') G.stats.beasts++;
+    else if (a.team === 'demon') G.stats.demons++;
+  }
+  if (a.body && !h.silent) makeNoise(a.pos, 11);
+  life.onKill(a, h);
 }
 
 // ---------------------------------------------------------------- projectiles
@@ -669,12 +746,16 @@ const arrowGeo = mergeGeos([mkBox(0.022, 0.022, 0.8, 0, 0, 0), mkBox(0.05, 0.05,
 const knifeGeo = mergeGeos([mkBox(0.035, 0.008, 0.2, 0, 0, 0.08), mkBox(0.03, 0.03, 0.12, 0, 0, -0.08)]);
 const shots = [];
 const ZAX = new V3(0, 0, 1);
+const fireGeo = new THREE.SphereGeometry(0.16, 10, 8), fireMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(2.2, 0.9, 0.25) });
+const fireGlow = new THREE.SpriteMaterial({ map: W.tex.flame, color: 0xff7a30, blending: THREE.AdditiveBlending, depthWrite: false });
 function spawnShot(kind, o, dir, speed, dmg, owner) {
-  const m = new THREE.Mesh(kind === 'knife' ? knifeGeo : arrowGeo, kind === 'knife' ? knifeMat : owner ? boltMat : shotMat);
+  let m;
+  if (kind === 'fire') { m = new THREE.Mesh(fireGeo, fireMat); const gl = new THREE.Sprite(fireGlow); gl.scale.setScalar(1.3); m.add(gl); }
+  else m = new THREE.Mesh(kind === 'knife' ? knifeGeo : arrowGeo, kind === 'knife' ? knifeMat : owner ? boltMat : shotMat);
   if (kind === 'bolt') m.scale.set(1.3, 1.3, 0.6);
   m.position.copy(o); m.quaternion.setFromUnitVectors(ZAX, dir); m.castShadow = true;
   scene.add(m);
-  shots.push({ kind, m, p: o.clone(), v: dir.clone().multiplyScalar(speed), dmg, owner, stuck: false, life: 0, grav: kind === 'bolt' ? 7 : kind === 'knife' ? 13 : 10, spin: 0 });
+  shots.push({ kind, m, p: o.clone(), v: dir.clone().multiplyScalar(speed), dmg, owner, stuck: false, life: 0, grav: kind === 'fire' ? 2 : kind === 'bolt' ? 7 : kind === 'knife' ? 13 : 10, spin: 0 });
 }
 function segSphere(p, d, len, cx, cy, cz, r) {
   const mx = p.x - cx, my = p.y - cy, mz = p.z - cz;
@@ -701,31 +782,41 @@ function updateShots(dt) {
     const len = s.v.length() * dt;
     _d.copy(s.v).normalize();
     let tHit = rayWorld(s.p.x, s.p.y, s.p.z, _d.x, _d.y, _d.z, len), hitG = null, head = false;
-    if (!s.owner) {
-      for (const g of guards) {
-        if (g.dead || Math.abs(g.pos.x - s.p.x) > len + 2 || Math.abs(g.pos.z - s.p.z) > len + 2) continue;
-        const sc = g.type === 'marshal' ? 1.14 : 1;
-        const th = segSphere(s.p, _d, len, g.pos.x, g.pos.y + 1.72 * sc, g.pos.z, 0.25);
-        const tb = Math.min(...[0.5, 1.05, 1.4].map((y) => { const t = segSphere(s.p, _d, len, g.pos.x, g.pos.y + y * sc, g.pos.z, 0.42); return t < 0 ? 1e9 : t; }));
-        const t = th >= 0 && th <= tb ? th : tb;
-        if (t < tHit) { tHit = t; hitG = g; head = th >= 0 && th <= tb; }
-      }
-    } else if (!P.dead) {
+    for (const g of actors) {
+      if (!live(g) || g === s.owner || Math.abs(g.pos.x - s.p.x) > len + 2 + g.R * 2 || Math.abs(g.pos.z - s.p.z) > len + 2 + g.R * 2) continue;
+      if (s.owner ? !hostile(s.owner, g) : g.kind === 'bro') continue;
+      const sc = g.H / 1.8;
+      const th = segSphere(s.p, _d, len, g.pos.x, g.pos.y + g.H * 0.955, g.pos.z, 0.25 * sc);
+      const tb = Math.min(...[0.28, 0.58, 0.78].map((y) => { const t = segSphere(s.p, _d, len, g.pos.x, g.pos.y + y * g.H, g.pos.z, g.R); return t < 0 ? 1e9 : t; }));
+      const t = th >= 0 && th <= tb ? th : tb;
+      if (t < tHit) { tHit = t; hitG = g; head = th >= 0 && th <= tb; }
+    }
+    if (s.owner && !P.dead && hostile(s.owner, P)) {
       const t = Math.min(...[0.45, P.crouch ? 0.8 : 1.25].map((y) => { const q = segSphere(s.p, _d, len, P.pos.x, P.pos.y + y, P.pos.z, 0.42); return q < 0 ? 1e9 : q; }));
-      if (t < tHit) { hurtPlayer(s.dmg, s.owner.pos, null); scene.remove(s.m); shots.splice(i, 1); continue; }
+      if (t < tHit) {
+        hurtPlayer(s.dmg, s.owner.pos, null);
+        if (s.kind === 'fire') burst('spark', s.p.x, s.p.y, s.p.z, 8, 3, 0.2, 0.4);
+        scene.remove(s.m); shots.splice(i, 1); continue;
+      }
     }
     if (hitG) {
-      const unaware = hitG.state !== 'alert';
-      let dmg = s.dmg * (head ? 2.3 : 1) * (unaware ? 2 : 1);
+      if (s.owner) hurtActor(hitG, s.dmg, { from: s.owner, missile: true });
+      else {
+        const unaware = hitG.kind === 'guard' ? hitG.state !== 'alert' : !hitG.aware;
+        const dmg = s.dmg * (head ? 2.3 : 1) * (unaware ? 2 : 1);
+        if (head && hitG.kind !== 'rift') toast('Headshot', 'dim');
+        P.violentT = 1.5; P.lastTarget = hitG; P.lastTargetT = G.t;
+        hurtActor(hitG, dmg, { from: P, silent: unaware, missile: true });
+      }
       sfx.hit(volAt(hitG.pos));
-      if (head) toast('Headshot', 'dim');
-      hurtGuard(hitG, dmg, { silent: unaware });
+      if (s.kind === 'fire') burst('spark', s.p.x, s.p.y, s.p.z, 8, 3, 0.2, 0.4);
       scene.remove(s.m); shots.splice(i, 1);
       continue;
     }
     const nx = s.p.x + _d.x * len, ny = s.p.y + _d.y * len, nz = s.p.z + _d.z * len;
     const ground = Math.max(Math.abs(nx), Math.abs(nz)) > 57 ? terrainHeight(nx, nz) : 0;
     if (tHit < len || ny < ground) {
+      if (s.kind === 'fire') { burst('spark', s.p.x, s.p.y, s.p.z, 8, 3, 0.2, 0.4); scene.remove(s.m); shots.splice(i, 1); continue; }
       const t = tHit < len ? tHit : len;
       s.p.set(s.p.x + _d.x * (t - 0.12), Math.max(s.p.y + _d.y * (t - 0.12), ground + 0.03), s.p.z + _d.z * (t - 0.12));
       s.m.position.copy(s.p); s.m.quaternion.setFromUnitVectors(ZAX, _d);
@@ -806,6 +897,7 @@ function takeCrown() {
   setTimeout(() => toast('The alarm bell tolls. Get out!', 'bad'), 1300);
   for (const [x, z] of W.reinforce) investigate(makeGuard({ type: 'guard', post: [x, z], yaw: 0 }), new V3(rand(-4, 4), 0, rand(-40, -36)), 30, true);
   for (const g of guards) if (!g.dead && g.state === 'patrol' && !g.s.fixed && g.pos.z < -18) investigate(g, new V3(rand(-6, 6), 0, rand(-42, -30)), 25, true);
+  life.onCrownStolen();
 }
 function findInteract() {
   let best = null, bd = 2.6;
@@ -819,13 +911,14 @@ function findInteract() {
 // ---------------------------------------------------------------- stealth actions
 function stealthTarget() {
   let best = null, bd = 1e9;
-  for (const g of guards) {
-    if (g.dead) continue;
+  for (const g of actors) {
+    if (!live(g) || !g.canAssassinate || g.kind === 'bro') continue;
     const dx = P.pos.x - g.pos.x, dz = P.pos.z - g.pos.z, d = Math.hypot(dx, dz), dy = P.pos.y - g.pos.y;
     const air = !P.onGround && dy > 0.9 && dy < 6 && d < 2.3;
     if (!air && (d > 2.3 || Math.abs(dy) > 1.4)) continue;
     const behind = (dx * Math.sin(g.yaw) + dz * Math.cos(g.yaw)) / Math.max(d, 0.01) < 0.25;
-    if ((air || g.stun > 0.2 || (g.state !== 'alert' && behind)) && d < bd) { bd = d; best = g; }
+    const unaware = g.kind === 'guard' ? g.state !== 'alert' : !g.aware;
+    if ((air || g.stun > 0.2 || (unaware && behind)) && d < bd) { bd = d; best = g; }
   }
   return best;
 }
@@ -835,11 +928,12 @@ function assassinate() {
   if (!g) return;
   P.lockT = 0.55; P.swing = null; P.drawing = false; P.draw = 0;
   sfx.stab();
-  burst('blood', g.pos.x, g.pos.y + 1.4, g.pos.z, 10, 2.4, 0.16, 0.6);
-  killGuard(g, true);
+  burst('blood', g.pos.x, g.pos.y + g.H * 0.75, g.pos.z, 10, 2.4, 0.16, 0.6);
+  P.violentT = 1; P.lastTarget = g; P.lastTargetT = G.t;
+  if (g.kind === 'guard') killGuard(g, true, P); else hurtActor(g, 9999, { from: P, silent: true });
 }
 function pickpocket(g) {
-  g.picked = true; g.det += 0.12; G.stats.picked++;
+  g.picked = true; if (g.kind === 'guard') g.det += 0.12; G.stats.picked++;
   G.gold += g.pocket; sfx.coin();
   toast(`Lifted ${g.pocket} gold.`, 'gold');
   if (g.type === 'marshal' && !G.hasKey) gainKey();
@@ -878,7 +972,10 @@ function hurtPlayer(dmg, from, attacker) {
 // ---------------------------------------------------------------- player movement
 function tryMantle() {
   if (P.st < 6) return false;
-  const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), reach = P.onGround ? 3.2 : 2.7;
+  let fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
+  const ml = Math.hypot(P.vel.x, P.vel.z);
+  if (G.view === 3 && ml > 1) { fx = P.vel.x / ml; fz = P.vel.z / ml; }
+  const reach = P.onGround ? 3.2 : 2.7;
   for (const dist of [0.6, 1.0]) {
     const px = P.pos.x + fx * dist, pz = P.pos.z + fz * dist;
     let top = -1e9, tooTall = false;
@@ -916,6 +1013,7 @@ function computeVis(dt) {
   if (sp > 5.5) v *= 1.35; else if (sp < 0.3) v *= 0.8;
   P.hidden = false;
   if (P.crouch) for (const h of W.hide) if (Math.hypot(h.x - P.pos.x, h.z - P.pos.z) < h.r && Math.abs(terrainHeight(h.x, h.z) - P.pos.y) < 1.5) { v *= 0.2; P.hidden = true; break; }
+  if (G.blessing) v *= 0.65;
   P.vis = clamp(v, 0.04, 1);
 }
 
@@ -963,10 +1061,10 @@ function updatePlayer(dt) {
   P.vel.y -= 22 * dt;
   P.pos.x += P.vel.x * dt; P.pos.z += P.vel.z * dt;
   resolveXZ(P.pos, 0.35, P.pos.y, hh);
-  for (const g of guards) {
-    if (g.dead) continue;
-    const dx = P.pos.x - g.pos.x, dz = P.pos.z - g.pos.z, d = Math.hypot(dx, dz);
-    if (d < 0.62 && d > 0.001 && Math.abs(P.pos.y - g.pos.y) < 1.5) { P.pos.x = g.pos.x + dx / d * 0.62; P.pos.z = g.pos.z + dz / d * 0.62; }
+  for (const g of actors) {
+    if (!live(g) || g.fly || g.kind === 'bro') continue;
+    const dx = P.pos.x - g.pos.x, dz = P.pos.z - g.pos.z, d = Math.hypot(dx, dz), rr = g.R + 0.2;
+    if (d < rr && d > 0.001 && Math.abs(P.pos.y - g.pos.y) < Math.max(1.5, g.H * 0.8)) { P.pos.x = g.pos.x + dx / d * rr; P.pos.z = g.pos.z + dz / d * rr; }
   }
   P.pos.y += P.vel.y * dt;
   if (P.vel.y > 0) for (const c of C) {
@@ -1004,6 +1102,8 @@ function updatePlayer(dt) {
   P.st = Math.max(0, P.st);
   P.eye = lerp(P.eye, P.crouch ? 0.95 : 1.66, 1 - Math.exp(-12 * dt));
   if (P.lockT > 0) P.lockT -= dt;
+  P.violentT = Math.max(0, P.violentT - dt);
+  if (G.blessing && P.vis < 0.3 && P.hp < 100 && !P.dead) P.hp = Math.min(100, P.hp + 1.5 * dt);
   if (G.keyDrop && Math.hypot(G.keyDrop.x - P.pos.x, G.keyDrop.z - P.pos.z) < 1.7) gainKey();
 }
 
@@ -1013,7 +1113,13 @@ const camDir = new V3(), eyePos = new V3();
 function aim() {
   const cp = Math.cos(P.pitch);
   camDir.set(-Math.sin(P.yaw) * cp, Math.sin(P.pitch), -Math.cos(P.yaw) * cp);
-  eyePos.set(P.pos.x, P.pos.y + P.eye, P.pos.z);
+  if (G.view === 3) {
+    const r = computeTP(), o = { x: r.x + r.dx * r.t, y: r.y + r.dy * r.t, z: r.z + r.dz * r.t };
+    const t = Math.max(4, rayWorld(o.x, o.y, o.z, camDir.x, camDir.y, camDir.z, 90));
+    const tx = o.x + camDir.x * t, ty = o.y + camDir.y * t, tz = o.z + camDir.z * t;
+    eyePos.set(P.pos.x + Math.cos(P.yaw) * 0.22, P.pos.y + (P.crouch ? 1.05 : 1.5), P.pos.z - Math.sin(P.yaw) * 0.22);
+    camDir.set(tx - eyePos.x, ty - eyePos.y, tz - eyePos.z).normalize();
+  } else eyePos.set(P.pos.x, P.pos.y + P.eye, P.pos.z);
 }
 function fireShot(kind, speed, dmg) {
   aim();
@@ -1024,12 +1130,19 @@ function fireShot(kind, speed, dmg) {
 function swordHit(heavy) {
   const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
   let any = false;
-  for (const g of guards) {
-    if (g.dead) continue;
+  for (const g of actors.slice()) {
+    if (!live(g) || g.kind === 'bro') continue;
     const dx = g.pos.x - P.pos.x, dz = g.pos.z - P.pos.z, d = Math.hypot(dx, dz);
-    if (d > 2.9 || Math.abs(g.pos.y - P.pos.y) > 1.9) continue;
+    if (d > 2.5 + g.R || P.pos.y - g.pos.y > 1.9 || g.pos.y - P.pos.y > 1.9 + g.H * 0.3) continue;
     if (d > 0.5 && (dx * fx + dz * fz) / d < 0.45) continue;
     any = true;
+    P.lastTarget = g; P.lastTargetT = G.t;
+    if (g.kind !== 'guard') {
+      let dmg = heavy ? 56 : 34;
+      if (!g.aware && g.kind !== 'rift') dmg *= 2.6; else if (g.stun > 0) dmg *= 1.8;
+      sfx.hit(); hurtActor(g, dmg, { from: P, melee: true });
+      continue;
+    }
     const unaware = g.state !== 'alert';
     const facing = (-dx * Math.sin(g.yaw) - dz * Math.cos(g.yaw)) / Math.max(d, 0.01) > 0.3;
     if (!unaware && g.stun <= 0 && facing && Math.random() < (g.type === 'marshal' ? 0.45 : 0.28)) {
@@ -1039,9 +1152,9 @@ function swordHit(heavy) {
     let dmg = heavy ? 56 : 34;
     if (unaware) dmg *= 2.6; else if (g.stun > 0) dmg *= 1.8;
     sfx.hit();
-    hurtGuard(g, dmg);
+    hurtGuard(g, dmg, { from: P });
   }
-  if (any) { makeNoise(P.pos, 12); return; }
+  if (any) { makeNoise(P.pos, 12); P.violentT = 1.5; return; }
   aim();
   const o = eyePos, t = rayWorld(o.x, o.y, o.z, camDir.x, camDir.y, camDir.z, 2.3);
   if (t < 2.3) { sfx.clang(0.45); burst('spark', o.x + camDir.x * t, o.y + camDir.y * t, o.z + camDir.z * t, 5, 2, 0.12, 0.3); makeNoise(P.pos, 9); }
@@ -1208,11 +1321,78 @@ function updateVM(dt) {
   input.mdx = input.mdy = 0;
 }
 
+// ---------------------------------------------------------------- third person
+const pRig = makeHumanoid({ skin: 0xc49572, top: 0x1f2533, pants: 0x161a22, boots: 0x2a1d14, head: 'hood', hood: 0x1d2230, cape: 0x1a1e29, belt: 0x8e2222, gloves: 0x2a1d14, tallBoots: true });
+const pW = [hold(pRig, 'R', 'sword'), hold(pRig, 'L', 'bow'), hold(pRig, 'R', 'crossbow'), hold(pRig, 'R', 'knife')];
+pRig.root.visible = false;
+scene.add(pRig.root);
+let pYaw = 0, pMv = 0, pCr = 0, tpDist = 3.3, tpCr = 0;
+const tpPivot = new V3();
+function toggleView(v) {
+  G.view = v || (G.view === 3 ? 1 : 3);
+  try { localStorage.setItem('ravenmoor.view', String(G.view)); } catch (e) { /* remembered only for this visit */ }
+  updateViewUI();
+  if (!v && G.state === 'play') toast(G.view === 3 ? 'Third-person view' : 'First-person view', 'dim');
+}
+function updateViewUI() {
+  for (const b of document.querySelectorAll('[data-view]')) b.setAttribute('aria-pressed', String(+b.dataset.view === G.view));
+}
+// The over-the-shoulder camera: a pivot at the player's head, pushed back and to the right,
+// pulled in wherever a wall or the hillside is in the way. Aiming uses the same ray.
+const tpRay = { x: 0, y: 0, z: 0, dx: 0, dy: 0, dz: 0, t: 3.3 };
+function computeTP() {
+  const cp = Math.cos(P.pitch), fx = -Math.sin(P.yaw) * cp, fy = Math.sin(P.pitch), fz = -Math.cos(P.yaw) * cp;
+  const rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
+  const zoom = P.drawing ? P.draw : P.weapon === 2 && input.alt ? 1 : 0;
+  const back = lerp(3.3, 1.7, zoom), side = 0.62;
+  const py = P.mantle ? P.pos.y + 1.3 : P.dead ? P.pos.y + 0.9 : P.pos.y + lerp(1.62, 1.12, tpCr);
+  tpPivot.set(P.pos.x + rx * side * 0.4, py, P.pos.z + rz * side * 0.4);
+  let dx = -fx * back + rx * side * 0.6, dy = -fy * back + 0.3, dz = -fz * back + rz * side * 0.6;
+  const L = Math.hypot(dx, dy, dz); dx /= L; dy /= L; dz /= L;
+  let t = rayWorld(tpPivot.x, tpPivot.y, tpPivot.z, dx, dy, dz, L + 0.3) - 0.3;
+  for (let k = 1; k <= 6; k++) {
+    const sd = L * k / 6, x = tpPivot.x + dx * sd, z = tpPivot.z + dz * sd;
+    if (Math.max(Math.abs(x), Math.abs(z)) > 56 && terrainHeight(x, z) + 0.3 > tpPivot.y + dy * sd) { t = Math.min(t, L * (k - 1) / 6); break; }
+  }
+  Object.assign(tpRay, { x: tpPivot.x, y: tpPivot.y, z: tpPivot.z, dx, dy, dz, t: clamp(t, 0.3, L) });
+  return tpRay;
+}
+function thirdPersonCam(dt) {
+  tpCr = lerp(tpCr, P.crouch ? 1 : 0, 1 - Math.exp(-10 * dt));
+  const r = computeTP();
+  tpDist = r.t < tpDist ? r.t : lerp(tpDist, r.t, 1 - Math.exp(-5 * dt));
+  camera.position.set(r.x + r.dx * tpDist, r.y + r.dy * tpDist, r.z + r.dz * tpDist);
+  camera.rotation.set(P.pitch, P.yaw, P.roll * 0.5);
+  P.roll = lerp(P.roll, 0, 0.1);
+}
+function updatePlayerModel(dt) {
+  const showIt = G.view === 3 && G.state !== 'menu';
+  pRig.root.visible = showIt && tpDist > 0.75;
+  if (!showIt) return;
+  pW.forEach((w, i) => { w.visible = P.lockT > 0 ? i === 3 : i === P.weapon; });
+  pRig.root.position.copy(P.pos);
+  const hs = Math.hypot(P.vel.x, P.vel.z);
+  const combat = P.swing || P.blocking || P.drawing || P.lockT > 0 || P.throwT > 0 || (P.weapon === 2 && (input.alt || P.recoil > 0)) || P.mantle;
+  const want = combat ? P.yaw + Math.PI : hs > 0.6 ? Math.atan2(P.vel.x, P.vel.z) : pYaw;
+  pYaw = turn(pYaw, want, dt * (combat ? 16 : 9));
+  pRig.root.rotation.y = pYaw;
+  pMv = lerp(pMv, P.onGround ? hs / 4.3 : 0, 1 - Math.exp(-12 * dt));
+  pCr = lerp(pCr, P.crouch ? 1 : 0, 1 - Math.exp(-10 * dt));
+  const p = { t: G.t, phase: P.bob, move: pMv, crouch: pCr, air: P.onGround || P.mantle ? 0 : 1, climb: P.mantle ? 1 - Math.min(1, P.mantle.t) : 0, atk: -1, dead: P.dead ? ease(Math.min(1, G.endT / 0.9)) : 0 };
+  if (P.swing) { p.atk = Math.min(1, P.swing.t / P.swing.dur); p.style = ['slash', 'slashL', 'overhead'][P.swing.dir]; }
+  else if (P.lockT > 0) { p.atk = 1 - P.lockT / 0.55; p.style = 'stab'; }
+  else if (P.throwT > 0) { p.atk = 1 - P.throwT / 0.5; p.style = 'cast'; }
+  if (P.blocking) p.block = 1;
+  if (P.weapon === 1 && (P.drawing || P.cd > 0)) { p.aim = 1; p.draw = P.draw; }
+  if (P.weapon === 2) p.xbow = 1;
+  poseHumanoid(pRig, p);
+}
+
 // ---------------------------------------------------------------- flow
 function show(id, on) { $(id).classList.toggle('hidden', !on); }
 function clearDynamic() {
-  for (const g of guards) scene.remove(g.m.grp);
-  guards.length = 0;
+  for (const g of guards) scene.remove(g.m.root);
+  guards.length = 0; actors.length = 0;
   for (const s of shots) scene.remove(s.m);
   shots.length = 0;
   for (const p of parts) scene.remove(p.s);
@@ -1222,6 +1402,7 @@ function resetGame() {
   clearDynamic();
   resetState();
   for (const s of W.spawns) makeGuard(s);
+  life.reset();
   for (const c of W.chests) { c.opened = false; c.openT = 1; c.lid.rotation.x = 0; }
   crown.visible = true; keyMesh.visible = false; door.position.y = 1.6;
   doorCol.y0 = 0; doorCol.y1 = 3.2;
@@ -1250,6 +1431,8 @@ function startGame() {
   later(600, () => toast('Night falls on Ravenmoor. Stay low, stay dark.'));
   later(4200, () => toast(touchMode ? 'Left thumb moves, right thumb looks. Tap the prompts to act.' : '[C] crouch · [Space] climb ledges · [F] strike from behind'));
   later(9000, () => toast("Contract: Lord Marshal Varek's death pays 500 gold.", 'gold'));
+  later(2200, () => { life.broSayNow('Ready when you are, bro. I follow your lead.'); });
+  later(13000, () => toast(touchMode ? 'Tap the Bro button to make him wait or follow. The eye button switches the camera.' : '[G] Bro waits or follows · [T] switch first or third person', 'dim'));
 }
 function pause(on) {
   if (on && G.state === 'play') {
@@ -1258,6 +1441,14 @@ function pause(on) {
     $('pObjT').textContent = OBJ[G.stage][0]; $('pObjH').textContent = OBJ[G.stage][1];
     $('pObjX').style.display = G.marshalDead ? 'none' : 'block';
     $('soundBtn').textContent = G.muted ? 'SOUND OFF' : 'SOUND ON';
+    const q = life.quests;
+    $('deeds').innerHTML = [
+      [q.blessing, "Pray at the Pale Lady's shrine, on the hill by your camp"],
+      [q.troll, 'Deal with the troll sleeping by the river bridge'],
+      [q.grave, 'Lay the risen dead to rest, in the graveyard west of the walls'],
+      [q.rift, 'Seal the demon rift in the ruined tower west of the bridge'],
+      [q.demon, 'Banish the hellspawn that guards the rift'],
+    ].map(([done, t]) => `<li class="${done ? 'done' : ''}">${t}</li>`).join('');
     show('pause', true);
   } else if (!on && G.state === 'pause') { G.state = 'play'; show('pause', false); sfx.init(); if (!freeLook && !touchMode) requestLock(); }
 }
@@ -1275,16 +1466,20 @@ function die() {
 function win() {
   G.state = 'won';
   sfx.setTension(0); sfx.fanfare();
-  const s = G.stats, ghost = s.alerts === 0, clean = s.kills === 0;
-  const bonus = (G.marshalDead ? 500 : 0) + (ghost ? 750 : 0) + (clean ? 500 : 0);
-  const rank = ghost && clean ? 'Phantom' : ghost ? 'Ghost' : s.alerts <= 3 ? 'Shadow' : s.kills > 12 ? 'Butcher' : 'Cutthroat';
+  const s = G.stats, ghost = s.alerts === 0, clean = s.kills === 0 && s.innocents === 0, q = life.quests;
+  const bonus = (G.contract ? 500 : 0) + (ghost ? 750 : 0) + (clean ? 500 : 0);
+  const rank = s.innocents >= 3 ? 'Butcher' : ghost && clean ? 'Phantom' : ghost ? 'Ghost' : s.alerts <= 3 ? 'Shadow' : s.kills > 12 ? 'Butcher' : 'Cutthroat';
+  const deeds = [q.blessing && 'blessed by the Pale Lady', q.troll && 'troll slain', q.grave && 'graveyard laid to rest', q.rift && 'demon rift sealed', q.demon && 'hellspawn banished'].filter(Boolean);
   const mm = Math.floor(s.time / 60), ss = String(Math.floor(s.time % 60)).padStart(2, '0');
   endScreen('The Crown Is Yours', `
     <p class="rank">Rank: <b>${rank}</b></p>
     <table>
       <tr><td>Plunder</td><td>${G.gold} gold</td></tr>
-      <tr><td>Bonuses</td><td>${bonus} gold${G.marshalDead ? ' · contract' : ''}${ghost ? ' · never hunted' : ''}${clean ? ' · bloodless' : ''}</td></tr>
-      <tr><td>Kills</td><td>${s.kills} (${s.stealth} silent)</td></tr>
+      <tr><td>Bonuses</td><td>${bonus} gold${G.contract ? ' · contract' : ''}${ghost ? ' · never hunted' : ''}${clean ? ' · bloodless' : ''}</td></tr>
+      <tr><td>Guards slain</td><td>${s.kills} (${s.stealth} silent)</td></tr>
+      <tr><td>Beasts and demons</td><td>${s.beasts + s.demons}</td></tr>
+      <tr><td>Innocents slain</td><td>${s.innocents}</td></tr>
+      <tr><td>Deeds</td><td>${deeds.length ? deeds.join(' · ') : 'none'}</td></tr>
       <tr><td>Pockets picked</td><td>${s.picked}</td></tr>
       <tr><td>Times hunted</td><td>${s.alerts}</td></tr>
       <tr><td>Time</td><td>${mm}:${ss}</td></tr>
@@ -1313,6 +1508,8 @@ document.addEventListener('keydown', (e) => {
     case 'KeyQ': throwSmoke(); break;
     case 'KeyH': drinkPotion(); break;
     case 'KeyV': whistle(); break;
+    case 'KeyG': life.broCommand(); break;
+    case 'KeyT': toggleView(); break;
     case 'KeyM': G.muted = !G.muted; sfx.mute(G.muted); toast(G.muted ? 'Sound off' : 'Sound on', 'dim'); break;
     case 'KeyP': pause(true); break;
     case 'Escape': if (freeLook) pause(true); break;
@@ -1426,6 +1623,7 @@ holdBtn('bJump', () => { input.jump = true; keys.Space = true; }, () => { keys.S
 holdBtn('bBlock', () => { input.alt = true; }, () => { input.alt = false; });
 holdBtn('bCrouch', () => { P.crouch = !P.crouch; });
 holdBtn('iSmoke', throwSmoke); holdBtn('iHeal', drinkPotion); holdBtn('iWhistle', whistle);
+holdBtn('iBro', () => life.broCommand()); holdBtn('iView', () => toggleView());
 for (let i = 0; i < 4; i++) holdBtn('slot' + i, () => switchWeapon(i));
 $('pauseBtn').addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); pause(true); });
 $('obj').addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); G.hintT = G.hintT > 0 ? 0 : 8; });
@@ -1439,7 +1637,7 @@ $('ctx').addEventListener('pointerdown', (e) => {
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 
 // ---------------------------------------------------------------- main loop
-let last = performance.now(), tensionT = 0, fpsT = 0, fpsN = 0, lowFps = 0;
+let last = performance.now(), tensionT = 0, fpsT = 0, fpsN = 0, lowFps = 0, guardLodT = 0;
 function logic(dt) {
   if (G.state === 'play') {
     G.stats.time += dt;
@@ -1447,12 +1645,19 @@ function logic(dt) {
     computeVis(dt);
     updateWeapons(dt);
     for (const g of guards) updateGuard(g, dt);
+    life.update(dt);
     updateShots(dt);
     updateObjectives();
   } else if (G.state === 'dead' || G.state === 'won') {
     G.endT += dt;
     for (const g of guards) updateGuard(g, dt);
+    life.update(dt);
     updateShots(dt);
+  }
+  guardLodT -= dt;
+  if (guardLodT <= 0) {
+    guardLodT = 0.5;
+    for (const g of guards) { const d = Math.hypot(g.pos.x - P.pos.x, g.pos.z - P.pos.z); setShadow(g.m, d < 24); g.m.root.visible = d < 160; }
   }
   updateParts(dt);
   input.firePressed = false;
@@ -1475,6 +1680,10 @@ function frame(now) {
     const a = G.t * 0.035 + 1.9;
     camera.position.set(Math.sin(a) * 104, 30 + Math.sin(G.t * 0.1) * 4, Math.cos(a) * 104 + 12);
     camera.lookAt(0, 6, -14);
+  } else if (G.view === 3) {
+    thirdPersonCam(dt);
+    const fov = 72 - P.draw * 10 - (P.weapon === 2 && input.alt ? 26 : 0) + (P.sprint ? 4 : 0);
+    if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = lerp(camera.fov, fov, 0.15); camera.updateProjectionMatrix(); }
   } else {
     const bobY = Math.abs(Math.sin(P.bob)) * 0.045 * P.moveAmt;
     let ey = P.eye + bobY, roll = P.roll;
@@ -1485,6 +1694,12 @@ function frame(now) {
     const fov = 75 - P.draw * 13 - (P.weapon === 2 && input.alt ? 30 : 0) + (P.sprint ? 5 : 0);
     if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = lerp(camera.fov, fov, 0.15); camera.updateProjectionMatrix(); }
   }
+  if (G.shake > 0 && G.state !== 'menu') {
+    const k = G.shake * 0.22;
+    camera.position.x += rand(-k, k); camera.position.y += rand(-k, k); camera.position.z += rand(-k, k);
+    G.shake = Math.max(0, G.shake - dt * 1.8);
+  }
+  updatePlayerModel(dt);
   W.update(G.t, dt, camera);
 
   tensionT -= dt;
@@ -1493,7 +1708,7 @@ function frame(now) {
 
   renderer.clear();
   renderer.render(scene, camera);
-  if (G.state === 'play' || G.state === 'dead') { renderer.clearDepth(); renderer.render(vmScene, vmCam); }
+  if (G.view === 1 && (G.state === 'play' || G.state === 'dead')) { renderer.clearDepth(); renderer.render(vmScene, vmCam); }
 
   // drop resolution once if the machine is struggling
   fpsT += dt; fpsN++;
@@ -1505,8 +1720,17 @@ function frame(now) {
 
 buildNav();
 buildChests();
+life = createLife({
+  scene, W, P, G, actors, guards, camera, sfx,
+  terrainHeight, groundAt, resolveXZ, los, findPath, makeNoise, hurtPlayer, hurtActor, damageArea, spawnShot, investigate, burst, volAt, toast, subtitle,
+  onDeath: onLifeDeath,
+  inNav: (x, z) => x >= OX && x < OX + NX && z >= OZ && z < OZ + NZ,
+  freeNear: (x, z) => { const i = nearestFree(cellOf(x, z)); return i < 0 ? [x, z] : [OX + i % NX + 0.5, OZ + ((i / NX) | 0) + 0.5]; },
+});
+for (const b of document.querySelectorAll('[data-view]')) b.addEventListener('click', () => toggleView(+b.dataset.view));
+updateViewUI();
 resetGame();
 resize();
 show('hud', false);
-window.__game = { G, P, W, guards, shots, camera, renderer, startGame, findPath, blocked, C, keys, input, stick, logic, stealthTarget, setTouch: (v) => setTouch(v), pause, assassinate, navH, pickpocket, findInteract, los, alertGuard };
+window.__game = { G, P, W, actors, get life() { return life; }, toggleView, guards, shots, camera, renderer, startGame, findPath, blocked, C, keys, input, stick, logic, stealthTarget, setTouch: (v) => setTouch(v), pause, assassinate, navH, pickpocket, findInteract, los, alertGuard };
 requestAnimationFrame(frame);

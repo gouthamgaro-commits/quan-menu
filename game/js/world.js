@@ -1,6 +1,7 @@
 // The town of Ravenmoor and the land around it. Everything is generated here:
 // textures are painted on canvases, geometry is merged per material.
 import * as THREE from 'three';
+import { makeHumanoid, poseHumanoid } from './actors.js';
 
 export const WATER = -0.9;
 export const MOON = new THREE.Vector3(-0.3, 0.42, -0.85).normalize();
@@ -33,6 +34,10 @@ function fbm(x, z) {
 
 export const riverZ = (x) => 84 + 7 * Math.sin(x * 0.025);
 export const CAMP = { x: 8, z: 128, y: 3.2 };
+export const GRAVE = { x: -86, z: 16, y: 0.4 };
+export const SHRINE = { x: -18, z: 120, y: 4.5 };
+export const LAIR = { x: 11, z: 99 };
+export const RIFT = { x: -71.6, z: 104.6 };
 
 // Height of the land. The town sits on a flat shelf; hills rise around it,
 // a river cuts across the south, and the road climbs to the camp.
@@ -51,6 +56,8 @@ export function terrainHeight(x, z) {
     h = lerp(h, sstep(98, 128, z) * CAMP.y, k);
   }
   h = lerp(h, CAMP.y, 1 - sstep(8, 15, Math.hypot(x - CAMP.x, z - CAMP.z)));
+  h = lerp(h, GRAVE.y, 1 - sstep(15, 24, Math.hypot(x - GRAVE.x, z - GRAVE.z)));
+  h = lerp(h, SHRINE.y, 1 - sstep(4.5, 11, Math.hypot(x - SHRINE.x, z - SHRINE.z)));
   return h;
 }
 
@@ -233,8 +240,8 @@ export function buildWorld(scene) {
   const T = makeTextures();
   const batch = new Batch();
   const W = {
-    colliders: [], torches: [], hide: [], chests: [], banners: [], spawns: [], tex: T,
-    camp: CAMP, crown: { x: -4, y: 1.3, z: -50 },
+    colliders: [], torches: [], hide: [], chests: [], banners: [], spawns: [], doors: [], tex: T,
+    camp: CAMP, crown: { x: -4, y: 1.3, z: -50 }, grave: GRAVE, shrine: SHRINE, lair: LAIR, rift: RIFT, graves: [],
   };
 
   const std = (map, color = 0xffffff, o = {}) => new THREE.MeshStandardMaterial({ map, color, roughness: 0.93, metalness: 0, ...o });
@@ -310,10 +317,10 @@ export function buildWorld(scene) {
   // ================= sky, light, land =================
   const sky = new THREE.Mesh(new THREE.SphereGeometry(1000, 32, 16), new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
-    uniforms: { moonDir: { value: MOON }, time: { value: 0 } },
+    uniforms: { moonDir: { value: MOON }, time: { value: 0 }, rage: { value: 0 } },
     vertexShader: 'varying vec3 vDir; void main(){ vDir=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
     fragmentShader: `
-      varying vec3 vDir; uniform vec3 moonDir; uniform float time;
+      varying vec3 vDir; uniform vec3 moonDir; uniform float time; uniform float rage;
       float hash(vec3 p){ p=fract(p*0.3183099+.1); p*=17.; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
       void main(){
         vec3 d=normalize(vDir); float h=d.y;
@@ -330,6 +337,8 @@ export function buildWorld(scene) {
         float band=fbm2(d.xz/(d.y+.25)*1.4+time*.004);
         col=mix(col, col*.55+vec3(.05,.065,.11), smoothstep(.5,.85,band)*smoothstep(.0,.25,h)*.6);
         col=mix(col,vec3(0.03,0.045,0.09),smoothstep(0.02,-.12,h));
+        vec3 hell=vec3(.20,.035,.02)+vec3(.9,.22,.05)*exp(-max(h,0.)*5.)+vec3(.35,.05,.02)*smoothstep(.55,.9,band)*smoothstep(.0,.3,h);
+        col=mix(col, hell+col*.3, rage);
         gl_FragColor=vec4(col,1.);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -344,6 +353,7 @@ export function buildWorld(scene) {
   scene.add(sky);
 
   const fogCol = new THREE.Color().setRGB(0.03, 0.045, 0.09);
+  const fogBase = fogCol.clone(), fogHell = new THREE.Color().setRGB(0.13, 0.035, 0.02);
   scene.fog = new THREE.FogExp2(fogCol, 0.0062);
   scene.background = fogCol;
 
@@ -537,7 +547,7 @@ export function buildWorld(scene) {
         for (const wy of jetty ? [1.25, 3.45] : [1.25]) {
           const out = (wy > 2.7 ? e / 2 : 0) + 0.03;
           const px = nx ? cx + nx * (w / 2 + out) : cx + o, pz = nz ? cz + nz * (d / 2 + out) : cz + o;
-          if (nx === doorSide && wy < 2 && i === (n >> 1)) { box(px, 0, pz, 0.1, 2.05, 1.1, M.darkwood, { col: false }); continue; }
+          if (nx === doorSide && wy < 2 && i === (n >> 1)) { box(px, 0, pz, 0.1, 2.05, 1.1, M.darkwood, { col: false }); W.doors.push({ x: px + nx * 0.9, z: pz }); continue; }
           const m = rnd() < 0.3 ? M.winLit : M.winDark;
           pane(px, wy, pz, 0.85, 1.05, !!nx, m);
         }
@@ -663,8 +673,76 @@ export function buildWorld(scene) {
     W.hide.push({ x: -71, z: 105.5, r: 2.3 });
   }
 
+  // ================= graveyard (west of the walls) =================
+  {
+    const gx = GRAVE.x, gz = GRAVE.z, gy = GRAVE.y;
+    const grey = std(T.stone, 0x8a8f8a), moss = std(T.stone, 0x6f7d66);
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+      const x = gx - 7 + i * 4.2 + (rnd() - 0.5) * 0.8, z = gz - 8 + j * 4 + (rnd() - 0.5) * 0.8;
+      if (Math.hypot(x - (gx + 6), z - (gz - 6)) < 4) continue;
+      const m = rnd() < 0.5 ? grey : moss, h = 0.8 + rnd() * 0.5, tilt = (rnd() - 0.5) * 0.3;
+      if (rnd() < 0.7) {
+        box(x, gy - 0.1, z, 0.7, h, 0.18, m, { ry: tilt, uv: 1 });
+        const g = new THREE.CylinderGeometry(0.35, 0.35, 0.18, 10, 1, false, 0, Math.PI); g.rotateZ(Math.PI / 2); g.rotateX(Math.PI / 2); g.rotateY(tilt + Math.PI / 2); g.translate(x, gy - 0.1 + h, z);
+        batch.add(m, g);
+      } else {
+        box(x, gy - 0.1, z, 0.16, 1.5, 0.16, m, { col: false }); box(x, gy + 0.8, z, 0.75, 0.16, 0.16, m, { col: false, ry: tilt });
+      }
+      box(x, gy - 0.05, z + 1.15, 0.9, 0.12, 1.8, std(T.detail, 0x3b3226), { col: false, ry: tilt });
+      W.graves.push({ x, z: z + 1.15 });
+    }
+    // crypt
+    const cx = gx + 6, cz = gz - 6;
+    box(cx, gy - 0.2, cz, 5, 3.6, 5.4, moss);
+    roof(cx, gy + 3.4, cz, 5, 5.4, 1.6, 'z', M.roofSlate, moss);
+    box(cx - 2.53, gy - 0.2, cz, 0.1, 2.3, 1.4, M.iron, { col: false });
+    for (const dz of [-1.2, 1.2]) cyl(cx - 2.9, gy - 0.2, cz + dz, 0.25, 0.3, 2.8, 8, grey);
+    // fence and dead trees
+    for (let a = 0; a < Math.PI * 2; a += 0.13) {
+      if (Math.abs(a - Math.PI * 0.05) < 0.16) continue;
+      const x = gx + Math.cos(a) * 13, z = gz + Math.sin(a) * 13;
+      box(x, gy - 0.2, z, 0.06, 1.4, 0.06, M.iron, { col: false });
+    }
+    for (const [x, z] of [[gx - 10, gz + 9], [gx + 9, gz + 8], [gx - 9, gz - 10]]) {
+      cyl(x, gy - 0.3, z, 0.12, 0.25, 4.5, 6, M.darkwood, 0.25);
+      for (let k = 0; k < 4; k++) { const g = new THREE.CylinderGeometry(0.03, 0.08, 1.8, 5); g.translate(0, 0.9, 0); g.rotateZ(0.9 + rnd() * 0.4); g.rotateY(k * 1.6 + rnd()); g.translate(x, gy + 2.5 + k * 0.5, z); batch.add(M.darkwood, g); }
+    }
+    torch(gx - 1, gy + 1.6, gz + 12.6, { s: 0.9, ghost: true }); torch(gx + 1, gy + 1.6, gz + 12.6, { s: 0.9, ghost: true });
+    for (const s of [-1, 1]) box(gx + s, gy - 0.2, gz + 12.6, 0.16, 1.4, 0.16, M.iron, { col: false });
+    chest(cx - 1.2, gy, cz + 3.3, { gold: 140, bolts: 4, potions: 1 });
+  }
+  // ================= shrine of the Pale Lady (the hill by the camp) =================
+  {
+    const { x, z, y } = SHRINE, marble = std(T.stone, 0xd8dde8);
+    cyl(x, y - 0.4, z, 3.2, 3.4, 0.5, 18, marble); cyl(x, y + 0.1, z, 2.3, 2.5, 0.4, 18, marble);
+    cyl(x, y + 0.5, z, 0.75, 0.85, 1.4, 12, marble, 0.8);
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; cyl(x + Math.cos(a) * 2.8, y - 0.1, z + Math.sin(a) * 2.8, 0.18, 0.22, 2.6 + (i % 2) * 0.8, 8, marble, 0.22); }
+    const statue = makeHumanoid({ skin: 0xdfe5f0, top: 0xdfe5f0, pants: 0xdfe5f0, boots: 0xdfe5f0, dress: 'long', dressColor: 0xdfe5f0, head: 'halo', hair: 0xdfe5f0, scale: 1.25 });
+    poseHumanoid(statue, { t: 0 });
+    statue.armL.s.rotation.set(-2.2, 0, 0.5); statue.armR.s.rotation.set(-2.2, 0, -0.5); statue.armL.e.rotation.x = statue.armR.e.rotation.x = -0.3;
+    statue.root.position.set(x, y + 1.9, z); statue.root.rotation.y = Math.PI * 0.15;
+    statue.root.traverse((o) => { if (o.isMesh) { o.material = marble; o.castShadow = true; } });
+    scene.add(statue.root);
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 12), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.8, 1.1, 1.8) }));
+    orb.position.set(x, y + 4.75, z + 0.1); scene.add(orb);
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 1.2, 60, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0x6f9bff, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+    beam.position.set(x, y + 33, z); scene.add(beam);
+    W.shrineFx = { orb, beam };
+    W.torches.push({ x, y: y + 4.75, z, s: 1.4, moon: true });
+  }
+  // the troll's lair under the bridge: gnawed bones and a sleeping-rock
+  {
+    const lx = LAIR.x, lz = LAIR.z, ly = terrainHeight(lx, lz);
+    const boneM = std(null, 0xd8d0bb);
+    for (let i = 0; i < 14; i++) { const g = new THREE.CapsuleGeometry(0.04, 0.35, 2, 6); g.rotateZ(Math.PI / 2); g.rotateY(rnd() * 6); g.translate(lx - 2 + rnd() * 3, ly + 0.05, lz - 1 + rnd() * 3); batch.add(boneM, g); }
+    const rock = new THREE.DodecahedronGeometry(1.6, 0); rock.scale(1.4, 0.8, 1.1); rock.translate(lx + 2.8, ly + 0.5, lz + 1.5);
+    batch.add(std(null, 0x6a6862, { flatShading: true }), rock);
+    col(lx + 0.9, lx + 4.7, lz, lz + 3, ly - 1, ly + 1.4);
+  }
+
   // ================= forest =================
   const clearOf = (x, z) => {
+    if (Math.hypot(x - GRAVE.x, z - GRAVE.z) < 17 || Math.hypot(x - SHRINE.x, z - SHRINE.z) < 9 || Math.hypot(x - LAIR.x, z - LAIR.z) < 6) return false;
     const d = Math.max(Math.abs(x), Math.abs(z));
     if (d < 63.5) return false;
     if (Math.abs(x) < 6.5 && z > 50 && z < 150) return false;
@@ -741,12 +819,14 @@ export function buildWorld(scene) {
   // torches: a glow sprite each, real lights are a small pool moved to the nearest ones
   const flameMat = new THREE.SpriteMaterial({ map: T.flame, color: 0xffb060, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
   const bracket = new THREE.BoxGeometry(0.07, 0.5, 0.07);
+  const ghostMat = new THREE.SpriteMaterial({ map: T.flame, color: 0x7dff9a, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+  const moonMat = new THREE.SpriteMaterial({ map: T.flame, color: 0x8fb4ff, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
   for (const t of W.torches) {
-    t.sprite = new THREE.Sprite(flameMat);
+    t.sprite = new THREE.Sprite(t.ghost ? ghostMat : t.moon ? moonMat : flameMat);
     t.sprite.position.set(t.x, t.y, t.z);
     t.phase = rnd() * 10;
     scene.add(t.sprite);
-    if (!t.fire) { const b = new THREE.Mesh(bracket, M.iron); b.position.set(t.x, t.y - 0.35, t.z); scene.add(b); }
+    if (!t.fire && !t.moon) { const b = new THREE.Mesh(bracket, M.iron); b.position.set(t.x, t.y - 0.35, t.z); scene.add(b); }
   }
   const pool = [];
   for (let i = 0; i < 7; i++) { const l = new THREE.PointLight(0xff9c4a, 0, 22, 1.7); scene.add(l); pool.push(l); }
@@ -798,9 +878,18 @@ export function buildWorld(scene) {
   // ================= per-frame =================
   const tmp = [];
   let poolT = 0;
+  const moonBase = moon.color.clone(), moonHell = new THREE.Color(0xff7a40);
+  W.rage = 0;
+  W.setRage = (v) => {
+    W.rage = v;
+    sky.material.uniforms.rage.value = v;
+    scene.fog.color.copy(fogBase).lerp(fogHell, v);
+    moon.color.copy(moonBase).lerp(moonHell, v);
+  };
   W.update = (t, dt, cam) => {
     sky.position.copy(cam.position);
     sky.material.uniforms.time.value = t;
+    if (W.shrineFx) { W.shrineFx.beam.material.opacity = W.shrineFx.done ? 0.03 : 0.1 + Math.sin(t * 1.3) * 0.03; W.shrineFx.orb.position.y = SHRINE.y + 4.75 + Math.sin(t * 1.1) * 0.08; }
     // shadow frustum follows the player
     const sx = Math.round(cam.position.x / 6) * 6, sz = Math.round(cam.position.z / 6) * 6;
     moon.target.position.set(sx, 0, sz);
@@ -818,7 +907,7 @@ export function buildWorld(scene) {
       tmp.length = 0;
       for (const tc of W.torches) { tc.d = (tc.x - cam.position.x) ** 2 + (tc.y - cam.position.y) ** 2 + (tc.z - cam.position.z) ** 2; tmp.push(tc); }
       tmp.sort((a, b) => a.d - b.d);
-      for (let i = 0; i < pool.length; i++) { pool[i].userData.t = tmp[i]; pool[i].position.set(tmp[i].x, tmp[i].y + 0.1, tmp[i].z); }
+      for (let i = 0; i < pool.length; i++) { const tc = tmp[i]; pool[i].userData.t = tc; pool[i].position.set(tc.x, tc.y + 0.1, tc.z); pool[i].color.setHex(tc.ghost ? 0x6dff8a : tc.moon ? 0x8fb4ff : 0xff9c4a); }
     }
     for (const l of pool) {
       const tc = l.userData.t;

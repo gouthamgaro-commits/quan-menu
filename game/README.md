@@ -33,6 +33,32 @@ keep's treasury, and Lord Marshal Varek carries the key.
 You get a rank at the end: Phantom, Ghost, Shadow, Cutthroat or Butcher. It
 depends on how often you were hunted and how many people you killed.
 
+## A living world
+
+- **Bro**, your partner in crime, walks at your side, sneaks when you sneak,
+  and wades into any fight that comes for you. Press **G** (or the Bro button)
+  to make him wait or follow. If he goes down, get to him and help him up.
+- **The town is alive.** Merchants cry their wares, a bard plays by the well,
+  drunks stagger about, a priest walks his rounds, a lamplighter tends the
+  lamps, a beggar sells secrets for a coin, and children chase a dog through
+  the square. They gossip, often about things worth knowing. Kill in front
+  of them and they scream for the guards and run home to hide.
+- **Animals give you away.** Dogs bark at you, chickens flap and cluck, and
+  crows on the rooftops scatter, cawing, when you come too close.
+- **Beyond the walls:** wolf packs howl in the forest, a troll sleeps by the
+  river bridge (sprinting wakes it), and the dead climb out of their graves
+  west of the walls. Guards fight any monster that comes into view.
+- **The demon rift** burns in the ruined tower west of the bridge. Imps fly
+  out and throw fire, and a hellspawn with a flaming greatsword guards it.
+  Smash the rift's heart to seal it.
+- **Gods.** Pray at the Pale Lady's shrine on the hill by your camp and she
+  appears and blesses you: you're harder to see, and darkness heals you. The
+  Ember God kneels in the northern peaks. Steal his crown and he stands up,
+  the sky burns red, and he hurls meteors at you all the way out of town.
+  Glowing rings on the ground show where they'll land.
+
+Press **T** to switch between third person (the default) and first person.
+
 ## Play styles
 
 - **Sword:** left click for a three-hit combo (the third swing is heavy).
@@ -61,7 +87,8 @@ Touch controls appear automatically. Hold the phone sideways.
 - **Prompts:** tap them when they appear (Assassinate, Pick pocket, Open
   chest).
 - **Weapons and items:** tap the weapon bar at the bottom, and the smoke,
-  draught and whistle buttons under your gold. The pause button is top right.
+  draught, whistle, Bro and camera buttons under your gold. The pause button
+  is top right.
 
 ## Stealth
 
@@ -86,12 +113,20 @@ they give up the hunt.
 | Assassinate | F |
 | Use, loot, pick pocket | E |
 | Smoke bomb / heal / whistle | Q / H / V |
+| Bro: wait or follow | G |
+| Third or first person | T |
 | Pause / mute | P / M |
 
 ## Code
 
 - `js/world.js`: terrain, town, keep, forest, sky, lighting, painted
   textures, and guard placements.
-- `js/main.js`: player movement and climbing, weapons, guard AI with A*
-  pathfinding over a navigation grid, stealth, HUD, and game flow.
+- `js/main.js`: player movement and climbing, weapons, the first- and
+  third-person cameras, guard AI with A* pathfinding over a navigation grid,
+  stealth, combat between every kind of creature, HUD, and game flow.
+- `js/actors.js`: builds every character (people, wolves, birds, demons,
+  gods) from rounded parts on a joint skeleton, and animates them: walking,
+  running, crouching, climbing, sword swings, bow draws, flying and falling.
+- `js/life.js`: Bro, the townsfolk and their animals, the monsters, the
+  demon rift, the gods, and the meteors.
 - `js/audio.js`: WebAudio sound effects, wind, and adaptive music.
