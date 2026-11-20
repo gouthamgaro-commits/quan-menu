@@ -55,10 +55,11 @@ const WORDMARK: Record<HeaderStyle, string> = {
   keycaps: "text-lg font-bold tracking-tight",
   segmented: "text-xl font-bold tracking-tight",
   metal: "liquid-text text-xl font-bold tracking-tight sm:text-2xl",
+  wristband: "text-xl tracking-[0.02em] uppercase sm:text-2xl",
 };
 const LOGO_HEIGHT: Record<HeaderStyle, string> = {
   classic: "h-8", inline: "h-7", bold: "h-9", centered: "h-10", heritage: "h-10", overlay: "h-8", floating: "h-7", glass: "h-8", utility: "h-7", window: "h-8", tape: "h-8", slab: "h-8", pillow: "h-9", frost: "h-8",
-  cabinet: "h-8", letterhead: "h-9", fold: "h-8", keycaps: "h-7", segmented: "h-8", metal: "h-8",
+  cabinet: "h-8", letterhead: "h-9", fold: "h-8", keycaps: "h-7", segmented: "h-8", metal: "h-8", wristband: "h-8",
 };
 
 export function Logo({ settings, variant = "classic", className }: { settings: Settings; variant?: HeaderStyle; className?: string }) {
@@ -689,6 +690,35 @@ export default function Header({ settings, departments, announcement, design, ov
                         {i.label}
                       </Link>
                       {hasChildren(i) && <DropList item={i} className="left-1/2 -translate-x-1/2 pt-3" panelClassName="metal-panel rounded-card p-5" />}
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <div className="ml-auto lg:ml-0"><HeaderActions /></div>
+            </div>
+          </header>
+        </>
+      );
+
+    case "wristband":
+      // A festival wristband: a woven band of the store's colours across the top, the name on the
+      // clasp and the menu as stage pills.
+      return (
+        <>
+          {bar}
+          <header className="fest-header sticky top-0 z-40">
+            <div aria-hidden className="fest-band h-2" />
+            <div className="container-page flex h-16 items-center gap-3 lg:h-[4.5rem] lg:gap-6">
+              <div className="lg:hidden">{menu}</div>
+              <Logo settings={settings} variant="wristband" className="fest-clasp" />
+              <nav aria-label="Main" className="hidden flex-1 lg:block">
+                <ul className="flex items-center justify-center gap-1 text-[12px] font-bold tracking-[0.08em] whitespace-nowrap uppercase xl:gap-2">
+                  {items.map((i) => (
+                    <li key={i.key} className="group relative">
+                      <Link href={i.href} aria-haspopup={hasChildren(i) ? "true" : undefined} className={cx("fest-stage-link flex h-9 items-center rounded-full px-3 xl:px-4", i.sale && "fest-sale text-sale")}>
+                        {i.label}
+                      </Link>
+                      {hasChildren(i) && <DropList item={i} className="left-1/2 -translate-x-1/2 pt-2" panelClassName="fest-panel rounded-card p-5 font-normal normal-case tracking-normal" />}
                     </li>
                   ))}
                 </ul>

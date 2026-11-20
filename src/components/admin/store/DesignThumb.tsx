@@ -232,6 +232,17 @@ export default function DesignThumb({
             </div>
           </div>
         );
+      case "wristband":
+        return (
+          <div style={{ borderBottom: `1px solid ${c("ink")}`, background: c("paper") }}>
+            <div style={{ height: 4, background: `repeating-linear-gradient(90deg, ${colors.brand} 0 10px, ${colors.accent} 10px 20px)` }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 6, height: 17, padding: "0 5%" }}>
+              <span style={{ padding: "1px 4px", border: `1px solid ${c("ink")}`, borderRadius: 3, background: c("ivory"), boxShadow: `1.5px 1.5px 0 ${colors.brand}` }}>{logo(7)}</span>
+              <span style={{ display: "flex", flex: 1, justifyContent: "center", gap: 3 }}>{[0, 1, 2, 3].map((i) => <span key={i} style={{ width: 13, height: 6, borderRadius: 99, background: i === 1 ? colors.brand : mix(colors.background, colors.text, 0.12) }} />)}</span>
+              {line("8%", 3)}
+            </div>
+          </div>
+        );
       default:
         return (
           <div style={{ borderBottom: `1px solid ${c("line")}` }}>
@@ -465,6 +476,16 @@ export default function DesignThumb({
             <span style={{ position: "relative", width: "32%", aspectRatio: "1", padding: 3, borderRadius: 99, background: "conic-gradient(from 210deg, #f5f7fa, #9aa3ad, #ffffff, #6b7480, #e9edf2, #8d96a0, #f5f7fa)" }}><span style={{ display: "block", height: "100%", borderRadius: 99, background: photo }} /></span>
           </div>
         );
+      case "poster":
+        return (
+          <div style={{ position: "relative", display: "flex", alignItems: "center", gap: "6%", height: "44%", padding: "0 6%", overflow: "hidden", background: colors.background }}>
+            <div style={{ flex: 1 }}>{heroText(c("ink"), "left", 14)}</div>
+            <div style={{ position: "relative", display: "grid", placeItems: "center", width: "32%" }}>
+              <span style={{ position: "absolute", width: "135%", aspectRatio: "1", borderRadius: 99, background: `linear-gradient(180deg, ${colors.accent}, ${colors.brand})`, opacity: 0.9 }} />
+              <span style={{ position: "relative", width: "78%", aspectRatio: "4 / 5", borderRadius: "99px 99px 4px 4px", border: `1.5px solid ${c("ink")}`, background: photo, boxShadow: `3px 3px 0 ${c("ink")}` }} />
+            </div>
+          </div>
+        );
       default:
         return (
           <div style={{ display: "flex", height: "44%" }}>
@@ -626,6 +647,15 @@ export default function DesignThumb({
             {img("4 / 5", 5)}
             {line("60%", 2)}
             <span style={{ width: "34%", height: 5, borderRadius: 99, background: "linear-gradient(180deg, #ffffff, #c8ced6)", border: `1px solid ${c("line")}` }} />
+          </div>
+        );
+      case "pass":
+        return (
+          <div style={{ display: "grid", gap: 3, padding: 3, border: "1.5px solid transparent", borderRadius: 7, background: `linear-gradient(${c("paper")}, ${c("paper")}) padding-box, linear-gradient(135deg, ${colors.brand}, ${colors.accent}) border-box` }}>
+            {img("4 / 5", 5)}
+            <span style={{ borderTop: `1px dashed ${c("ink")}`, opacity: 0.45 }} />
+            {line("60%", 2)}
+            {line("30%", 3)}
           </div>
         );
       default:

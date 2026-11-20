@@ -18,6 +18,7 @@ import Showroom from "@/components/store/Showroom";
 import Exhibition from "@/components/store/Exhibition";
 import IsoBlocks from "@/components/store/IsoBlocks";
 import Leaderboard from "@/components/store/Leaderboard";
+import Lineup from "@/components/store/Lineup";
 import Pool from "@/components/store/Pool";
 import PopupSpread from "@/components/store/PopupSpread";
 import SwipeStack from "@/components/store/SwipeStack";
@@ -238,6 +239,7 @@ export default async function Home() {
     blocks: () => <IsoBlocks products={newest} />,
     swipe: () => <SwipeStack products={chosen} />,
     pool: () => <Pool products={chosen} />,
+    lineup: () => <Lineup storeName={settings.store_name} collections={data.trending} brands={data.brands} />,
     story: () => <StorySection settings={settings} variant={design.key} />,
     recommended: () => <RecentlyViewed title="Recommended for you" mode="recommend" />,
     newsletter: () => <NewsletterSection variant={design.key} title={kind.words.newsletter} text={kind.words.newsletterText} />,

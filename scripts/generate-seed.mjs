@@ -92,11 +92,11 @@ const brands = [
 ];
 
 const categories = [
-  { slug: "women", name: "Women", image: tall("1668952135120-7d997b1b3778"), banner: wide("1779406165962-7df12de281b1"), sort: 1,
+  { slug: "women", name: "Women", image: tall("1548624313-0396c75e4b1a"), banner: img("1790283727726-f8ba027df653", "16:9", "faces"), sort: 1,
     description: "Dresses, corsets, denim and tailoring for every day and every night out." },
-  { slug: "men", name: "Men", image: tall("1619603364904-c0498317e145"), banner: wide("1617137968427-85924c800a22"), sort: 2,
+  { slug: "men", name: "Men", image: tall("1793443696280-029ed5e7fe99"), banner: img("1793443696280-029ed5e7fe99", "16:9", "faces"), sort: 2,
     description: "Shirting, knitwear, denim and outerwear, cut with care." },
-  { slug: "unisex", name: "Unisex", image: tall("1521572163474-6864f9cf17ab"), banner: wide("1562157873-818bc0726f68"), sort: 3,
+  { slug: "unisex", name: "Unisex", image: tall("1780566759964-e101fe4a3d8c"), banner: wide("1562157873-818bc0726f68"), sort: 3,
     description: "Wardrobe essentials designed to fit everyone." },
   { slug: "accessories", name: "Accessories", image: tall("1760624294514-ca40aafe3d96"), banner: img("1635500574974-114cb4f49759", "16:9", "faces"), sort: 4,
     description: "Bags, sunglasses, hats, belts and jewellery." },

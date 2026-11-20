@@ -787,6 +787,47 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
       );
     }
 
+    case "poster": {
+      // A festival poster: the headline in big block capitals under a striped sunset and a sky
+      // of confetti, the photograph in an arch wearing an "all access" wristband.
+      const picture = image ?? extras.find((x): x is string => !!x) ?? null;
+      return (
+        <section className="fest-poster relative overflow-hidden">
+          <span aria-hidden className="fest-confetti" />
+          <div className="container-page relative grid items-center gap-12 py-12 md:py-16 lg:grid-cols-[1.15fr_1fr] lg:py-20">
+            <div className="relative z-10 text-center lg:text-left">
+              <p className="fest-pill inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[12px] font-bold tracking-[0.14em] uppercase">
+                <span aria-hidden>★</span> {slide?.eyebrow || "Now playing"} <span aria-hidden>★</span>
+              </p>
+              <h1 data-rise="load" className="fest-headline mt-6 font-serif text-[clamp(2.6rem,7.5vw,6.25rem)] leading-[0.95] break-words uppercase">
+                <Rise text={heading} />
+              </h1>
+              {slide?.subheading && <p className="mx-auto mt-6 max-w-md text-base leading-relaxed text-taupe md:text-lg lg:mx-0">{slide.subheading}</p>}
+              {slide ? (
+                <Ctas slide={slide} className="mt-8 justify-center lg:justify-start" primary={buttonClass("primary", "lg", "fest-btn font-bold")} secondary={buttonClass("secondary", "lg", "font-bold")} />
+              ) : (
+                <Link href="/shop?sort=newest" className={buttonClass("primary", "lg", "fest-btn mt-8 font-bold")}>Shop the drop</Link>
+              )}
+              <p aria-hidden className="mt-9 text-[11px] font-bold tracking-[0.3em] text-taupe uppercase">
+                {storeName} · Fest {new Date().getFullYear()}
+              </p>
+            </div>
+            {picture && (
+              <div className="relative mx-auto w-full max-w-[21rem] sm:max-w-md">
+                <span aria-hidden className="fest-sun" />
+                <div className="fest-arch relative aspect-[4/5] overflow-hidden">
+                  <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 28rem, 85vw" className="object-cover" />
+                </div>
+                <span aria-hidden className="fest-wristband absolute -bottom-4 left-1/2 -translate-x-1/2 -rotate-3 rounded-full px-5 py-2 text-[12px] font-bold tracking-[0.22em] whitespace-nowrap uppercase">
+                  All access
+                </span>
+              </div>
+            )}
+          </div>
+        </section>
+      );
+    }
+
     default:
       if (!slide) {
         return (

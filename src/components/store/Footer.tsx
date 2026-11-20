@@ -309,6 +309,24 @@ export default function Footer({ settings, departments, variant = "columns" }: {
         </footer>
       );
 
+    case "confetti":
+      // The festival's goodbye: a wristband band, confetti and the guest list for the next drop.
+      return (
+        <footer className="fest-footer mt-28">
+          <div aria-hidden className="fest-band h-3" />
+          <div className="container-page grid gap-12 pt-14 pb-12 lg:grid-cols-[1.3fr_repeat(3,1fr)]">
+            <div className="max-w-sm">
+              <p aria-hidden className="fest-goodbye font-serif text-4xl leading-[0.95] uppercase">See you at the next drop</p>
+              <h2 className="mt-5 text-sm font-bold tracking-[0.14em] uppercase">{join}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-taupe">{pitch}</p>
+              <NewsletterForm boxed />
+            </div>
+            {columns}
+          </div>
+          <div className="container-page">{legal}</div>
+        </footer>
+      );
+
     case "ticket":
       return (
         <footer className="mt-28 border-t border-line">

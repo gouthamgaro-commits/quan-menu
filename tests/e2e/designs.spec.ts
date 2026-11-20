@@ -1,4 +1,4 @@
-// Store designs: each of the twenty builds the storefront its own way and stays accessible;
+// Store designs: each of the twenty-one builds the storefront its own way and stays accessible;
 // "Preview on the store" shows an unsaved look only in the browser that opens the signed
 // link; the home page follows the store's own section order; the WhatsApp chat button and
 // each store's own icon; a film in the opening banner; a product's 360° view.
@@ -277,6 +277,17 @@ const DESIGNS: { name: string; key: string; home: (p: Page) => Promise<void>; sh
       const pool = p.getByRole("region", { name: "Make a splash" });
       await expect(pool.getByRole("listitem").first().getByRole("link")).toHaveAttribute("href", /^\/products\//);
       await expect(p.locator("[data-design]")).toHaveAttribute("data-card", "metal");
+    },
+  },
+  {
+    name: "Festival",
+    key: "festival",
+    home: async (p) => {
+      await expect(p.locator(".fest-poster")).toBeVisible();
+      // The lineup: the collections billed like a festival poster's headliners.
+      const lineup = p.getByRole("region", { name: "The lineup" });
+      await expect(lineup.getByRole("link").first()).toHaveAttribute("href", /^\/collections\//);
+      await expect(p.locator("[data-design]")).toHaveAttribute("data-card", "pass");
     },
   },
 ];

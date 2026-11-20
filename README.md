@@ -83,11 +83,11 @@ payment account and web address, and the platform's administrators create them f
 - Policy pages, FAQ, contact form, maintenance page, sitemap and robots.
 - Until a store has something on sale, its homepage says it is opening soon and takes email
   sign-ups for launch day.
-- Twenty designs, each built differently: its header and menu, home page layout, product
+- Twenty-one designs, each built differently: its header and menu, home page layout, product
   cards, section titles, buttons, product photos and footer (Atelier, Nordic, Bazaar, Boutique,
-  Heritage, Noir, Cinema, Neon; three made for Gen Z shoppers: Drop, Y2K and Zine; and nine in 3D
-  and play: Orbit, Puff, Prism, Arcade, Gallery, Pop-up, Iso, Deck and Liquid), in 86 palettes,
-  light and dark, and 33 fonts. New stores start with a look no other store has (see
+  Heritage, Noir, Cinema, Neon; four made for Gen Z shoppers: Drop, Y2K, Zine and Festival; and
+  nine in 3D and play: Orbit, Puff, Prism, Arcade, Gallery, Pop-up, Iso, Deck and Liquid), in 90
+  palettes, light and dark, and 33 fonts. New stores start with a look no other store has (see
   [Appearance](#appearance)).
 - Movement, as the design chooses: sections that ease in as the shopper scrolls, headlines that
   rise into place line by line, an opening banner that zooms in as the page slides over it,
@@ -722,7 +722,7 @@ can be read at `http://localhost:4014/__test/messages`.
 
 **Admin › Settings › Appearance** sets how the whole storefront looks and is laid out:
 
-- **Design:** how the store is built. Each of the twenty has its own header and menu, home page
+- **Design:** how the store is built. Each of the twenty-one has its own header and menu, home page
   (banner, departments and the order of sections), product cards, section titles, buttons,
   product photos, shop filters and footer, and suits its own colours and fonts:
 
@@ -748,8 +748,9 @@ can be read at `http://localhost:4014/__test/messages`.
   | Iso | Isometric 3D: menu links on keyboard keys, the banner's piece on a stack of isometric blocks, cards as thick 3D tiles, departments as towers, the newest pieces on blocks of different heights, a keyboard footer |
   | Deck | A deck of cards: a segmented menu, the banner as a fanned hand of cards, products as trading cards, departments fanned like a hand, a stack to swipe through, a pile of cards for a footer |
   | Liquid | Liquid chrome: a polished metal header, the banner's piece in a chrome ring among molten blobs, cards with metal bevels, departments in liquid droplets, pieces in a reflecting pool, a dripping footer |
+  | Festival | A Gen Z festival: a wristband header, a lineup poster under a striped sunset, product cards as festival passes, departments on stages, bunting over the headings, the collections billed like headliners (the lineup) and a confetti footer |
 
-- **Colours:** 86 palettes, four to six made for each design (any works with any), or your own
+- **Colours:** 90 palettes, four to six made for each design (any works with any), or your own
   four colours: text; buttons and bands; accent; background (light or dark). Everything else
   the store paints with (panels, borders, secondary text, the words on buttons, sale and error
   colours, form fields) is derived from those four in `src/lib/theme.ts`, keeping every pairing
@@ -972,9 +973,9 @@ admin, a payment going to the store's own Razorpay account with its own webhook 
 suspending and reopening the store.
 
 **Theme and design tests (116 unit, 4 database, 9 Playwright)** cover the colour arithmetic; that
-every one of the 86 palettes keeps text, labels, secondary text, sale and error colours, fields
+every one of the 90 palettes keeps text, labels, secondary text, sale and error colours, fields
 and the words on buttons readable on every surface, and on the Spotlight's and the Showcase's
-changing backgrounds too, whatever colour a product is; fonts' weights; that the twenty designs differ in every part and suggest real palettes,
+changing backgrounds too, whatever colour a product is; fonts' weights; that the twenty-one designs differ in every part and suggest real palettes,
 fonts and sections; mixed-in parts, motion, openings and defaults; that new stores get different looks
 until the designs and palettes run out, and Shuffle always shows something new; the home page's
 own section order; store icons' initials; figures counting up in their own format (prefix,
@@ -1023,14 +1024,14 @@ its words changing when it sells instruments instead.
 **Accessibility checks (2, Playwright + axe-core)** scan 13 storefront pages (including the
 checkout) and 20 admin pages for WCAG 2.1 A/AA problems and fail on anything serious or critical;
 the mobile sign-in tests run the same check on the number and code forms and the settings tab,
-and the design tests on the home, product and shop pages of all twenty designs, a home page with
+and the design tests on the home, product and shop pages of all twenty-one designs, a home page with
 a film and a product page with a 360° view. Automated checks
 don't replace testing with a keyboard and a screen reader.
 
 Latest local run, against the local database with the Gen Z sample catalog and its shoes and
-accessories drop: typecheck clean, unit 157/157, integration 99/99, Playwright 43/43 against the
+accessories drop: typecheck clean, unit 161/161, integration 99/99, Playwright 43/43 against the
 production build (`next build`),
-and the home, shop, product, bag, sign-in and collections pages of all twenty designs checked
+and the home, shop, product, bag, sign-in and collections pages of all twenty-one designs checked
 at 360, 390, 768, 1024 and 1280 px wide without horizontal scrolling. The accessibility checks
 wait for sections still easing in, so colours are measured as shoppers see them.
 

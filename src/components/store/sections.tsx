@@ -400,6 +400,29 @@ export function Departments({ departments, variant, browse = "Find your fit", ea
         </section>
       );
 
+    case "stages":
+      // Departments as the stages of a festival, each with its sign and number.
+      return (
+        <section className="container-page mt-16 md:mt-24">
+          <SectionHeader eyebrow="Pick a stage" title={browse} />
+          <ul className={cx("grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6", departments.length >= 5 ? "lg:grid-cols-5" : "lg:grid-cols-4")}>
+            {departments.map((d, i) => (
+              <li key={d.id} data-reveal>
+                <Link href={`/category/${d.slug}`} className="fest-stage group block">
+                  <span className="fest-stage-sign block rounded-[16px] px-3 py-2.5 text-center">
+                    <span className="block text-[10px] font-bold tracking-[0.24em] text-on-brand-soft uppercase">Stage {String(i + 1).padStart(2, "0")}</span>
+                    <span className="mt-1 block font-serif text-lg leading-none uppercase md:text-xl">{d.name}</span>
+                  </span>
+                  <span className="fest-stage-floor relative mt-2 block aspect-[4/5] overflow-hidden rounded-[18px] bg-bone">
+                    {image(d, "(min-width: 1024px) 18vw, (min-width: 640px) 30vw, 45vw", "group-hover:scale-105", i < 4)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+
     case "mosaic":
       if (departments.length >= 3) {
         return (
