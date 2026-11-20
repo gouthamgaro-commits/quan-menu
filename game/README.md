@@ -49,6 +49,20 @@ depends on how often you were hunted and how many people you killed.
   **Q** for a smoke bomb that blinds nearby guards, and **V** to whistle a
   guard over to you.
 
+## Playing on a phone or tablet
+
+Touch controls appear automatically. Hold the phone sideways.
+
+- **Move:** put your left thumb anywhere on the left side and a stick appears
+  under it. Push it to the edge to run.
+- **Look:** drag anywhere on the right side.
+- **Buttons, bottom right:** Strike (hold it to draw the bow), Jump (hold it at
+  a ledge to climb), Sneak, and Block (Aim when the crossbow is out).
+- **Prompts:** tap them when they appear (Assassinate, Pick pocket, Open
+  chest).
+- **Weapons and items:** tap the weapon bar at the bottom, and the smoke,
+  draught and whistle buttons under your gold. The pause button is top right.
+
 ## Stealth
 
 The gem above your weapon bar shows how visible you are. Torchlight exposes

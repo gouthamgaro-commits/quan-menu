@@ -198,6 +198,8 @@ const G = { state: 'menu', t: 0 };
 const P = { pos: new V3(), vel: new V3() };
 const keys = {};
 const input = { fire: false, firePressed: false, alt: false, jump: false, mdx: 0, mdy: 0 };
+const stick = { id: null, x: 0, y: 0, cx: 0, cy: 0, run: false };
+let touchMode = matchMedia('(hover: none) and (pointer: coarse)').matches;
 
 function resetState() {
   Object.assign(G, {
@@ -223,7 +225,7 @@ function toast(msg, cls = '') {
   $('toasts').appendChild(el);
   setTimeout(() => el.classList.add('out'), 3600);
   setTimeout(() => el.remove(), 4300);
-  while ($('toasts').children.length > 5) $('toasts').firstChild.remove();
+  while ($('toasts').children.length > (window.innerHeight < 520 ? 3 : 5)) $('toasts').firstChild.remove();
 }
 let subT = 0;
 function subtitle(msg) { $('sub').textContent = msg; $('sub').style.opacity = 1; subT = 2.8; }
@@ -254,28 +256,46 @@ function relAngle(dx, dz) {
   return Math.atan2(dx * rx + dz * rz, dx * fx + dz * fz);
 }
 
-let promptAct = null;
+let promptAct = null, ctxActs = [];
+const ATK = [['i-sword', 'STRIKE'], ['i-bow', 'DRAW'], ['i-xbow', 'SHOOT'], ['i-knife', 'THROW']];
+function toggleClass(id, cls, on) { const k = id + '.' + cls; if (hudCache[k] !== on) { hudCache[k] = on; $(id).classList.toggle(cls, on); } }
 function updateHUD(dt) {
   setStyle('hpF', 'width', Math.max(0, P.hp).toFixed(0) + '%');
   setStyle('stF', 'width', Math.max(0, P.st).toFixed(0) + '%');
   setText('gold', String(G.gold));
   setText('potN', String(P.potions)); setText('smkN', String(P.smoke));
+  toggleClass('iHeal', 'empty', P.potions <= 0); toggleClass('iSmoke', 'empty', P.smoke <= 0);
   setText('a1', String(P.arrows)); setText('a2', String(P.bolts)); setText('a3', String(P.knives));
-  for (let i = 0; i < 4; i++) { const k = 'slot' + i; const on = P.weapon === i; if (hudCache[k] !== on) { hudCache[k] = on; $(k).classList.toggle('on', on); } }
+  for (let i = 0; i < 4; i++) toggleClass('slot' + i, 'on', P.weapon === i);
+  if (hudCache.stage !== G.stage) { hudCache.stage = G.stage; G.hintT = 10; }
+  G.hintT = Math.max(0, (G.hintT || 0) - dt);
   setText('objT', OBJ[G.stage][0]); setText('objH', OBJ[G.stage][1]);
-  setStyle('objX', 'display', G.marshalDead ? 'none' : 'block');
-  setStyle('keyI', 'display', G.hasKey ? 'inline-block' : 'none');
-  setStyle('crownI', 'display', G.hasCrown ? 'inline-block' : 'none');
+  setStyle('objH', 'display', G.hintT > 0 ? 'block' : 'none');
+  const tags = (G.hasKey && !G.hasCrown ? '<span class="tag">KEY</span>' : '') + (G.hasCrown ? '<span class="tag">CROWN</span>' : '');
+  if (hudCache.tags !== tags) { hudCache.tags = tags; $('tags').innerHTML = tags; }
+
+  // touch buttons follow the weapon in hand
+  if (touchMode) {
+    const w = P.weapon;
+    const atk = w === 1 && P.drawing ? 'LOOSE' : w === 2 && !P.loaded ? (P.bolts > 0 ? 'LOADING' : 'EMPTY') : ATK[w][1];
+    if (hudCache.atkW !== w) { hudCache.atkW = w; $('atkIcon').setAttribute('href', '#' + ATK[w][0]); }
+    setText('atkL', atk);
+    const aim = w === 2;
+    if (hudCache.blk !== aim) { hudCache.blk = aim; $('blkIcon').setAttribute('href', aim ? '#i-aim' : '#i-shield'); $('blkL').textContent = aim ? 'AIM' : 'BLOCK'; }
+    setStyle('bBlock', 'opacity', w === 0 || w === 2 ? '1' : '0.35');
+    toggleClass('bCrouch', 'on', P.crouch);
+  }
 
   // compass
+  const half = hudCache.cHalf || (hudCache.cHalf = Math.max(60, $('compass').clientWidth / 2 - 10));
   for (const m of compassMarks) {
     const px = relAngle(m.dx, m.dz) * 57.3 * 2.2;
-    m.el.style.display = Math.abs(px) < 150 ? 'block' : 'none';
+    m.el.style.display = Math.abs(px) < half ? 'block' : 'none';
     m.el.style.transform = `translateX(${px.toFixed(1)}px)`;
   }
   const [ox, oz] = objTarget();
   const od = Math.hypot(ox - P.pos.x, oz - P.pos.z);
-  objMark.style.transform = `translateX(${clamp(relAngle(ox - P.pos.x, oz - P.pos.z) * 57.3 * 2.2, -150, 150).toFixed(1)}px)`;
+  objMark.style.transform = `translateX(${clamp(relAngle(ox - P.pos.x, oz - P.pos.z) * 57.3 * 2.2, -half, half).toFixed(1)}px)`;
   setText('objD', od.toFixed(0) + ' m');
 
   // stealth read-out
@@ -310,19 +330,24 @@ function updateHUD(dt) {
   setStyle('draw', 'opacity', P.drawing ? '1' : '0');
   if (P.drawing) setStyle('draw', 'transform', `translate(-50%,-50%) scale(${(2.2 - P.draw * 1.5).toFixed(2)})`);
 
-  // prompt
-  promptAct = null;
-  let text = '';
+  // context actions: shown as key hints, tappable on touch screens
+  const acts = [];
   if (G.state === 'play' && P.lockT <= 0 && !P.mantle) {
     const g = stealthTarget();
     if (g) {
-      text = '[F] Assassinate';
-      if (!g.picked && g.state !== 'alert' && g.stun <= 0 && P.onGround) { text += '   ·   [E] Pick pocket'; promptAct = () => pickpocket(g); }
+      acts.push({ k: 'F', id: 'kill', label: 'Assassinate', icon: 'i-dagger', cls: 'kill', act: assassinate });
+      if (!g.picked && g.state !== 'alert' && g.stun <= 0 && P.onGround) acts.push({ k: 'E', id: 'pick', label: 'Pick pocket', icon: 'i-hand', act: () => pickpocket(g) });
     }
-    if (!promptAct) { const it = findInteract(); if (it) { text += (text ? '   ·   ' : '') + '[E] ' + it.label; promptAct = it.act; } }
+    if (acts.length < 2) { const it = findInteract(); if (it) acts.push({ k: 'E', id: 'use:' + it.label, label: it.label, icon: 'i-hand', act: it.act }); }
   }
-  setText('prompt', text);
-  setStyle('prompt', 'opacity', text ? '1' : '0');
+  const eAct = acts.find((a) => a.k === 'E');
+  promptAct = eAct ? eAct.act : null;
+  ctxActs = acts;
+  const sig = acts.map((a) => a.id).join('|');
+  if (hudCache.ctx !== sig) {
+    hudCache.ctx = sig;
+    $('ctx').innerHTML = acts.map((a, i) => `<button class="chip ${a.cls || ''}" data-i="${i}"><kbd class="kb-only">${a.k}</kbd><svg class="i"><use href="#${a.icon}"/></svg>${a.label}</button>`).join('');
+  }
 
   if (subT > 0) { subT -= dt; if (subT <= 0) $('sub').style.opacity = 0; }
   P.hurtT = Math.max(0, P.hurtT - dt);
@@ -517,11 +542,11 @@ function updateGuard(g, dt) {
     const range = (alert ? 48 : 32) * (0.2 + 0.8 * P.vis), dist = Math.hypot(dxz, dy);
     if (dist < range) {
       const dot = dxz > 0.01 ? (dx * Math.sin(g.look) + dz * Math.cos(g.look)) / dxz : 1;
-      if ((dist < 1.3 || dot > (alert ? -0.35 : 0.3)) &&
+      if ((dist < (P.crouch && !alert ? 0.6 : 1.3) || dot > (alert ? -0.35 : 0.3)) &&
         los(g.pos.x, g.pos.y + 1.62, g.pos.z, P.pos.x, P.pos.y + (P.crouch ? 0.65 : 1.25), P.pos.z)) {
         sees = true;
         if (!alert) {
-          let rate = 2.9 * Math.pow(P.vis, 1.25) * (1 - dist / range) + (dist < 1.6 ? 1.4 : 0);
+          let rate = 2.9 * Math.pow(P.vis, 1.25) * (1 - dist / range) + (dist < 1.6 && !P.crouch ? 1.4 : 0);
           if (G.alarm) rate *= 1.5;
           if (g.state === 'search') rate *= 1.4;
           g.det += rate * dt;
@@ -904,7 +929,11 @@ function updatePlayer(dt) {
     if (u >= 1) { P.mantle = null; P.vel.set(0, 0, 0); P.onGround = true; }
     return;
   }
-  let f = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0), s = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
+  let f = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0), s = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0), mag = 1;
+  if (stick.id !== null) {
+    const m = Math.hypot(stick.x, stick.y);
+    if (m > 0.12) { f = -stick.y / m; s = stick.x / m; mag = clamp((m - 0.12) / 0.75, 0.35, 1); }
+  }
   if (P.lockT > 0) { f = 0; s = 0; }
   if (keys.ArrowLeft) P.yaw += dt * 2.3;
   if (keys.ArrowRight) P.yaw -= dt * 2.3;
@@ -915,9 +944,10 @@ function updatePlayer(dt) {
   const wl = Math.hypot(wx, wz);
   if (wl > 0) { wx /= wl; wz /= wl; }
   const inWater = P.pos.y < WATER - 0.7;
-  P.sprint = !!(keys.ShiftLeft || keys.ShiftRight) && f > 0 && !P.crouch && P.st > 1 && !P.drawing && !P.blocking;
+  P.sprint = !!(keys.ShiftLeft || keys.ShiftRight || (stick.id !== null && stick.run)) && f > 0.4 && !P.crouch && P.st > 1 && !P.drawing && !P.blocking;
   let sp = P.crouch ? 2.2 : P.sprint ? 6.9 : 4.3;
   if (P.drawing || P.blocking) sp *= 0.55;
+  if (stick.id !== null) sp *= mag;
   if (inWater) sp *= 0.5;
   const acc = P.onGround ? 1 - Math.exp(-12 * dt) : 1 - Math.exp(-2.5 * dt);
   P.vel.x += (wx * sp - P.vel.x) * acc; P.vel.z += (wz * sp - P.vel.z) * acc;
@@ -1125,6 +1155,8 @@ function updateVM(dt) {
   const bx = Math.cos(P.bob) * 0.012 * P.moveAmt, by = -Math.abs(Math.sin(P.bob)) * 0.016 * P.moveAmt;
   vmRoot.position.set(swayX + bx, swayY + by - (P.swT / 0.25) * 0.45 + Math.sin(G.t * 1.6) * 0.004, 0);
   vmRoot.rotation.z = swayX * 0.8;
+  if (touchMode) { vmRoot.position.x += 0.05; vmRoot.position.y -= 0.03; }
+  vmSword.scale.setScalar(touchMode ? 0.7 : 0.86);
   vmSword.visible = w === 0 && !stab; vmBow.visible = w === 1 && !stab; vmXbow.visible = w === 2 && !stab; vmKnife.visible = stab || w === 3;
   const k = 1 - Math.exp(-22 * dt);
 
@@ -1194,7 +1226,9 @@ function resetGame() {
   crown.visible = true; keyMesh.visible = false; door.position.y = 1.6;
   doorCol.y0 = 0; doorCol.y1 = 3.2;
   $('toasts').innerHTML = '';
+  $('ctx').innerHTML = '';
   for (const k in hudCache) delete hudCache[k];
+  releaseTouch();
 }
 let locked = false, freeLook = false;
 function requestLock() {
@@ -1211,15 +1245,24 @@ function startGame() {
   resetGame();
   G.state = 'play';
   show('menu', false); show('end', false); show('pause', false); show('hud', true);
-  requestLock();
-  setTimeout(() => toast('Night falls on Ravenmoor. Stay low, stay dark.'), 600);
-  setTimeout(() => toast('[C] crouch · [Space] climb ledges · [F] strike from behind'), 4200);
+  if (!touchMode) requestLock();
+  const run = G.run = (G.run || 0) + 1, later = (ms, f) => setTimeout(() => { if (G.run === run && G.state === 'play') f(); }, ms);
+  later(600, () => toast('Night falls on Ravenmoor. Stay low, stay dark.'));
+  later(4200, () => toast(touchMode ? 'Left thumb moves, right thumb looks. Tap the prompts to act.' : '[C] crouch · [Space] climb ledges · [F] strike from behind'));
+  later(9000, () => toast("Contract: Lord Marshal Varek's death pays 500 gold.", 'gold'));
 }
 function pause(on) {
-  if (on && G.state === 'play') { G.state = 'pause'; show('pause', true); }
-  else if (!on && G.state === 'pause') { G.state = 'play'; show('pause', false); sfx.init(); if (!freeLook) requestLock(); }
+  if (on && G.state === 'play') {
+    G.state = 'pause';
+    releaseTouch();
+    $('pObjT').textContent = OBJ[G.stage][0]; $('pObjH').textContent = OBJ[G.stage][1];
+    $('pObjX').style.display = G.marshalDead ? 'none' : 'block';
+    $('soundBtn').textContent = G.muted ? 'SOUND OFF' : 'SOUND ON';
+    show('pause', true);
+  } else if (!on && G.state === 'pause') { G.state = 'play'; show('pause', false); sfx.init(); if (!freeLook && !touchMode) requestLock(); }
 }
 function endScreen(title, html, btn) {
+  releaseTouch();
   $('endT').textContent = title; $('endB').innerHTML = html; $('endBtn').textContent = btn;
   show('end', true); show('hud', false);
   if (document.pointerLockElement) document.exitPointerLock();
@@ -1280,16 +1323,16 @@ document.addEventListener('keydown', (e) => {
   }
 });
 document.addEventListener('keyup', (e) => { keys[e.code] = false; });
-window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; input.fire = input.alt = false; });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; input.fire = input.alt = false; releaseTouch(); });
 document.addEventListener('mousemove', (e) => {
-  if (G.state !== 'play' || (!locked && !freeLook)) return;
+  if (touchMode || G.state !== 'play' || (!locked && !freeLook)) return;
   const mx = clamp(e.movementX || 0, -120, 120), my = clamp(e.movementY || 0, -120, 120);
   const s = 0.0022 * (camera.fov / 75);
   P.yaw -= mx * s; P.pitch = clamp(P.pitch - my * s, -1.5, 1.5);
   input.mdx += mx; input.mdy += my;
 });
 document.addEventListener('mousedown', (e) => {
-  if (G.state !== 'play') return;
+  if (touchMode || G.state !== 'play' || (e.target.closest && e.target.closest('button'))) return;
   if (!locked && !freeLook) { requestLock(); return; }
   if (e.button === 0) { input.fire = true; input.firePressed = true; } else if (e.button === 2) input.alt = true;
 });
@@ -1302,8 +1345,98 @@ document.addEventListener('pointerlockchange', () => {
 });
 $('startBtn').addEventListener('click', startGame);
 $('endBtn').addEventListener('click', startGame);
-$('pause').addEventListener('click', () => pause(false));
-window.addEventListener('resize', resize);
+$('resumeBtn').addEventListener('click', () => pause(false));
+$('restartBtn').addEventListener('click', startGame);
+$('soundBtn').addEventListener('click', () => { G.muted = !G.muted; sfx.mute(G.muted); $('soundBtn').textContent = G.muted ? 'SOUND OFF' : 'SOUND ON'; });
+$('rotateBtn').addEventListener('click', () => $('rotate').classList.add('dismissed'));
+window.addEventListener('resize', () => { resize(); delete hudCache.cHalf; if (stick.id === null) placeStick(); });
+
+// ---------------------------------------------------------------- touch controls
+// Left side: a floating stick that appears under the thumb. Right side: drag to look.
+// Buttons and prompts sit above that layer and take their own touches.
+function setTouch(on) { touchMode = on; document.body.classList.toggle('touch', on); for (const k in hudCache) if (k.startsWith('atk') || k === 'blk' || k === 'cHalf') delete hudCache[k]; }
+setTouch(touchMode);
+window.addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'touch' && !touchMode) setTouch(true);
+  else if (e.pointerType === 'mouse' && touchMode && matchMedia('(hover: hover)').matches) setTouch(false);
+}, true);
+const look = { id: null, x: 0, y: 0 };
+const STICK_R = 52;
+const tz = $('tz'), stickEl = $('stick'), knob = $('knob');
+function placeStick(x, y) {
+  if (x === undefined) { stickEl.style.left = stickEl.style.top = stickEl.style.bottom = ''; return; }
+  const r = 62;
+  stickEl.style.left = clamp(x, r + 4, window.innerWidth * 0.5) - r + 'px';
+  stickEl.style.top = clamp(y, r + 4, window.innerHeight - r - 4) - r + 'px';
+  stickEl.style.bottom = 'auto';
+}
+function resetStick() {
+  stick.id = null; stick.x = stick.y = 0; stick.run = false;
+  knob.style.transform = ''; stickEl.classList.remove('live', 'run');
+  placeStick();
+}
+function releaseTouch() {
+  if (stick.id !== null) resetStick();
+  look.id = null;
+  if (touchMode) { input.fire = input.alt = false; keys.Space = false; }
+  for (const el of document.querySelectorAll('.tb.down')) el.classList.remove('down');
+}
+tz.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  if (G.state !== 'play') return;
+  if (e.clientX < window.innerWidth * 0.42 && stick.id === null) {
+    stick.id = e.pointerId; stick.cx = e.clientX; stick.cy = e.clientY;
+    stickEl.classList.add('live'); placeStick(e.clientX, e.clientY);
+    stick.cx = parseFloat(stickEl.style.left) + 62; stick.cy = parseFloat(stickEl.style.top) + 62;
+  } else if (look.id === null) { look.id = e.pointerId; look.x = e.clientX; look.y = e.clientY; }
+  else return;
+  try { tz.setPointerCapture(e.pointerId); } catch (err) { /* capture is optional */ }
+});
+tz.addEventListener('pointermove', (e) => {
+  if (e.pointerId === stick.id) {
+    const dx = e.clientX - stick.cx, dy = e.clientY - stick.cy, d = Math.hypot(dx, dy), k = d > STICK_R ? STICK_R / d : 1;
+    stick.x = dx * k / STICK_R; stick.y = dy * k / STICK_R;
+    const run = d > STICK_R * 1.4;
+    if (run !== stick.run) { stick.run = run; stickEl.classList.toggle('run', run); }
+    knob.style.transform = `translate(${(dx * k).toFixed(1)}px, ${(dy * k).toFixed(1)}px)`;
+  } else if (e.pointerId === look.id && G.state === 'play') {
+    const dx = e.clientX - look.x, dy = e.clientY - look.y;
+    look.x = e.clientX; look.y = e.clientY;
+    const s = 0.0062 * (camera.fov / 75);
+    P.yaw -= dx * s; P.pitch = clamp(P.pitch - dy * s, -1.45, 1.45);
+    input.mdx += dx * 1.4; input.mdy += dy * 1.4;
+  }
+});
+const endTouch = (e) => { if (e.pointerId === stick.id) resetStick(); if (e.pointerId === look.id) look.id = null; };
+tz.addEventListener('pointerup', endTouch);
+tz.addEventListener('pointercancel', endTouch);
+function holdBtn(id, down, up) {
+  const el = $(id);
+  el.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (G.state !== 'play') return;
+    try { el.setPointerCapture(e.pointerId); } catch (err) { /* capture is optional */ }
+    el.classList.add('down'); down();
+  });
+  const rel = () => { if (!el.classList.contains('down')) return; el.classList.remove('down'); if (up) up(); };
+  el.addEventListener('pointerup', rel); el.addEventListener('pointercancel', rel);
+}
+holdBtn('bAtk', () => { input.fire = true; input.firePressed = true; }, () => { input.fire = false; });
+holdBtn('bJump', () => { input.jump = true; keys.Space = true; }, () => { keys.Space = false; });
+holdBtn('bBlock', () => { input.alt = true; }, () => { input.alt = false; });
+holdBtn('bCrouch', () => { P.crouch = !P.crouch; });
+holdBtn('iSmoke', throwSmoke); holdBtn('iHeal', drinkPotion); holdBtn('iWhistle', whistle);
+for (let i = 0; i < 4; i++) holdBtn('slot' + i, () => switchWeapon(i));
+$('pauseBtn').addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); pause(true); });
+$('obj').addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); G.hintT = G.hintT > 0 ? 0 : 8; });
+$('ctx').addEventListener('pointerdown', (e) => {
+  const b = e.target.closest('.chip');
+  if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const a = ctxActs[+b.dataset.i];
+  if (a && G.state === 'play') a.act();
+});
+document.addEventListener('gesturestart', (e) => e.preventDefault());
 
 // ---------------------------------------------------------------- main loop
 let last = performance.now(), tensionT = 0, fpsT = 0, fpsN = 0, lowFps = 0;
@@ -1375,5 +1508,5 @@ buildChests();
 resetGame();
 resize();
 show('hud', false);
-window.__game = { G, P, W, guards, shots, camera, renderer, startGame, findPath, blocked, C, keys, input, logic, stealthTarget, assassinate, navH, pickpocket, findInteract, los, alertGuard };
+window.__game = { G, P, W, guards, shots, camera, renderer, startGame, findPath, blocked, C, keys, input, stick, logic, stealthTarget, setTouch: (v) => setTouch(v), pause, assassinate, navH, pickpocket, findInteract, los, alertGuard };
 requestAnimationFrame(frame);
