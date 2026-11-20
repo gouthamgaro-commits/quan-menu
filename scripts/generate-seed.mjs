@@ -4,6 +4,7 @@
 //
 //   node scripts/generate-seed.mjs                 writes supabase/seed.sql
 //   node scripts/generate-seed.mjs --pack <store>  prints SQL adding the newer products to a store
+//     --since ["<product title>"]                  ...from that product on (default: the shoes and accessories drop)
 //
 // Brands, products and copy are fictional. Photos are from Unsplash (free to use under
 // the Unsplash License, https://unsplash.com/license) and are loaded from their CDN.
@@ -60,6 +61,15 @@ const sizeGuides = [
     rows: [["S", "28-30"], ["M", "32-34"], ["L", "36-38"]],
     how: "Choose the size of the trousers you wear the belt with.",
   },
+  {
+    key: "shoes",
+    name: "Shoes",
+    unit: "cm",
+    columns: ["Size", "EU", "US women", "US men", "Foot length"],
+    rows: [["UK 3", "36", "5.5", "4", "22.5"], ["UK 4", "37", "6.5", "5", "23.2"], ["UK 5", "38", "7.5", "6", "23.9"], ["UK 6", "39", "8.5", "7", "24.6"],
+      ["UK 7", "40.5", "9.5", "8", "25.4"], ["UK 8", "42", "10.5", "9", "26.2"], ["UK 9", "43", "11.5", "10", "27"], ["UK 10", "44.5", "12.5", "11", "27.8"]],
+    how: "Stand on a sheet of paper, mark your heel and longest toe, and measure between the marks. Between sizes, go up.",
+  },
 ];
 
 const brands = [
@@ -89,7 +99,9 @@ const categories = [
   { slug: "unisex", name: "Unisex", image: tall("1521572163474-6864f9cf17ab"), banner: wide("1562157873-818bc0726f68"), sort: 3,
     description: "Wardrobe essentials designed to fit everyone." },
   { slug: "accessories", name: "Accessories", image: tall("1624687943971-e86af76d57de"), banner: wide("1760624089496-01ae68a92d58"), sort: 4,
-    description: "Leather bags, belts and handmade jewellery." },
+    description: "Bags, sunglasses, hats, belts and jewellery." },
+  { slug: "shoes", name: "Shoes", image: tall("1793058420644-1b25580b5b29"), banner: wide("1758542988948-b95a6c4aa68b"), sort: 5,
+    description: "Chunky sneakers, platform boots, Mary Janes and slides." },
   { slug: "women-dresses", parent: "women", name: "Dresses", guide: "women", sort: 1 },
   { slug: "women-tops", parent: "women", name: "Tops & Shirts", guide: "women", sort: 2 },
   { slug: "women-skirts", parent: "women", name: "Skirts", guide: "women", sort: 3 },
@@ -105,12 +117,19 @@ const categories = [
   { slug: "accessories-bags", parent: "accessories", name: "Bags", sort: 1 },
   { slug: "accessories-belts", parent: "accessories", name: "Belts", guide: "belts", sort: 2 },
   { slug: "accessories-jewellery", parent: "accessories", name: "Jewellery", sort: 3 },
+  { slug: "accessories-sunglasses", parent: "accessories", name: "Sunglasses", sort: 4 },
+  { slug: "accessories-hats", parent: "accessories", name: "Hats & Beanies", sort: 5 },
+  { slug: "shoes-sneakers", parent: "shoes", name: "Sneakers", guide: "shoes", sort: 1 },
+  { slug: "shoes-boots", parent: "shoes", name: "Boots", guide: "shoes", sort: 2 },
+  { slug: "shoes-flats", parent: "shoes", name: "Flats & Slides", guide: "shoes", sort: 3 },
 ];
 
 const W = ["XS", "S", "M", "L"];
 const WX = ["XS", "S", "M", "L", "XL"];
 const M = ["S", "M", "L", "XL", "XXL"];
 const ONE = [""];
+const UK = ["UK 4", "UK 5", "UK 6", "UK 7", "UK 8", "UK 9", "UK 10"];
+const UKW = ["UK 3", "UK 4", "UK 5", "UK 6", "UK 7"];
 
 // colours: [name, hex, [image ids]]
 const products = [
@@ -737,9 +756,128 @@ const products = [
     fit: "18 × 14 cm, with an adjustable strap.",
     care: "Wipe clean with a damp cloth.",
     d: "A minimal white crossbody with buckled straps and a flap front. Hands-free, all day." },
+
+  // Shoes and accessories: the latest drop (`--pack <store> --since` adds just these).
+  { t: "Cloud Chunky Sneakers", b: "low-orbit", c: "shoes-sneakers", p: 2999, sizes: UK, featured: true,
+    colors: [["Mint White", "#E4F0EA", ["1589834273220-7020d1d32f1d"]]],
+    tags: ["streetwear", "y2k", "shoes"], fabric: "Faux leather and mesh upper on a moulded chunky sole.",
+    fit: "True to size, with a padded collar and a cushioned insole.",
+    care: "Wipe clean with a damp cloth. Air dry.",
+    d: "Chunky sneakers in soft mint-white on a wavy stacked sole. Mom jeans, cargos, a mini: they go with all of it." },
+  { t: "Stacked Leather Sneakers", b: "lumen-leather", c: "shoes-sneakers", p: 3299, cmp: 3999, sizes: UK,
+    colors: [["White", "#F2F2EF", ["1565551675785-cda6912bb139"]]],
+    tags: ["streetwear", "essentials", "shoes"], fabric: "Leather upper with perforated panels and a ridged rubber sole.",
+    fit: "True to size, on a 4 cm stacked sole.",
+    care: "Wipe the leather clean. Brush the sole with a soft brush.",
+    d: "White leather sneakers on a thick ridged sole, with a striped pull tab at the heel. All the height, none of the weight." },
+  { t: "Minimal White Sneakers", b: "field-and-fold", c: "shoes-sneakers", p: 2499, sizes: UK,
+    colors: [["White", "#F7F7F5", ["1645106281638-79585657aa4e"]]],
+    tags: ["essentials", "shoes"], fabric: "Smooth leather and breathable mesh on a light foam sole.",
+    fit: "True to size, with a slim profile.",
+    care: "Wipe clean with a damp cloth.",
+    d: "Clean white sneakers with nothing extra: smooth leather, a little mesh and a light, springy sole. The pair you'll wear every day." },
+  { t: "Lace-Up Platform Knee Boots", b: "glitch-garden", c: "shoes-boots", p: 4499, sizes: UKW, featured: true,
+    colors: [["Black", "#141414", ["1793058420644-1b25580b5b29", "1793058438539-4d981d7648b7"]]],
+    tags: ["y2k", "aw26", "shoes"], fabric: "Faux leather with a side zip and a chunky platform sole.",
+    fit: "Knee high on a 5 cm platform and an 8 cm block heel. True to size.",
+    care: "Wipe clean. Stuff with paper to keep the shape.",
+    d: "Black knee boots that lace all the way up, on a chunky platform. A plaid mini and stripey socks, and the outfit's done." },
+  { t: "Lug-Sole Lace-Up Boots", b: "low-orbit", c: "shoes-boots", p: 3799, sizes: UK,
+    colors: [["Black", "#151515", ["1776186432015-9258ba5ea4c7"]]],
+    tags: ["streetwear", "aw26", "shoes"], fabric: "Polished faux leather on a deep-cleated rubber sole.",
+    fit: "Ankle height, with a padded collar. True to size.",
+    care: "Wipe clean. Polish now and then.",
+    d: "Chunky black lace-ups on a deep lug sole, under joggers or wide jeans. Built for every puddle in town." },
+  { t: "White Go-Go Boots", b: "glitch-garden", c: "shoes-boots", p: 3999, sizes: UKW,
+    colors: [["White", "#F3F1EC", ["1768225660834-50f47e09df69"]]],
+    tags: ["y2k", "going-out", "shoes"], fabric: "Glossy faux leather with a full side zip.",
+    fit: "Mid-calf, on a 9 cm block heel and a small platform. True to size.",
+    care: "Wipe clean with a damp cloth.",
+    d: "Glossy white go-go boots with front lacing and a block heel. Fishnets and a pink mini, or straight-leg jeans for daytime." },
+  { t: "Triple-Strap Mary Janes", b: "lumen-leather", c: "shoes-flats", p: 2799, sizes: UKW,
+    colors: [["Black Patent", "#101010", ["1758542988948-b95a6c4aa68b"]]],
+    tags: ["prep", "shoes"], fabric: "Patent leather with three buckled straps and a stacked heel.",
+    fit: "True to size. The straps adjust across the instep.",
+    care: "Wipe with a soft cloth.",
+    d: "Glossy black Mary Janes with three silver buckles across the foot. With white socks and a pleated skirt, it's prep with a wink." },
+  { t: "Braided Strap Slides", b: "kaari-studio", c: "shoes-flats", p: 1299, sizes: UKW,
+    colors: [["Sunset", "#D9574A", ["1781863065553-e2dfaf6c01a6"]]],
+    tags: ["summer", "handcrafted", "shoes"], fabric: "Hand-braided faux leather straps on a cushioned footbed.",
+    fit: "True to size, with a square toe.",
+    care: "Wipe clean. Keep out of long soaks.",
+    d: "Flat slides with a chunky braided strap in sunset reds and golds, plaited by hand. Holidays, rooftops, all summer." },
+  { t: "Pillow Slides", b: "low-orbit", c: "shoes-flats", p: 999, cmp: 1299, sizes: UK,
+    colors: [["Black", "#1A1A1A", ["1764471444628-51c4189ec183"]]],
+    tags: ["streetwear", "summer", "shoes"], fabric: "Soft one-piece moulded foam.",
+    fit: "Roomy. Between sizes, go down.",
+    care: "Rinse and air dry.",
+    d: "Thick, squishy foam slides that feel like walking on a pillow. For the shower, the pool and the corner shop." },
+  { t: "Crescent Shoulder Bag", b: "lumen-leather", c: "accessories-bags", p: 2499, sizes: ONE, featured: true,
+    colors: [["Tan", "#A9683A", ["1760624294514-ca40aafe3d96"]], ["Cream", "#EDE6D6", ["1760624294514-ca40aafe3d96"]], ["Black", "#1C1C1C", ["1760624294514-ca40aafe3d96"]],
+      ["Olive", "#7A6A3A", ["1760624294514-ca40aafe3d96"]], ["Teal", "#2E6E86", ["1760624294514-ca40aafe3d96"]]],
+    tags: ["y2k", "essentials"], fabric: "Soft washed leather with a zip top and a clip-on strap.",
+    fit: "30 × 18 cm. The strap clips off and adjusts.",
+    care: "Wipe with a dry cloth. Condition now and then.",
+    d: "A slouchy half-moon bag in soft washed leather that sits right under the arm. Five colours, one for every mood." },
+  { t: "Woven Circle Bag", b: "kaari-studio", c: "accessories-bags", p: 1499, sizes: ONE,
+    colors: [["Natural & Berry", "#D9B98A", ["1771237873540-4e4f4d5b0def"]]],
+    tags: ["summer", "handcrafted"], fabric: "Hand-coiled natural grass with a berry spiral and a rope strap.",
+    fit: "20 cm across, on a long crossbody strap.",
+    care: "Brush off dust. Keep dry.",
+    d: "A round crossbody coiled by hand from natural grass, with a berry-pink spiral at its heart. Made to be carried everywhere." },
+  { t: "White Cat-Eye Sunglasses", b: "glitch-garden", c: "accessories-sunglasses", p: 899, sizes: ONE,
+    colors: [["White", "#F5F5F2", ["1548918901-9b31223c5c3a"]]],
+    tags: ["y2k", "summer"], fabric: "Acetate frame with UV400 tinted lenses.",
+    fit: "Lens width 52 mm, with sharp upswept corners.",
+    care: "Clean with the microfibre pouch. Store in the case.",
+    d: "Sharp white cat-eye sunglasses with dark lenses. The quickest way to look like you have plans." },
+  { t: "Tinted Round Sunglasses", b: "glitch-garden", c: "accessories-sunglasses", p: 999, sizes: ONE,
+    colors: [["Rose Tint", "#E0585F", ["1597175848600-5ef8d4d15c30"]]],
+    tags: ["y2k", "summer"], fabric: "Thin metal frame with UV400 rose-tinted lenses.",
+    fit: "Oversized round lenses, 58 mm.",
+    care: "Clean with the microfibre pouch.",
+    d: "Big round sunglasses with a thin gold-tone frame and rose-tinted lenses. Everything looks better through them." },
+  { t: "Y2K Wrap Sunglasses", b: "glitch-garden", c: "accessories-sunglasses", p: 1099, sizes: ONE, featured: true,
+    colors: [["Mint", "#8FC9A8", ["1635500574974-114cb4f49759"]]],
+    tags: ["y2k", "going-out"], fabric: "Moulded frame with UV400 smoke lenses.",
+    fit: "One-piece wraparound shape.",
+    care: "Clean with the microfibre pouch.",
+    d: "Sporty wraparound shades in mint with sharp angled lenses, straight out of 2001. Loud on purpose." },
+  { t: "Washed Bucket Hat", b: "low-orbit", c: "accessories-hats", p: 799, sizes: ONE,
+    colors: [["Sage", "#7F8C80", ["1627683566270-bf7e75dfec0a", "1627681828965-048a32cdf16f"]]],
+    tags: ["streetwear", "summer"], fabric: "Garment-washed cotton twill with air holes.",
+    fit: "One size, 57-59 cm.",
+    care: "Hand wash cold. Reshape and air dry.",
+    d: "A soft bucket hat in faded sage cotton, washed for that lived-in look. Festivals, beaches, bad hair days." },
+  { t: "Ribbed Beanie", b: "northloom", c: "accessories-hats", p: 699, sizes: ONE,
+    colors: [["Tangerine", "#E5451E", ["1590700722775-9c8e16cb3b7e"]]],
+    tags: ["streetwear", "aw26"], fabric: "Soft acrylic-wool rib knit.",
+    fit: "One size, with a deep turn-up cuff.",
+    care: "Hand wash cold. Dry flat.",
+    d: "A chunky rib beanie in loud tangerine, with a deep turn-up. Pull it low or wear it high." },
+  { t: "Cable Bobble Beanie", b: "northloom", c: "accessories-hats", p: 899, sizes: ONE,
+    colors: [["Mustard", "#F2B705", ["1576529598261-96e376f6aabb"]]],
+    tags: ["aw26", "knitwear"], fabric: "Hand-knit wool blend in a thick cable.",
+    fit: "One size, slouchy, with a big bobble.",
+    care: "Hand wash cold. Dry flat.",
+    d: "A hand-knit cable beanie in bright mustard, topped with a fat bobble. Cosy, and impossible to miss." },
+  { t: "Chunky Chain Necklace", b: "glitch-garden", c: "accessories-jewellery", p: 1199, sizes: ONE,
+    colors: [["Gold", "#D4AF37", ["1728647771865-636b715674f4"]]],
+    tags: ["y2k", "going-out"], fabric: "Gold-plated brass curb chain with a lobster clasp.",
+    fit: "45 cm, sitting just under the collarbone.",
+    care: "Keep away from water and perfume. Store in the pouch.",
+    d: "A chunky gold curb chain that turns a white tee into an outfit. Wear it alone, or stack it with finer chains." },
+  { t: "Stacking Ring Set", b: "kaari-studio", c: "accessories-jewellery", p: 999, sizes: ONE,
+    colors: [["Mixed Metals", "#C9A86A", ["1587593692659-38c32c496642"]]],
+    tags: ["handcrafted", "essentials"], fabric: "Twelve rings in gold- and silver-tone brass: plain, textured and stone-set.",
+    fit: "Sizes 5 to 8 in each set.",
+    care: "Keep dry. Polish with a soft cloth.",
+    d: "Twelve thin rings in gold and silver tones, plain, twisted and stone-set. Stack them, mix them, share them." },
 ];
 /** The first of the newest products, which `--pack` adds to a store that already has the others. */
 const FIRST_ADDED = "Ribbed Asymmetric Crop Top";
+/** The first of the shoes and accessories drop: `--pack <store> --since` starts here. */
+const SHOES_FIRST = "Cloud Chunky Sneakers";
 
 const collections = [
   { slug: "y2k-revival", title: "Y2K Revival", kind: "automated", featured: true, sort: 1,
@@ -839,7 +977,7 @@ products.forEach((p, i) => {
   let vpos = 0;
   for (const [color, hex] of p.colors) {
     for (const size of p.sizes) {
-      const sku = [brand.code, String(i + 1).padStart(3, "0"), colorCode(color), size].filter(Boolean).join("-");
+      const sku = [brand.code, String(i + 1).padStart(3, "0"), colorCode(color), size.replace(/\s+/g, "")].filter(Boolean).join("-");
       out.push(`insert into public.product_variants (product_id, sku, size, color, color_hex, stock_quantity, position) values ((select id from public.products where slug = ${q(slug)}), ${q(sku)}, ${q(size)}, ${q(color)}, ${q(hex)}, ${stockFor(sku)}, ${vpos++});`);
     }
   }
@@ -932,6 +1070,7 @@ where id = 1;
 // added, or any clothing store), as the newest arrivals and flagged as samples. It adds the size
 // guides, brands and categories they need where the store has none by that name, and skips
 // products the store already has. Paste it into Supabase › SQL Editor.
+// --since ["<title>"] starts from that product instead (SHOES_FIRST when no title is given).
 const packAt = process.argv.indexOf("--pack");
 if (packAt > -1) {
   const store = process.argv[packAt + 1] ?? "";
@@ -939,7 +1078,13 @@ if (packAt > -1) {
     console.error("--pack takes a store id, like 6bf8ac76-bb65-4994-b630-e9eda2c7a357");
     process.exit(1);
   }
-  const from = products.findIndex((p) => p.t === FIRST_ADDED);
+  const sinceAt = process.argv.indexOf("--since");
+  const first = sinceAt > -1 ? process.argv[sinceAt + 1] || SHOES_FIRST : FIRST_ADDED;
+  const from = products.findIndex((p) => p.t === first);
+  if (from < 0) {
+    console.error(`--since: no product "${first}"`);
+    process.exit(1);
+  }
   const added = products.slice(from);
   const needed = new Set(added.map((p) => p.c));
   for (const slug of [...needed]) {
@@ -951,7 +1096,7 @@ if (packAt > -1) {
   const guideName = (key) => (key ? q(sizeGuides.find((g) => g.key === key).name) : "null::text");
   const rows = (list) => list.map((r) => `    (${r.join(", ")})`).join(",\n");
   const sql = [
-    `-- Adds ${added.length} sample products ("${FIRST_ADDED}" onwards) to store ${store}.`,
+    `-- Adds ${added.length} sample products ("${first}" onwards) to store ${store}.`,
     "-- Generated by scripts/generate-seed.mjs --pack. Run once in Supabase › SQL Editor; running it",
     "-- again adds nothing the store already has.",
     "do $pack$",
@@ -1005,7 +1150,7 @@ if (packAt > -1) {
       let vpos = 0;
       for (const [color, hex] of p.colors) {
         for (const size of p.sizes) {
-          const sku = [brand.code, String(i + 1).padStart(3, "0"), colorCode(color), size].filter(Boolean).join("-");
+          const sku = [brand.code, String(i + 1).padStart(3, "0"), colorCode(color), size.replace(/\s+/g, "")].filter(Boolean).join("-");
           variants.push([q(slug), q(sku), q(size), q(color), q(hex), String(stockFor(sku)), String(vpos++)]);
         }
       }

@@ -294,12 +294,19 @@ recognised by a column or function each update added). Keep that line when addin
 Money is stored as integer paise everywhere (`bigint` with a non-negative check). Generated
 TypeScript types are in `src/lib/database.types.ts` (`npm run db:types`).
 
-`supabase/seed.sql` adds **sample data**: 45 fictional products from six made-up labels with
-240 variants, categories, size guides, collections, discount codes (`WELCOME10`, `FLAT500`,
-`FREESHIP`, `CRAFT15`), a metro shipping zone and homepage banners. Product photos are loaded from
-Unsplash. Every sample row is flagged `is_sample` and labelled "Sample" in the admin; remove it
-all from **Settings › Maintenance and data** before launch (sample products that appear in orders
-are archived instead of deleted). `scripts/generate-seed.mjs` regenerates the file.
+`supabase/seed.sql` adds **sample data**: 120 fictional products from eight made-up labels with
+562 variants (Gen Z womenswear, menswear and unisex pieces, plus a drop of shoes and accessories:
+chunky sneakers, platform boots, Mary Janes, slides, bags, sunglasses, hats and jewellery), 25
+categories, 6 size guides, 9 collections, discount codes (`WELCOME10`, `FLAT500`, `FREESHIP`,
+`CRAFT15`), a metro shipping zone and homepage banners. Product photos are loaded from Unsplash
+and checked for logos. Every sample row is flagged `is_sample` and labelled "Sample" in the admin;
+remove it all from **Settings › Maintenance and data** before launch (sample products that appear
+in orders are archived instead of deleted). `scripts/generate-seed.mjs` regenerates the file.
+
+A store that took its samples before newer pieces were added catches up from the same script:
+`node scripts/generate-seed.mjs --pack <store id>` prints the SQL that adds the newer pieces,
+and `--since` limits it to the shoes and accessories drop (or `--since "<product title>"` to start
+from any product). It skips what the store already has; paste it into Supabase › SQL Editor.
 
 ## Run it locally
 
@@ -1020,8 +1027,9 @@ and the design tests on the home, product and shop pages of all twenty designs, 
 a film and a product page with a 360° view. Automated checks
 don't replace testing with a keyboard and a screen reader.
 
-Latest local run, against the local database with the Gen Z sample catalog: typecheck clean,
-unit 157/157, integration 99/99, Playwright 43/43 against the production build (`next build`),
+Latest local run, against the local database with the Gen Z sample catalog and its shoes and
+accessories drop: typecheck clean, unit 157/157, integration 99/99, Playwright 43/43 against the
+production build (`next build`),
 and the home, shop, product, bag, sign-in and collections pages of all twenty designs checked
 at 360, 390, 768, 1024 and 1280 px wide without horizontal scrolling. The accessibility checks
 wait for sections still easing in, so colours are measured as shoppers see them.
