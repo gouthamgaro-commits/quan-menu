@@ -1,7 +1,7 @@
 // Store designs: each of the twenty-one builds the storefront its own way and stays accessible;
 // "Preview on the store" shows an unsaved look only in the browser that opens the signed
 // link; the home page follows the store's own section order; the WhatsApp chat button and
-// each store's own icon; a film in the opening banner; a product's 360° view.
+// each store's own icon; a film in the opening banner; shop the look on its photo; a product's 360° view.
 import { join } from "node:path";
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { OWNER } from "./support/env";
@@ -629,6 +629,53 @@ test("a film in the opening banner, and the picture for shoppers who ask for les
     await expect(visit.locator("main img").first()).toBeVisible();
     await expect(visit.locator("main video")).toHaveCount(0);
     await still.close();
+  } finally {
+    await db().from("store_settings").update({ homepage: before!.homepage }).eq("id", 1);
+  }
+});
+
+test("shop the look: dots on the opening banner's pieces put them in the bag, and the owner tags them on the photo", async ({ page }) => {
+  const { data: before } = await db().from("store_settings").select("homepage").eq("id", 1).single();
+  try {
+    // The sample banner tags the corset top and the jeans in its photo.
+    await page.goto("/");
+    const top = page.getByRole("button", { name: "White Bustier Corset Top: see the piece" });
+    await expect(top).toBeVisible();
+    await expect(page.getByRole("button", { name: "Low-Rise Baggy Jeans: see the piece" })).toBeVisible();
+    await top.click();
+    const tag = page.getByRole("dialog", { name: "Shop the look: White Bustier Corset Top" });
+    await expect(tag.getByRole("link", { name: /White Bustier Corset Top/ })).toHaveAttribute("href", "/products/white-bustier-corset-top");
+    await expect(tag).toContainText("₹");
+    await expectAccessible(page, "shop the look");
+    await page.keyboard.press("Escape");
+    await expect(tag).toBeHidden();
+
+    // Add to bag asks for a size, as Quick add does, and the piece goes into the bag.
+    await top.click();
+    await tag.getByRole("button", { name: "Add to bag" }).click();
+    const sheet = page.getByRole("dialog", { name: "White Bustier Corset Top" });
+    await sheet.locator("button[aria-label^='Size ']:not([disabled])").first().click();
+    await sheet.getByRole("button", { name: "Add to bag" }).click();
+    const bag = page.getByRole("dialog", { name: /^Your bag \(\d+\)$/ });
+    await expect(bag.getByRole("link", { name: "White Bustier Corset Top" }).first()).toBeVisible();
+
+    // The owner tags another piece: a tap on the photo, then the piece.
+    await page.goto("/admin/settings?tab=homepage");
+    const editor = page.locator("[data-look-editor]");
+    await expect(editor.getByText("Low-Rise Baggy Jeans")).toBeVisible();
+    const photo = editor.locator("[data-look-photo]");
+    const box = (await photo.boundingBox())!;
+    await photo.click({ position: { x: box.width * 0.5, y: box.height * 0.5 } });
+    await editor.getByLabel("Which piece is at the new dot?").fill("moto");
+    await editor.getByRole("button", { name: /Cropped Moto Jacket/ }).click();
+    await expect(editor.getByRole("button", { name: /^Dot 3: Cropped Moto Jacket/ })).toBeVisible();
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await expect(page.getByText("Settings saved.").first()).toBeVisible();
+    const { data: saved } = await db().from("store_settings").select("homepage").eq("id", 1).single();
+    expect((saved!.homepage as { hero: { looks: { x: number; y: number }[] }[] }).hero[0].looks[2]).toMatchObject({ x: 50, y: 50 });
+
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Cropped Moto Jacket: see the piece" })).toBeVisible();
   } finally {
     await db().from("store_settings").update({ homepage: before!.homepage }).eq("id", 1);
   }

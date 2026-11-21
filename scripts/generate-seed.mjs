@@ -72,23 +72,24 @@ const sizeGuides = [
   },
 ];
 
+// In the order the store lists them: the Gen Z labels first.
 const brands = [
-  { slug: "atelier-mira", name: "Atelier Mira", code: "AM", featured: true, banner: img("1779406165962-7df12de281b1", "16:9"),
-    description: "Fluid womenswear in satin, georgette and fine cotton. Atelier Mira designs in small seasonal drops and cuts every piece to move." },
-  { slug: "northloom", name: "Northloom", code: "NL", featured: true, banner: wide("1641642231157-0849081598a2"),
+  { slug: "glitch-garden", name: "Glitch Garden", code: "GG", featured: true, banner: img("1594803617043-2a5a0829fcd9", "16:9", "faces"),
+    description: "Y2K-born going-out pieces: corsets, crop tops, minis and statement jackets, made in small drops that don't come back." },
+  { slug: "low-orbit", name: "Low Orbit", code: "LO", featured: true, banner: img("1771165553549-336443ce93c8", "16:9", "faces"),
+    description: "Streetwear in heavyweight cotton, washed denim and ripstop: boxy tees, cargos, jorts and varsity jackets." },
+  { slug: "northloom", name: "Northloom", code: "NL", featured: true, banner: img("1590700722775-9c8e16cb3b7e", "16:9", "faces"),
     description: "Knitwear spun from merino, cotton and wool blends, made in short runs so nothing sits in a warehouse for long." },
+  { slug: "lumen-leather", name: "Lumen Leather", code: "LL", featured: true, banner: wide("1565551675785-cda6912bb139"),
+    description: "Vegetable-tanned leather goods, stitched to soften and darken beautifully with use." },
+  { slug: "field-and-fold", name: "Field & Fold", code: "FF", featured: true, banner: img("1688111421205-a0a85415b224", "16:9", "faces"),
+    description: "Everyday essentials in organic cotton and denim, designed to be worn hard and washed often." },
+  { slug: "atelier-mira", name: "Atelier Mira", code: "AM", featured: true, banner: img("1521510895919-46920266ddb3", "16:9", "faces"),
+    description: "Fluid womenswear in satin, georgette and fine cotton. Atelier Mira designs in small seasonal drops and cuts every piece to move." },
   { slug: "kaari-studio", name: "Kaari Studio", code: "KS", featured: true, banner: wide("1761369332487-777e59fa4bcf"),
     description: "Handloom weaves, hand embroidery and handmade jewellery from artisan clusters across India. Kaari means craft." },
-  { slug: "sable-row", name: "Sable Row", code: "SR", featured: true, banner: wide("1619603364904-c0498317e145"),
+  { slug: "sable-row", name: "Sable Row", code: "SR", featured: true, banner: img("1618886614638-80e3c103d31a", "16:9", "faces"),
     description: "Tailoring and shirting with a quiet, exact fit. Natural fibres, considered details, nothing extra." },
-  { slug: "field-and-fold", name: "Field & Fold", code: "FF", featured: false, banner: wide("1489987707025-afc232f7ea0f"),
-    description: "Everyday essentials in organic cotton and denim, designed to be worn hard and washed often." },
-  { slug: "lumen-leather", name: "Lumen Leather", code: "LL", featured: true, banner: wide("1760624089496-01ae68a92d58"),
-    description: "Vegetable-tanned leather goods, stitched to soften and darken beautifully with use." },
-  { slug: "glitch-garden", name: "Glitch Garden", code: "GG", featured: true, banner: img("1790283727726-f8ba027df653", "16:9", "faces"),
-    description: "Y2K-born going-out pieces: corsets, crop tops, minis and statement jackets, made in small drops that don't come back." },
-  { slug: "low-orbit", name: "Low Orbit", code: "LO", featured: true, banner: img("1780566759823-6ab515d86760", "16:9", "faces"),
-    description: "Streetwear in heavyweight cotton, washed denim and ripstop: boxy tees, cargos, jorts and varsity jackets." },
 ];
 
 const categories = [
@@ -879,6 +880,12 @@ const FIRST_ADDED = "Ribbed Asymmetric Crop Top";
 /** The first of the shoes and accessories drop: `--pack <store> --since` starts here. */
 const SHOES_FIRST = "Cloud Chunky Sneakers";
 
+// Shop the look on the opening banner: where its pieces sit in the photo, in percent.
+const HERO_LOOKS = [
+  { slug: "white-bustier-corset-top", x: 54, y: 37 },
+  { slug: "low-rise-baggy-jeans", x: 58, y: 68 },
+];
+
 const collections = [
   { slug: "y2k-revival", title: "Y2K Revival", kind: "automated", featured: true, sort: 1,
     rules: { match: "all", conditions: [{ field: "tag", op: "equals", value: "y2k" }] },
@@ -894,8 +901,8 @@ const collections = [
     description: "Varsity jackets, argyle and pleats: prep school, remixed." },
   { slug: "autumn-winter-26", title: "Autumn / Winter '26", kind: "automated", seasonal: true, season: "Autumn/Winter 2026", featured: true, sort: 4,
     rules: { match: "all", conditions: [{ field: "tag", op: "equals", value: "aw26" }] },
-    banner: wide("1617733401065-c7bdf0b33417"), image: tall("1617733401065-c7bdf0b33417"),
-    description: "Trench coats, merino and heavy rib knits in a palette of camel, rust and oat. Layers for the cooler months." },
+    banner: img("1678884399113-0a2b079a31f5", "16:9", "faces"), image: tall("1678884399113-0a2b079a31f5"),
+    description: "Puffers, varsity jackets, chunky knits and lug-sole boots: layers for the cold that still go out." },
   { slug: "the-occasion-edit", title: "The Occasion Edit", kind: "manual", featured: true, sort: 5,
     products: ["Cut-Out Halter Dress", "Bias-Cut Satin Slip Dress", "Off-Shoulder Mini Dress", "Liquid Satin Maxi Dress", "Pleated Georgette Gown", "Puff-Sleeve Tiered Dress", "Tailored Wool-Blend Blazer", "Gold Teardrop Earrings"],
     banner: wide("1790802243983-e6de0e275f59"), image: tall("1790802243983-e6de0e275f59"),
@@ -1045,14 +1052,14 @@ update public.store_settings set
       {
         sample: true,
         eyebrow: "Autumn / Winter '26",
-        heading: "The quiet season",
-        subheading: "Camel, oat and rust. Trench coats, heavy knits and tailoring made to be worn for years.",
+        heading: "Puffer season",
+        subheading: "Oversized puffers, varsity jackets, beanies and lug-sole boots. Layer up, still go out.",
         cta_label: "Shop the collection",
         cta_href: "/collections/autumn-winter-26",
         secondary_label: "New arrivals",
         secondary_href: "/shop?sort=newest",
-        image_url: img("1779406165962-7df12de281b1", "4:5"),
-        image_alt: "Model in a camel suit and long coat",
+        image_url: img("1678884399113-0a2b079a31f5", "4:5"),
+        image_alt: "Woman in an oversized white puffer jacket and sunglasses",
       },
     ],
     promos: [
@@ -1063,6 +1070,13 @@ update public.store_settings set
   })},
   og_image_url = ${q(img("1790283727726-f8ba027df653", "1.91:1", "faces"))}
 where id = 1;
+
+-- Shop the look: dots on the pieces in the opening banner's photo (percent across and down it)
+update public.store_settings s set homepage = jsonb_set(s.homepage, '{hero,0,looks}', (
+  select coalesce(jsonb_agg(jsonb_build_object('product', p.id, 'slug', p.slug, 'x', l.x, 'y', l.y) order by l.n), '[]'::jsonb)
+  from (values ${HERO_LOOKS.map((l, i) => `(${i + 1}, ${q(l.slug)}, ${l.x}, ${l.y})`).join(", ")}) as l(n, slug, x, y)
+  join public.products p on p.slug = l.slug and p.store_id = s.store_id))
+where s.id = 1;
 `);
 
 // --pack <store id>: instead of the seed, prints the SQL that adds the products from

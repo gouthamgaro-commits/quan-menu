@@ -19,6 +19,7 @@ import { SingleImageField, SingleVideoField } from "../ImageManager";
 import { useToast } from "../Toaster";
 import { adminInput, Card } from "../ui";
 import DesignThumb from "./DesignThumb";
+import { LookEditor } from "./LookEditor";
 
 function useSave(section: SettingsSection) {
   const router = useRouter();
@@ -432,7 +433,14 @@ export function HomepageForm({ s, design }: { s: StoreSettings; design: Design }
           {v.hero.map((h, i) => (
             <div key={i} className="grid gap-4 rounded-md border border-black/10 p-3 md:grid-cols-[14rem_1fr]">
               <div className="grid content-start gap-4">
-                <SingleImageField label={`Slide ${i + 1} image`} value={h.image_url || null} onChange={(url) => setSlide(i, { image_url: url ?? "" })} folder="homepage" aspect="aspect-[16/10]" />
+                <SingleImageField
+                  label={`Slide ${i + 1} image`}
+                  value={h.image_url || null}
+                  // Tagged pieces are spots on this photo: a new photo starts without them.
+                  onChange={(url) => setSlide(i, { image_url: url ?? "", ...(url !== h.image_url ? { looks: undefined } : {}) })}
+                  folder="homepage"
+                  aspect="aspect-[16/10]"
+                />
                 {/* Only the opening banner plays a film; the picture stays as its poster and fallback. */}
                 {i === 0 && (
                   <>
@@ -454,6 +462,8 @@ export function HomepageForm({ s, design }: { s: StoreSettings; design: Design }
                   <button type="button" className="ml-auto text-red-700 underline" onClick={() => setV({ ...v, hero: v.hero.filter((_, j) => j !== i) })}>Remove</button>
                 </div>
               </div>
+              {/* Only the opening banner shows its pieces as dots (shop the look). */}
+              {i === 0 && h.image_url && <LookEditor image={h.image_url} looks={h.looks ?? []} onChange={(looks) => setSlide(i, { looks })} />}
             </div>
           ))}
         </div>

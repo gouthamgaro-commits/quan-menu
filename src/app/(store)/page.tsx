@@ -43,7 +43,7 @@ import {
   TrustStrip,
   trustPoints,
 } from "@/components/store/sections";
-import { getHomeData, searchProducts } from "@/lib/catalog";
+import { getHomeData, getLookPins, searchProducts } from "@/lib/catalog";
 import { homeSections, type SectionKey } from "@/lib/designs";
 import { storefrontLook } from "@/lib/look";
 import { formatMoney } from "@/lib/money";
@@ -140,6 +140,8 @@ export default async function Home() {
   // Every section the home page can show; the design (or the store's own arrangement in
   // Settings › Homepage) decides which appear, and in what order.
   const order = homeSections(design, home.sections);
+  // Shop the look: the opening banner's tagged pieces, fetched only where the page shows it.
+  const looks = order.includes("hero") ? await getLookPins(hero?.looks) : [];
   // Shop by vibe: the featured collections' pieces, fetched only where the page shows them.
   const vibes: Vibe[] = order.includes("vibes")
     ? await Promise.all(
@@ -156,6 +158,7 @@ export default async function Home() {
         extras={[...(home.promos ?? []).map((p) => p.image_url), ...data.departments.map((d) => d.image_url)]}
         gallery={showcase.map((p) => p.image_url)}
         text={kind.words.heroText}
+        looks={looks}
       />
     ),
     trust: () => <TrustStrip settings={settings} variant={design.key} />,

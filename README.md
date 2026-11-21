@@ -61,6 +61,11 @@ payment account and web address, and the platform's administrators create them f
 - Quick add on every product card: choose a size or colour (or the store's own options) in a small
   sheet and put the product in the bag without leaving the list; a product with only one way to
   buy it goes straight in.
+- Shop the look on the opening banner: glowing dots on the pieces in its photo, in every design.
+  A tap opens a tag beside the dot with the piece, its price and Add to bag (as Quick add). The
+  owner tags pieces in **Settings › Homepage** by tapping the photo and choosing the product (up
+  to four; only pieces on sale show). The dots stay on the pieces however a design crops the photo,
+  and move with it as the page scrolls.
 - Bag with server-side pricing, discount codes, free-delivery progress. Guest bags are merged into
   the account on sign-in.
 - Checkout: contact → address (Indian states, PIN validation) → delivery options → payment
@@ -992,8 +997,9 @@ aisle naming the next piece as it's walked (a grid instead for shoppers who ask 
 motion), an owner's own numbers on the home page,
 an owner changing palette, fonts and design (and back), reordering the home page, the chat
 button and icon, a banner film uploaded, playing and pausing (and the photo instead for shoppers
-who ask for less motion), and a 360° view switched on in the editor and turned with the keys and
-by dragging.
+who ask for less motion), shop the look (a dot's tag, a piece into the bag from it, and the owner
+tagging another piece on the photo), and a 360° view switched on in the editor and turned with the
+keys and by dragging.
 
 **Store type tests (4 unit, 5 database, 1 Playwright)** cover every type having its words,
 options, details and sizes, a clothing store keeping its words, and a product naming its own

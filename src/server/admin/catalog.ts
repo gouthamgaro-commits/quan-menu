@@ -536,6 +536,7 @@ export async function lookupMedia(names: string[]): Promise<ActionResult<Record<
 export interface PickerProduct {
   id: string;
   title: string;
+  slug?: string;
   status: string;
   image: string | null;
 }
@@ -546,8 +547,23 @@ export async function searchProductsForPicker(q: string): Promise<ActionResult<P
   if (!ctx) return fail("Staff access required.");
   const { data, error } = await ctx.supabase.rpc("admin_product_list", { p: { q: q.slice(0, 100), limit: 20, sort: "title" } as Json });
   if (error) return fail(friendlyError(error));
-  const rows = ((data as unknown as { rows: { id: string; title: string; state: string; image: string | null }[] })?.rows ?? []);
-  return ok(rows.map((r) => ({ id: r.id, title: r.title, status: r.state, image: r.image })));
+  const rows = ((data as unknown as { rows: { id: string; title: string; slug: string; state: string; image: string | null }[] })?.rows ?? []);
+  return ok(rows.map((r) => ({ id: r.id, title: r.title, slug: r.slug, status: r.state, image: r.image })));
+}
+
+/** Products by id, for pickers showing what was chosen before (the banner's tagged pieces). */
+export async function pickerProductsByIds(ids: string[]): Promise<ActionResult<PickerProduct[]>> {
+  const ctx = await staff();
+  if (!ctx) return fail("Staff access required.");
+  const parsed = z.array(z.string().uuid()).max(24).safeParse(ids);
+  if (!parsed.success || !parsed.data.length) return ok([]);
+  const { data, error } = await ctx.supabase
+    .from("products")
+    .select("id, title, slug, status, product_images(url, position)")
+    .in("id", parsed.data)
+    .order("position", { referencedTable: "product_images" });
+  if (error) return fail(friendlyError(error));
+  return ok((data ?? []).map((p) => ({ id: p.id, title: p.title, slug: p.slug, status: p.status, image: p.product_images[0]?.url ?? null })));
 }
 
 /** What an automated collection's rules would include right now. */

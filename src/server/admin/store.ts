@@ -8,6 +8,7 @@ import { authProviderStatus, msg91Configured } from "@/lib/login-codes";
 import { SMS_HOOK_SECRET } from "@/lib/server-env";
 import { SECTION_KEYS } from "@/lib/designs";
 import { lookColumns, lookSchema, signLookPreview } from "@/lib/look";
+import { MAX_LOOKS } from "@/lib/looks";
 import { storeViewUrl } from "@/lib/store";
 import { STORE_TYPES } from "@/lib/store-types";
 import type { AppRole } from "@/lib/types";
@@ -137,6 +138,8 @@ const link = z.string().trim().max(300).refine((v) => v === "" || /^\/(?!\/)/.te
 const webUrl = z.string().trim().max(300).refine((v) => v === "" || /^https?:\/\/\S+$/i.test(v), "Use a full address starting with https://");
 /** A banner's film: a file uploaded to the store's storage, or an https address. */
 const videoLink = z.string().trim().max(1000).refine((v) => v === "" || /^https:\/\/\S+$/i.test(v) || v.startsWith(storageUrl("")), "Video links must start with https://");
+/** Where a tagged piece sits in a picture: percent across or down, to a tenth. */
+const spot = z.number().min(0).max(100).transform((v) => Math.round(v * 10) / 10);
 
 const SECTIONS = {
   general: z.object({
@@ -156,6 +159,10 @@ const SECTIONS = {
         image_url: z.string().max(1000), image_alt: text(200).optional(), eyebrow: text(80).optional(), heading: z.string().trim().min(1).max(120),
         subheading: text(300).optional(), cta_label: text(40).optional(), cta_href: link.optional(), secondary_label: text(40).optional(),
         secondary_href: link.optional(), video_url: videoLink.optional(), sample: z.boolean().optional(),
+        // Shop the look: products of this store (row-level security keeps the storefront to its own,
+        // on sale), where each sits in the picture.
+        looks: z.array(z.object({ product: z.string().uuid(), slug: z.string().regex(/^[a-z0-9][a-z0-9-]{0,199}$/).optional(), x: spot, y: spot }))
+          .max(MAX_LOOKS, `Tag up to ${MAX_LOOKS} pieces.`).optional(),
       })).max(6),
       promos: z.array(z.object({
         image_url: z.string().max(1000), image_alt: text(200).optional(), eyebrow: text(80).optional(), heading: z.string().trim().min(1).max(120),

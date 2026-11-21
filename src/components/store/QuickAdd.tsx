@@ -14,9 +14,10 @@ import { useStore } from "./StoreProvider";
 /**
  * Quick add: from a product in a list, choose its options and put it in the bag without leaving
  * the page. The product's options are fetched when the shopper asks; a product with only one way
- * to buy it goes straight into the bag.
+ * to buy it goes straight into the bag. `start` is for the button that asks; `dialog`, the options
+ * sheet, renders wherever suits (outside anything that hides, like a closed popover).
  */
-export default function QuickAdd({ slug, title, className }: { slug: string; title: string; className?: string }) {
+export function useQuickAdd(slug: string, title: string) {
   const { addItem, kind } = useStore();
   const [product, setProduct] = useState<QuickProduct | null>(null);
   const [open, setOpen] = useState(false);
@@ -150,6 +151,16 @@ export default function QuickAdd({ slug, title, className }: { slug: string; tit
     );
   })();
 
+  const dialog = (
+    <Dialog open={open} onClose={() => setOpen(false)} title={product?.title ?? title} size="sm">
+      {sheet}
+    </Dialog>
+  );
+  return { start, loading, dialog };
+}
+
+export default function QuickAdd({ slug, title, className }: { slug: string; title: string; className?: string }) {
+  const { start, loading, dialog } = useQuickAdd(slug, title);
   return (
     <>
       <button
@@ -165,9 +176,7 @@ export default function QuickAdd({ slug, title, className }: { slug: string; tit
       >
         <PlusIcon size={16} className={cx(loading && "animate-spin")} />
       </button>
-      <Dialog open={open} onClose={() => setOpen(false)} title={product?.title ?? title} size="sm">
-        {sheet}
-      </Dialog>
+      {dialog}
     </>
   );
 }

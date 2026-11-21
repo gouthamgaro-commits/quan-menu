@@ -7,7 +7,8 @@ import { SUPABASE_CONFIGURED } from "./env";
 import { contextStoreId } from "./store";
 import { supabasePublic } from "./supabase/public";
 import { PAGE_SIZE, type SearchParams } from "./catalog-options";
-import type { Facets, ProductCard, ProductPage, Tables } from "./types";
+import { MAX_LOOKS, type LookPin } from "./looks";
+import type { Facets, LookSpot, ProductCard, ProductPage, Tables } from "./types";
 
 const CACHE = { tags: ["catalog"], revalidate: 300 };
 
@@ -58,6 +59,43 @@ export async function productCardsByIds(ids: string[]): Promise<ProductCard[]> {
   const { items } = await searchProducts({ ids, limit: Math.min(ids.length, 100), sort: "newest" });
   const byId = new Map(items.map((p) => [p.id, p]));
   return ids.map((id) => byId.get(id)).filter((p): p is ProductCard => !!p);
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SLUG = /^[a-z0-9][a-z0-9-]{0,199}$/;
+
+/** Products' ids by their addresses, among those on sale. */
+const getIdsBySlugIn = unstable_cache(
+  async (store: string | null, slugs: string[]): Promise<Record<string, string>> => {
+    if (!SUPABASE_CONFIGURED || !slugs.length) return {};
+    const { data, error } = await supabasePublic(store).from("products").select("id, slug").in("slug", slugs);
+    log("product ids by slug", error);
+    return Object.fromEntries((data ?? []).map((p) => [p.slug, p.id]));
+  },
+  ["product-ids-by-slug"],
+  CACHE,
+);
+
+/**
+ * A banner's tagged pieces (shop the look) that are on sale, each where it sits in the picture.
+ * A piece is found by its id, or else by its address: a store given a copy of the sample banner
+ * has its own copies of the pieces, under new ids.
+ */
+export async function getLookPins(spots: LookSpot[] | undefined): Promise<LookPin[]> {
+  const valid = (Array.isArray(spots) ? spots : [])
+    .filter((s) => typeof s?.product === "string" && UUID.test(s.product) && Number.isFinite(s.x) && Number.isFinite(s.y))
+    .slice(0, MAX_LOOKS);
+  if (!valid.length) return [];
+  const cards = new Map((await productCardsByIds(valid.map((s) => s.product))).map((p) => [p.id, p]));
+  const lost = valid.flatMap((s) => (!cards.has(s.product) && typeof s.slug === "string" && SLUG.test(s.slug) ? [s.slug] : []));
+  const bySlug = lost.length ? await getIdsBySlugIn(await contextStoreId(), lost) : {};
+  if (lost.length) for (const p of await productCardsByIds(Object.values(bySlug))) cards.set(p.id, p);
+  return valid.flatMap((s) => {
+    const p = cards.get(s.product) ?? (s.slug ? cards.get(bySlug[s.slug] ?? "") : undefined);
+    if (!p) return [];
+    const product = { slug: p.slug, title: p.title, image: p.image_url, price: p.price, maxPrice: p.max_price, compareAt: p.compare_at_price, soldOut: p.available_stock <= 0 };
+    return [{ x: s.x, y: s.y, product }];
+  });
 }
 
 const getFacetsIn = unstable_cache(

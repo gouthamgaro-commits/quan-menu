@@ -24,7 +24,21 @@ export interface HeroSlide {
   cta_href?: string;
   secondary_label?: string;
   secondary_href?: string;
+  /** Shop the look (the opening banner only): pieces in the picture, each shown as a dot where it sits. */
+  looks?: LookSpot[];
   sample?: boolean;
+}
+
+/**
+ * A piece in a banner's picture: the product (its id, and its address for stores given a copy of
+ * the banner, whose copied products have new ids), and where it sits, in percent across and down
+ * the whole picture.
+ */
+export interface LookSpot {
+  product: string;
+  slug?: string;
+  x: number;
+  y: number;
 }
 
 export interface Promo {

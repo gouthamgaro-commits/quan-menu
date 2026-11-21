@@ -1,12 +1,14 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import type { HeroStyle } from "@/lib/designs";
+import type { LookPin } from "@/lib/looks";
 import type { HeroSlide } from "@/lib/types";
 import { safeHref } from "@/lib/urls";
 import CatalogImage from "../ui/CatalogImage";
 import { buttonClass, cx } from "../ui/controls";
 import { ArrowRight } from "../ui/icons";
 import HeroMedia from "./HeroMedia";
+import LookDots from "./LookDots";
 import OrbitRing from "./OrbitRing";
 import RansomWords from "./RansomWords";
 import Rise from "./Rise";
@@ -28,6 +30,8 @@ interface HeroProps {
   gallery?: (string | null | undefined)[];
   /** A line under the heading while the store has no banner yet, in the words of what it sells. */
   text?: string;
+  /** Shop the look: the banner picture's tagged pieces, on sale. */
+  looks?: LookPin[];
 }
 
 function Ctas({ slide, primary, secondary, className }: { slide: HeroSlide; primary: string; secondary: string; className?: string }) {
@@ -80,10 +84,12 @@ function Mandala({ className }: { className?: string }) {
   );
 }
 
-export default function Hero({ variant, slide, storeName, tagline, extras = [], gallery = [], text = "New pieces every season, made to be worn for many more." }: HeroProps) {
+export default function Hero({ variant, slide, storeName, tagline, extras = [], gallery = [], text = "New pieces every season, made to be worn for many more.", looks = [] }: HeroProps) {
   const image = slide?.image_url || null;
   const video = slide?.video_url || null;
   const heading = slide?.heading || tagline || storeName;
+  // The tagged pieces go on the banner's own picture, wherever a style shows it (not on stand-ins).
+  const pins = (src: string | null | undefined) => (src && src === image && looks.length ? looks : undefined);
 
   switch (variant) {
     case "full":
@@ -101,7 +107,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
       return (
         <section className="relative">
           <div className="relative h-[72svh] min-h-[26rem] overflow-hidden bg-bone md:h-[86svh]">
-            <HeroMedia image={image} video={video} alt={slide.image_alt || ""} priority sizes="100vw" parallax={0.12} className="hero-settle object-cover" />
+            <HeroMedia image={image} looks={pins(image)} video={video} alt={slide.image_alt || ""} priority sizes="100vw" parallax={0.12} className="hero-settle object-cover" />
           </div>
           <div className="container-page relative -mt-24 md:absolute md:inset-x-0 md:bottom-10 md:mt-0">
             <div className="max-w-md bg-ivory p-6 md:p-9">
@@ -138,6 +144,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
               {pictures[0] ? (
                 <div className="absolute inset-[4%_16%_12%_6%] -rotate-3 overflow-hidden rounded-card border-2 border-ink bg-bone shadow-[8px_8px_0_var(--color-ink)]">
                   <CatalogImage src={pictures[0]} alt={slide?.image_alt || ""} fill priority fetchPriority="high" sizes="(min-width: 768px) 30vw, 70vw" className="object-cover" />
+                  {pins(pictures[0]) && <LookDots pins={looks} />}
                 </div>
               ) : (
                 <div aria-hidden className="absolute inset-[8%] grid place-items-center rounded-full border-2 border-ink bg-brand font-serif text-[clamp(2rem,6vw,4rem)] text-on-brand">
@@ -166,7 +173,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
             {image && slide ? (
               <>
                 <div className="relative aspect-[4/5] overflow-hidden sm:aspect-[16/10] md:aspect-auto md:h-[min(78svh,44rem)]">
-                  <HeroMedia image={image} video={video} alt={slide.image_alt || ""} priority sizes="(min-width: 1408px) 84rem, 100vw" parallax={0.08} className="hero-settle object-cover" />
+                  <HeroMedia image={image} looks={pins(image)} video={video} alt={slide.image_alt || ""} priority sizes="(min-width: 1408px) 84rem, 100vw" parallax={0.08} className="hero-settle object-cover" />
                 </div>
                 <div className="absolute inset-x-3 bottom-3 md:inset-x-auto md:bottom-10 md:left-10 md:max-w-md">
                   <div className="rounded-card bg-paper/90 p-6 shadow-lg backdrop-blur md:p-8">
@@ -212,7 +219,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
                   <div aria-hidden className="absolute -inset-3 rounded-t-full border border-accent" />
                   <div aria-hidden className="absolute -inset-6 rounded-t-full border border-accent/40" />
                   <div className="relative size-full overflow-hidden rounded-t-full bg-sand shadow-[0_30px_60px_-30px_rgb(0_0_0/0.45)]">
-                    <HeroMedia image={image} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 768px) 24rem, 90vw" className="hero-settle object-cover" />
+                    <HeroMedia image={image} looks={pins(image)} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 768px) 24rem, 90vw" className="hero-settle object-cover" />
                   </div>
                 </div>
               </div>
@@ -234,7 +241,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
       return (
         <section data-hero="cinema" data-zoom className="relative h-[100svh] min-h-[32rem] overflow-hidden bg-black text-white">
           <div className="zoom-stage absolute inset-0">
-            <HeroMedia image={image} video={video} alt={slide.image_alt || ""} priority sizes="100vw" parallax={0.15} />
+            <HeroMedia image={image} looks={pins(image)} video={video} alt={slide.image_alt || ""} priority sizes="100vw" parallax={0.15} />
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/45" />
             <div className="zoom-copy container-page absolute inset-x-0 bottom-0 pb-14 md:pb-20">
               {slide.eyebrow && <p className="text-[11px] tracking-[0.4em] uppercase opacity-80">{slide.eyebrow}</p>}
@@ -267,7 +274,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
       return (
         <section data-hero="film" data-zoom className="relative h-[100svh] min-h-[34rem] overflow-hidden bg-neutral-900 text-white">
           <div className="zoom-stage absolute inset-0">
-            <HeroMedia image={image} video={video} alt={slide.image_alt || ""} priority sizes="100vw" parallax={0.18} />
+            <HeroMedia image={image} looks={pins(image)} video={video} alt={slide.image_alt || ""} priority sizes="100vw" parallax={0.18} />
             <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/10 to-black/50" />
             <div className="zoom-copy absolute inset-0 grid place-items-center px-6 text-center">
               <div>
@@ -315,6 +322,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
               {picture ? (
                 <div className="zoom-media relative mx-auto aspect-[3/4] w-[min(52vw,15rem)] animate-float overflow-hidden rounded-card shadow-[0_34px_120px_-24px_var(--color-brand)] lg:w-[min(26vw,22rem)]">
                   <CatalogImage src={picture} alt={slide?.image_alt || ""} fill priority fetchPriority="high" sizes="(min-width: 1024px) 22rem, 52vw" className="object-cover" />
+                  {pins(picture) && <LookDots pins={looks} />}
                 </div>
               ) : (
                 <div aria-hidden className="mx-auto size-40 animate-float rounded-full bg-brand/40 blur-2xl lg:size-72" />
@@ -365,7 +373,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
             <div className="pt-4 pb-10 lg:py-10 lg:pl-12">
               <div className="crop-marks relative mx-auto max-w-md lg:max-w-none">
                 <div className="relative aspect-[4/5] overflow-hidden bg-bone">
-                  {picture && <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 40vw, 100vw" className="object-cover" />}
+                  {picture && <HeroMedia image={picture} looks={pins(picture)} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 40vw, 100vw" className="object-cover" />}
                   <span className={cx("absolute top-3 left-3 bg-ink px-2 py-1 text-[10px] text-ivory", mono)}>Img_001</span>
                   <span aria-hidden className={cx("drop-stamp absolute right-4 bottom-4 text-[11px]", mono)}>In stock</span>
                 </div>
@@ -408,7 +416,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
                   <span className="truncate">{file}.jpg</span>
                 </p>
                 <div className="relative aspect-[4/5] overflow-hidden bg-bone">
-                  {pictures[0] && <HeroMedia image={pictures[0]} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 28rem, 85vw" className="object-cover" />}
+                  {pictures[0] && <HeroMedia image={pictures[0]} looks={pins(pictures[0])} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 28rem, 85vw" className="object-cover" />}
                 </div>
               </div>
               {pictures[1] && (
@@ -451,7 +459,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
               {pictures[0] && (
                 <figure className="polaroid absolute top-0 left-0 z-10 w-[62%] -rotate-3">
                   <span className="relative block aspect-[4/5] overflow-hidden bg-bone">
-                    <HeroMedia image={pictures[0]} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 20rem, 60vw" className="object-cover" />
+                    <HeroMedia image={pictures[0]} looks={pins(pictures[0])} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 20rem, 60vw" className="object-cover" />
                   </span>
                   <figcaption className="mt-2 font-hand text-xl leading-none">fit check ✓</figcaption>
                 </figure>
@@ -502,7 +510,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
             ) : (
               ring[0] && (
                 <div className="relative mx-auto mt-10 mb-12 aspect-[4/5] w-full max-w-xs overflow-hidden rounded-card shadow-2xl">
-                  <HeroMedia image={ring[0]} video={video} alt={slide?.image_alt || ""} priority sizes="20rem" className="object-cover" />
+                  <HeroMedia image={ring[0]} looks={pins(ring[0])} video={video} alt={slide?.image_alt || ""} priority sizes="20rem" className="object-cover" />
                 </div>
               )
             )}
@@ -535,7 +543,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
             {picture && (
               <div className="relative mx-auto w-full max-w-[22rem] sm:max-w-md">
                 <div className="blob blob-shadow relative aspect-square overflow-hidden">
-                  <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 28rem, 85vw" className="object-cover" />
+                  <HeroMedia image={picture} looks={pins(picture)} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 28rem, 85vw" className="object-cover" />
                 </div>
                 <span aria-hidden className="clay-chip absolute -bottom-3 left-1/2 -translate-x-1/2 -rotate-3 rounded-full px-5 py-2 font-serif text-lg whitespace-nowrap">
                   {storeName} <span className="text-accent">♥</span>
@@ -569,7 +577,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
               <div className="podium-stage relative mx-auto w-full max-w-[19rem] sm:max-w-sm">
                 <span aria-hidden className="podium-beam" />
                 <div className="podium-float relative aspect-[4/5] overflow-hidden rounded-card">
-                  <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 24rem, 80vw" className="object-cover" />
+                  <HeroMedia image={picture} looks={pins(picture)} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 24rem, 80vw" className="object-cover" />
                 </div>
                 <span aria-hidden className="podium">
                   <span className="podium-top" />
@@ -604,7 +612,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
             {picture && (
               <div className="crt relative mx-auto aspect-[4/5] w-full max-w-[19rem] sm:max-w-sm">
                 <span className="relative block h-full w-full overflow-hidden rounded-[10px]">
-                  <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 24rem, 80vw" className="object-cover" />
+                  <HeroMedia image={picture} looks={pins(picture)} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 24rem, 80vw" className="object-cover" />
                   <span aria-hidden className="crt-scan" />
                 </span>
               </div>
@@ -640,7 +648,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
                   <span aria-hidden className="room-spot" />
                   <div className="room-frame relative aspect-[4/5]">
                     <span className="relative block h-full w-full overflow-hidden">
-                      <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 18rem, 45vw" className="object-cover" />
+                      <HeroMedia image={picture} looks={pins(picture)} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 18rem, 45vw" className="object-cover" />
                     </span>
                   </div>
                   <span aria-hidden className="room-placard" />
@@ -673,7 +681,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
             {picture && (
               <div className="popup-stage relative mx-auto w-full max-w-[19rem] sm:max-w-sm">
                 <div className="popup-card relative aspect-[4/5] overflow-hidden">
-                  <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 24rem, 80vw" className="object-cover" />
+                  <HeroMedia image={picture} looks={pins(picture)} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 24rem, 80vw" className="object-cover" />
                 </div>
                 <span aria-hidden className="popup-base" />
               </div>
@@ -704,7 +712,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
                 <span aria-hidden className="iso-box iso-mini iso-mini-1" />
                 <span aria-hidden className="iso-box iso-mini iso-mini-2" />
                 <div className="iso-photo relative mx-auto aspect-[4/5] w-[72%] overflow-hidden rounded-card">
-                  <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 18rem, 60vw" className="object-cover" />
+                  <HeroMedia image={picture} looks={pins(picture)} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 18rem, 60vw" className="object-cover" />
                 </div>
                 <span aria-hidden className="iso-box iso-pedestal" />
               </div>
@@ -740,7 +748,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
                     <div key={`${src}-${i}`} className="deck-card" style={{ "--o": off, "--a": Math.abs(off), zIndex: 10 - Math.abs(off) } as CSSProperties}>
                       <span className="relative block h-full w-full overflow-hidden rounded-[14px]">
                         {src === picked[0] ? (
-                          <HeroMedia image={src} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 15rem, 45vw" className="object-cover" />
+                          <HeroMedia image={src} looks={pins(src)} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 15rem, 45vw" className="object-cover" />
                         ) : (
                           <CatalogImage src={src} alt="" fill sizes="(min-width: 1024px) 15rem, 45vw" className="object-cover" />
                         )}
@@ -777,7 +785,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
               <div className="relative mx-auto w-full max-w-[20rem] sm:max-w-sm">
                 <div className="chrome-ring relative aspect-square rounded-full p-3">
                   <span className="relative block h-full w-full overflow-hidden rounded-full">
-                    <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 24rem, 80vw" className="object-cover" />
+                    <HeroMedia image={picture} looks={pins(picture)} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 24rem, 80vw" className="object-cover" />
                   </span>
                 </div>
               </div>
@@ -816,7 +824,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
               <div className="relative mx-auto w-full max-w-[21rem] sm:max-w-md">
                 <span aria-hidden className="fest-sun" />
                 <div className="fest-arch relative aspect-[4/5] overflow-hidden">
-                  <HeroMedia image={picture} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 28rem, 85vw" className="object-cover" />
+                  <HeroMedia image={picture} looks={pins(picture)} video={video} alt={slide?.image_alt || ""} priority sizes="(min-width: 1024px) 28rem, 85vw" className="object-cover" />
                 </div>
                 <span aria-hidden className="fest-wristband absolute -bottom-4 left-1/2 -translate-x-1/2 -rotate-3 rounded-full px-5 py-2 text-[12px] font-bold tracking-[0.22em] whitespace-nowrap uppercase">
                   All access
@@ -844,7 +852,7 @@ export default function Hero({ variant, slide, storeName, tagline, extras = [], 
         <section className="relative">
           <div className="grid md:grid-cols-2">
             <div className="relative order-1 aspect-[4/5] overflow-hidden bg-bone md:order-2 md:aspect-auto md:min-h-[min(88vh,56rem)]">
-              <HeroMedia image={slide.image_url} video={video} alt={slide.image_alt || ""} priority sizes="(min-width: 768px) 50vw, 100vw" className="hero-settle object-cover" />
+              <HeroMedia image={slide.image_url} looks={pins(slide.image_url)} video={video} alt={slide.image_alt || ""} priority sizes="(min-width: 768px) 50vw, 100vw" className="hero-settle object-cover" />
               <span aria-hidden className="absolute top-8 left-6 hidden text-[10px] tracking-[0.42em] text-white/90 uppercase [writing-mode:vertical-rl] md:block">
                 {storeName}{slide.eyebrow ? ` — ${slide.eyebrow}` : ""}
               </span>

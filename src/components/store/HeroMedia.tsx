@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import type { LookPin } from "@/lib/looks";
 import CatalogImage from "../ui/CatalogImage";
 import { cx } from "../ui/controls";
+import LookDots from "./LookDots";
 
 /** Whether this browser should play a banner film: not on saver or very slow connections, nor for shoppers who ask for less motion. */
 function filmAllowed() {
@@ -13,7 +15,8 @@ function filmAllowed() {
 /**
  * A banner's picture, or its film: muted, looping and playing in place, over the picture,
  * which shows until the film can play and instead of it where films don't suit (see
- * filmAllowed). Moving pictures can always be paused.
+ * filmAllowed). Moving pictures can always be paused. A picture's tagged pieces (shop the look)
+ * show as dots on it; a film plays without them, as its frames needn't match the picture.
  */
 export default function HeroMedia({
   image,
@@ -23,6 +26,7 @@ export default function HeroMedia({
   priority,
   className = "object-cover",
   parallax,
+  looks,
 }: {
   image?: string | null;
   video?: string | null;
@@ -32,6 +36,8 @@ export default function HeroMedia({
   className?: string;
   /** Drift speed in cinematic designs (Motion.tsx). */
   parallax?: number;
+  /** The picture's tagged pieces. */
+  looks?: LookPin[];
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [play, setPlay] = useState(false);
@@ -61,6 +67,7 @@ export default function HeroMedia({
       ) : (
         <span aria-hidden className="absolute inset-0 bg-bone" />
       )}
+      {image && !play && looks && looks.length > 0 && <LookDots pins={looks} parallax={parallax} settle={className.includes("hero-settle")} />}
       {play && video && (
         <>
           <video
