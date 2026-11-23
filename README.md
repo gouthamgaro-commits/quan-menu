@@ -1034,8 +1034,9 @@ and the design tests on the home, product and shop pages of all twenty-one desig
 a film and a product page with a 360° view. Automated checks
 don't replace testing with a keyboard and a screen reader.
 
-Latest local run, against the local database with the Gen Z sample catalog and its shoes and
-accessories drop: typecheck clean, unit 161/161, integration 99/99, Playwright 43/43 against the
+Latest local run, against the local database with the Gen Z sample catalog, its shoes and
+accessories drop and its banner's tagged pieces: typecheck clean, unit 172/172, integration 99/99,
+Playwright 44/44 against the
 production build (`next build`),
 and the home, shop, product, bag, sign-in and collections pages of all twenty-one designs checked
 at 360, 390, 768, 1024 and 1280 px wide without horizontal scrolling. The accessibility checks

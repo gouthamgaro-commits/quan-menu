@@ -105,47 +105,51 @@ function LookDot({ pin, at }: { pin: LookPin; at: { left: number; top: number } 
       >
         <span aria-hidden className="look-dot-core" />
       </button>
-      <div
-        ref={tag}
-        id={id}
-        popover="auto"
-        role="dialog"
-        aria-label={`Shop the look: ${product.title}`}
-        onToggle={(e) => {
-          setOpen(e.newState === "open");
-          if (e.newState === "closed") delete e.currentTarget.dataset.placed;
-        }}
-        className="look-tag"
-      >
-        <Link href={`/products/${product.slug}`} className="group flex items-center gap-3">
-          <span className="relative aspect-[4/5] w-14 shrink-0 overflow-hidden rounded-img bg-bone">
-            <CatalogImage src={product.image} alt="" fill sizes="56px" loading="eager" className="object-cover" />
-          </span>
-          <span className="grid min-w-0 gap-1">
-            <span className="line-clamp-2 text-sm leading-snug font-medium group-hover:underline group-hover:underline-offset-4">{product.title}</span>
-            <Price price={product.price} compareAt={product.compareAt} maxPrice={product.maxPrice} />
-          </span>
-        </Link>
-        {product.soldOut ? (
-          <Link href={`/products/${product.slug}`} className={buttonClass("secondary", "md", "mt-3 w-full")}>
-            Sold out · see the piece
+      {/* The layer over the picture lets taps through to it (pointer-events: none, which is
+          inherited); the tag and the options sheet, shown over everything, take them again. */}
+      <div className="pointer-events-auto contents">
+        <div
+          ref={tag}
+          id={id}
+          popover="auto"
+          role="dialog"
+          aria-label={`Shop the look: ${product.title}`}
+          onToggle={(e) => {
+            setOpen(e.newState === "open");
+            if (e.newState === "closed") delete e.currentTarget.dataset.placed;
+          }}
+          className="look-tag"
+        >
+          <Link href={`/products/${product.slug}`} className="group flex items-center gap-3">
+            <span className="relative aspect-[4/5] w-14 shrink-0 overflow-hidden rounded-img bg-bone">
+              <CatalogImage src={product.image} alt="" fill sizes="56px" loading="eager" className="object-cover" />
+            </span>
+            <span className="grid min-w-0 gap-1">
+              <span className="line-clamp-2 text-sm leading-snug font-medium group-hover:underline group-hover:underline-offset-4">{product.title}</span>
+              <Price price={product.price} compareAt={product.compareAt} maxPrice={product.maxPrice} />
+            </span>
           </Link>
-        ) : (
-          <button
-            type="button"
-            disabled={loading}
-            aria-haspopup="dialog"
-            onClick={() => {
-              if (tag.current) hide(tag.current);
-              void start();
-            }}
-            className={buttonClass("primary", "md", "mt-3 w-full font-bold")}
-          >
-            {loading ? "Adding…" : "Add to bag"}
-          </button>
-        )}
+          {product.soldOut ? (
+            <Link href={`/products/${product.slug}`} className={buttonClass("secondary", "md", "mt-3 w-full")}>
+              Sold out · see the piece
+            </Link>
+          ) : (
+            <button
+              type="button"
+              disabled={loading}
+              aria-haspopup="dialog"
+              onClick={() => {
+                if (tag.current) hide(tag.current);
+                void start();
+              }}
+              className={buttonClass("primary", "md", "mt-3 w-full font-bold")}
+            >
+              {loading ? "Adding…" : "Add to bag"}
+            </button>
+          )}
+        </div>
+        {dialog}
       </div>
-      {dialog}
     </>
   );
 }
