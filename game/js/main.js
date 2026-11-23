@@ -560,7 +560,7 @@ function poseGuard(g, moving) {
   g.look = g.yaw + g.hy;
   const fighting = g.state === 'alert' || !!g.foe;
   g.mv = lerp(g.mv, moving ? (fighting ? 1.7 : g.state === 'search' ? 1.15 : 0.85) : 0, 0.2);
-  const p = { t: G.t + g.seed, phase: g.walk, move: g.mv, look: g.hy, lean: g.stun > 0 ? 0.35 : 0, atk: -1, dead: g.dead ? g.deathT : 0 };
+  const p = { t: G.t + g.seed, dt: g.pdt, phase: g.walk, move: g.mv, look: g.hy, lean: g.stun > 0 ? 0.35 : 0, atk: -1, hit: g.hitT || 0, dead: g.dead ? g.deathT : 0, deadDir: g.deadDir };
   if (g.atk) { p.atk = g.atk.t < g.atk.wind ? g.atk.t / g.atk.wind * 0.42 : 0.42 + (g.atk.t - g.atk.wind) / 0.45 * 0.58; p.style = g.type === 'marshal' ? 'overhead' : 'slash'; }
   if (g.type === 'archer') { p.aim = fighting ? 1 : 0; p.draw = clamp(1 - g.shootCd / 1.5, 0, 1); }
   else if (fighting && !g.atk) p.block = 0.35;
@@ -580,9 +580,11 @@ function guardShoot(g, T = P) {
 function updateGuard(g, dt) {
   const m = g.m;
   if (g.dead) {
-    if (g.deathT < 1) { g.deathT = Math.min(1, g.deathT + dt * 2.4); poseGuard(g, false); }
+    if (g.deathT < 1) { g.pdt = dt; g.deathT = Math.min(1, g.deathT + dt * 1.5); poseGuard(g, false); }
     return;
   }
+  g.pdt = dt;
+  if (g.hitT) g.hitT = Math.max(0, g.hitT - dt * 3.5);
   g.barkCd -= dt; g.atkCd -= dt; g.shootCd -= dt;
   const dx = P.pos.x - g.pos.x, dz = P.pos.z - g.pos.z, dy = P.pos.y - g.pos.y, dxz = Math.hypot(dx, dz);
   const alert = g.state === 'alert';
@@ -724,7 +726,7 @@ function fightFoe(g, dt) {
 }
 function hurtGuard(g, dmg, o = {}) {
   if (g.dead) return;
-  g.lastHit = o.from;
+  g.lastHit = o.from; g.hitT = 1;
   g.hp -= dmg;
   burst('blood', g.pos.x, g.pos.y + 1.3, g.pos.z, 7, 2.2, 0.16, 0.5);
   if (g.hp <= 0) { killGuard(g, o.silent, o.from); return; }
@@ -736,6 +738,7 @@ function hurtGuard(g, dmg, o = {}) {
 }
 function killGuard(g, silent, from = P) {
   g.dead = true; g.state = 'dead'; g.deathT = 0; g.atk = null; g.foe = null;
+  g.deadDir = silent ? -1 : Math.random() < 0.6 ? 1 : -1;
   const byUs = from === P || (life && from === life.bro);
   if (byUs) { G.stats.kills++; if (silent) G.stats.stealth++; }
   if (!silent) makeNoise(g.pos, 11);
@@ -1124,6 +1127,7 @@ function updatePlayer(dt) {
         else { sfx.land(Math.min(1, v / 12)); if (v > 9) makeNoise(P.pos, 9); }
       }
       if (v > 13.5 && !gi.soft && !swim) hurtPlayer((v - 13.5) * 7, null, null);
+      if (v > 3) P.landT = Math.min(1, v / 11);
     }
     P.pos.y = g; P.vel.y = 0; P.onGround = true;
   } else P.onGround = false;
@@ -1295,8 +1299,43 @@ const vmXbow = new THREE.Group();
 const vmKnife = new THREE.Group();
 vb(vmKnife, VM.steel, 0.042, 0.24, 0.01, 0, 0.19, 0); vb(vmKnife, VM.dark, 0.03, 0.12, 0.03, 0, 0.01, 0); vb(vmKnife, VM.gold, 0.07, 0.015, 0.03, 0, 0.07, 0);
 arm(vmKnife, 0.01, -0.02, 0.03, 0.75, 0);
+// A short glowing ribbon left behind the blade while it cuts.
+class Trail {
+  constructor(parent, color, n = 14) {
+    this.n = n; this.pts = []; this.color = new THREE.Color(color);
+    this.pos = new Float32Array(n * 6); this.col = new Float32Array(n * 6);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3));
+    g.setAttribute('color', new THREE.BufferAttribute(this.col, 3));
+    const idx = [];
+    for (let i = 0; i < n - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+    g.setIndex(idx);
+    this.mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+    this.mesh.frustumCulled = false; this.mesh.visible = false;
+    parent.add(this.mesh);
+  }
+  update(base, tip, active, dt, strength = 1) {
+    if (active) this.pts.unshift({ b: base.clone(), t: tip.clone(), age: 0 });
+    for (const q of this.pts) q.age += dt;
+    while (this.pts.length > this.n || (this.pts.length && this.pts[this.pts.length - 1].age > 0.16)) this.pts.pop();
+    this.mesh.visible = this.pts.length > 1;
+    if (!this.mesh.visible) return;
+    for (let i = 0; i < this.n; i++) {
+      const q = this.pts[Math.min(i, this.pts.length - 1)];
+      const f = Math.max(0, 1 - q.age / 0.16) * (1 - i / this.n) * strength * (i < this.pts.length ? 1 : 0);
+      this.pos.set([q.b.x, q.b.y, q.b.z, q.t.x, q.t.y, q.t.z], i * 6);
+      this.col.set([this.color.r * f * 0.15, this.color.g * f * 0.15, this.color.b * f * 0.15, this.color.r * f, this.color.g * f, this.color.b * f], i * 6);
+    }
+    this.mesh.geometry.attributes.position.needsUpdate = true;
+    this.mesh.geometry.attributes.color.needsUpdate = true;
+  }
+}
+const _tb = new V3(), _tt = new V3();
+const swinging = () => P.swing && P.swing.t > P.swing.dur * 0.25 && P.swing.t < P.swing.dur * 0.72;
+
 const vmRoot = new THREE.Group();
 vmRoot.add(vmSword, vmBow, vmXbow, vmKnife); vmScene.add(vmRoot);
+const fpTrail = new Trail(vmScene, 0xbfd4ff), tpTrail = new Trail(scene, 0xbfd4ff);
 let swayX = 0, swayY = 0;
 function setString(line, ax, ay, az, mx, my, mz, bx, by, bz) {
   const p = line.geometry.attributes.position;
@@ -1307,7 +1346,8 @@ function updateVM(dt) {
   swayX = lerp(swayX, clamp(-input.mdx * 0.0009, -0.06, 0.06), 0.12);
   swayY = lerp(swayY, clamp(input.mdy * 0.0009, -0.05, 0.05), 0.12);
   const bx = Math.cos(P.bob) * 0.012 * P.moveAmt, by = -Math.abs(Math.sin(P.bob)) * 0.016 * P.moveAmt;
-  vmRoot.position.set(swayX + bx, swayY + by - (P.swT / 0.25) * 0.45 + Math.sin(G.t * 1.6) * 0.004, 0);
+  vmRoot.position.set(swayX + bx, swayY + by - (P.swT / 0.25) * 0.45 + Math.sin(G.t * 1.6) * 0.004 - (P.landT || 0) * 0.07, 0);
+  vmRoot.rotation.x = lerp(vmRoot.rotation.x, P.sprint && P.moveAmt > 0.5 ? -0.12 : 0, 0.12);
   vmRoot.rotation.z = swayX * 0.8;
   if (touchMode) { vmRoot.position.x += 0.05; vmRoot.position.y -= 0.03; }
   vmSword.scale.setScalar(touchMode ? 0.7 : 0.86);
@@ -1367,7 +1407,7 @@ const pRig = makeHumanoid({ skin: 0xc49572, top: 0x1f2533, pants: 0x161a22, boot
 const pW = [hold(pRig, 'R', 'sword'), hold(pRig, 'L', 'bow'), hold(pRig, 'R', 'crossbow'), hold(pRig, 'R', 'knife')];
 pRig.root.visible = false;
 scene.add(pRig.root);
-let pYaw = 0, pMv = 0, pCr = 0, tpDist = 3.3, tpCr = 0;
+let pYaw = 0, pMv = 0, pCr = 0, tpDist = 3.3, tpCr = 0, pBank = 0;
 const tpPivot = new V3();
 function toggleView(v) {
   G.view = v || (G.view === 3 ? 1 : 3);
@@ -1416,11 +1456,16 @@ function updatePlayerModel(dt) {
   const hs = Math.hypot(P.vel.x, P.vel.z);
   const combat = P.swing || P.blocking || P.drawing || P.lockT > 0 || P.throwT > 0 || (P.weapon === 2 && (input.alt || P.recoil > 0)) || P.mantle;
   const want = combat ? P.yaw + Math.PI : hs > 0.6 ? Math.atan2(P.vel.x, P.vel.z) : pYaw;
+  const prevYaw = pYaw;
   pYaw = turn(pYaw, want, dt * (combat ? 16 : 9));
+  const yawRate = dt > 0 ? turn(0, pYaw - prevYaw, 9) / dt : 0;
+  pBank = lerp(pBank, clamp(-yawRate * 0.045 * Math.min(1.6, hs / 4.3), -0.22, 0.22), 1 - Math.exp(-8 * dt));
   pRig.root.rotation.y = pYaw;
+  P.landT = Math.max(0, (P.landT || 0) - dt * 3.5);
+  const backwards = hs > 0.5 && (P.vel.x * Math.sin(pYaw) + P.vel.z * Math.cos(pYaw)) / hs < -0.3;
   pMv = lerp(pMv, P.onGround ? hs / 4.3 : 0, 1 - Math.exp(-12 * dt));
   pCr = lerp(pCr, P.crouch ? 1 : 0, 1 - Math.exp(-10 * dt));
-  const p = { t: G.t, phase: P.bob, move: pMv, crouch: pCr, air: P.onGround || P.mantle ? 0 : 1, climb: P.mantle ? 1 - Math.min(1, P.mantle.t) : 0, atk: -1, dead: P.dead ? ease(Math.min(1, G.endT / 0.9)) : 0 };
+  const p = { t: G.t, dt, phase: backwards ? -P.bob : P.bob, move: pMv, crouch: pCr, air: P.onGround || P.mantle ? 0 : 1, climb: P.mantle ? 1 - Math.min(1, P.mantle.t) : 0, atk: -1, dead: P.dead ? Math.min(1, G.endT / 1.1) : 0, hit: Math.min(1, P.hurtT * 2), land: P.landT, bank: pBank };
   if (P.swing) { p.atk = Math.min(1, P.swing.t / P.swing.dur); p.style = ['slash', 'slashL', 'overhead'][P.swing.dir]; }
   else if (P.lockT > 0) { p.atk = 1 - P.lockT / 0.55; p.style = 'stab'; }
   else if (P.throwT > 0) { p.atk = 1 - P.throwT / 0.5; p.style = 'cast'; }
@@ -1749,6 +1794,18 @@ function frame(now) {
   tensionT -= dt;
   if (tensionT <= 0) { tensionT = 0.4; sfx.setTension(G.state === 'play' && G.alertN ? 1 : 0); }
   if (G.state !== 'menu') { updateVM(dt); if (G.state === 'play') updateHUD(dt); }
+  // sword trails: in the view model for first person, on the player's own blade in third person
+  if (G.view === 1) {
+    vmRoot.updateMatrixWorld(true);
+    vmSword.localToWorld(_tb.set(0, 0.2, 0)); vmSword.localToWorld(_tt.set(0, 0.86, 0));
+    fpTrail.update(_tb, _tt, swinging() && vmSword.visible, dt, P.swing && P.swing.heavy ? 1.3 : 0.9);
+    tpTrail.update(_tb, _tt, false, dt);
+  } else {
+    pRig.root.updateMatrixWorld(true);
+    pW[0].localToWorld(_tb.set(0, 0, 0.2)); pW[0].localToWorld(_tt.set(0, 0, 0.92));
+    tpTrail.update(_tb, _tt, swinging() && pRig.root.visible, dt, P.swing && P.swing.heavy ? 1.3 : 0.9);
+    fpTrail.update(_tb, _tt, false, dt);
+  }
 
   post.render(dt, W.rage);
   if (G.view === 1 && (G.state === 'play' || G.state === 'dead')) { renderer.clearDepth(); renderer.render(vmScene, vmCam); }

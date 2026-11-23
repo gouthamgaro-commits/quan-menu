@@ -113,11 +113,13 @@ export function createLife(ctx) {
     if (h.missile && a.missileMul) dmg *= a.missileMul;
     a.hp -= dmg;
     ctx.burst(a.bleed || 'blood', a.pos.x, a.pos.y + a.H * 0.6, a.pos.z, 6, 2.2, 0.15 * Math.max(1, a.H / 1.8), 0.5);
+    a.hitT = 1;
     if (a.hp <= 0) { a.hp = 0; if (a.kind === 'bro') downBro(a); else kill(a, h); return; }
     if (a.onHurt) a.onHurt(h);
   }
   function kill(a, h) {
     a.dead = true; a.deathT = 0; a.atk = null; a.aware = false; a.target = null;
+    a.deadDir = h.silent ? -1 : Math.random() < 0.6 ? 1 : -1;
     if (a.onDeath) a.onDeath(h);
     ctx.onDeath(a, h);
   }
@@ -206,7 +208,7 @@ export function createLife(ctx) {
     return false;
   }
   const atkP = (a) => (a.atk ? (a.atk.t < a.atk.o.wind ? a.atk.t / a.atk.o.wind * 0.42 : 0.42 + (a.atk.t - a.atk.o.wind) / a.atk.o.rec * 0.58) : -1);
-  const humanPose = (a, extra) => poseHumanoid(a.rig, Object.assign({ t: a.t, phase: a.phase, move: a.mv, crouch: a.crouch, atk: atkP(a), style: a.atk ? a.atk.o.style : null, dead: a.dead ? a.deathT : 0 }, extra));
+  const humanPose = (a, extra) => poseHumanoid(a.rig, Object.assign({ t: a.t, dt: a.pdt, phase: a.phase, move: a.mv, crouch: a.crouch, atk: atkP(a), style: a.atk ? a.atk.o.style : null, hit: a.hitT || 0, dead: a.dead ? a.deathT : 0, deadDir: a.deadDir }, extra));
   function wander(a, home, radius, speed, dt, idleMin = 2, idleMax = 6) {
     if (a.wait > 0) { a.wait -= dt; a.mv = lerp(a.mv, 0, 0.2); return; }
     if (!a.goal) { const r = rand(2, radius), an = rand(0, 6.28); a.goal = new V3(home.x + Math.cos(an) * r, 0, home.z + Math.sin(an) * r); }
@@ -262,10 +264,10 @@ export function createLife(ctx) {
   }
   function teleportBro(a) {
     const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
-    let x = P.pos.x - fx * 2.2, z = P.pos.z - fz * 2.2;
+    let x = P.pos.x - fx * 0.6 - Math.cos(P.yaw) * 2.2, z = P.pos.z - fz * 0.6 + Math.sin(P.yaw) * 2.2;
     if (ctx.inNav(x, z)) [x, z] = ctx.freeNear(x, z);
     a.pos.set(x, terrainY(x, z), z); a.path = null;
-    ctx.burst('smoke', x, a.pos.y + 1, z, 6, 1.2, 1.4, 1.5);
+    ctx.burst('dust', x, a.pos.y + 0.15, z, 5, 1.2, 0.5, 0.7);
   }
   function broAI(a, dt) {
     a.barkCd -= dt; a.fightT = Math.max(0, (a.fightT || 0) - dt);
@@ -477,7 +479,7 @@ export function createLife(ctx) {
     const rig = makeBeast({ color: pick([0x8a6a45, 0x5a4a3a, 0xb09070]), dark: 0x2a1c12, floppy: true, scale: 0.72 });
     const a = base('dog', 'critter', rig, x, z, { hp: 30, R: 0.35, H: 0.7, home: new V3(x, 0, z), canAssassinate: false, stride: 4.2, barkT: 0, barkAnim: 0, chased: 0 });
     a.ai = dogAI;
-    a.pose = (a) => poseBeast(a.rig, { t: a.t, phase: a.phase, move: a.mv, bark: a.barkAnim, wag: a.chased > 0 || a.state === 'idle' && a.wait > 0, dead: a.dead ? a.deathT : 0 });
+    a.pose = (a) => poseBeast(a.rig, { t: a.t, hit: a.hitT || 0, phase: a.phase, move: a.mv, bark: a.barkAnim, wag: a.chased > 0 || a.state === 'idle' && a.wait > 0, dead: a.dead ? a.deathT : 0 });
     a.onHurt = () => { a.fleeT = 6; sfx.bark(2.2, ctx.volAt(a.pos)); };
     return a;
   }
@@ -571,7 +573,7 @@ export function createLife(ctx) {
     const a = base('wolf', 'wild', rig, x, z, { hp: 55, R: 0.5, H: 0.95, pack, stride: 3.4, howlT: 0, wait: rand(1, 4) });
     pack.members.push(a);
     a.ai = wolfAI;
-    a.pose = (a) => poseBeast(a.rig, { t: a.t, phase: a.phase, move: a.mv, lunge: a.atk ? Math.sin(clamp(atkP(a), 0, 1) * Math.PI) : 0, howl: a.howlT > 0 ? 1 : 0, sit: a.sitting, dead: a.dead ? a.deathT : 0 });
+    a.pose = (a) => poseBeast(a.rig, { t: a.t, hit: a.hitT || 0, phase: a.phase, move: a.mv, lunge: a.atk ? Math.sin(clamp(atkP(a), 0, 1) * Math.PI) : 0, howl: a.howlT > 0 ? 1 : 0, sit: a.sitting, dead: a.dead ? a.deathT : 0 });
     a.onHurt = (h) => { if (h.from && h.from !== 'god') { a.target = h.from; a.seenT = 0; alertPack(a); } sfx.bark(2.4, ctx.volAt(a.pos) * 0.7); };
     a.onDeath = () => sfx.bark(2.8, ctx.volAt(a.pos) * 0.8);
     return a;
@@ -877,7 +879,7 @@ export function createLife(ctx) {
       if (G0.throwT <= 0) { G0.throwT = rand(2.6, 4); G0.atk = 0; }
     }
     if (G0.atk >= 0) { G0.atk += dt / 1.4; if (G0.atk >= 0.45 && G0.atk - dt / 1.4 < 0.45) launchMeteor(); if (G0.atk >= 1) G0.atk = -1; }
-    poseHumanoid(god, { t: G0.t * 0.4, kneel: 1 - w, nod: 0.45 * (1 - w) - 0.12 * w, atk: G0.atk, style: 'cast', look: Math.sin(G0.t * 0.15) * 0.15 * w });
+    poseHumanoid(god, { t: G0.t * 0.4, dt, kneel: 1 - w, nod: 0.45 * (1 - w) - 0.12 * w, atk: G0.atk, style: 'cast', look: Math.sin(G0.t * 0.15) * 0.15 * w });
     for (let i = meteors.length - 1; i >= 0; i--) {
       const m = meteors[i];
       m.t += dt;
@@ -1024,7 +1026,7 @@ export function createLife(ctx) {
       a.rig.root.visible = d < 150;
       if (a.dead) {
         if (a.deathT < 1) {
-          a.deathT = Math.min(1, a.deathT + dt * 2.2);
+          a.deathT = Math.min(1, a.deathT + dt * (a.rig.legL ? 1.4 : 2.2)); a.pdt = dt;
           if (!a.noGround) a.pos.y = lerp(a.pos.y, groundY(a), a.kind === 'imp' ? 0.2 : 1);
           a.rig.root.position.copy(a.pos); a.pose(a);
         }
@@ -1033,7 +1035,8 @@ export function createLife(ctx) {
       a.acc += dt;
       if (d > 80 && a.acc < 0.2) continue;
       const sdt = Math.min(a.acc, 0.25);
-      a.acc = 0; a.t += sdt; a.atkCd -= sdt;
+      a.acc = 0; a.t += sdt; a.atkCd -= sdt; a.pdt = sdt;
+      if (a.hitT) a.hitT = Math.max(0, a.hitT - sdt * 3.5);
       if (a.stun > 0) { a.stun -= sdt; a.atk = null; } else a.ai(a, sdt);
       if (!a.fly && !a.noGround) a.pos.y = groundY(a);
       a.rig.root.position.copy(a.pos); a.rig.root.rotation.y = a.yaw;

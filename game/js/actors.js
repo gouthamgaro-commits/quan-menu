@@ -285,13 +285,18 @@ export function hold(rig, hand, kind, o) {
 }
 
 // p: phase, move (0 still, 1 walk, 2 run), crouch, sit, air, climb, atk (0..1 or <0), style, block, aim, draw,
-//    cast, cower, talk, lute, lantern, drunk, fly, kneel, look, nod, lean, dead, t
+//    xbow, cower, talk, lute, lantern, drunk, fly, kneel, look, nod, lean, hit (0..1 flinch), land (0..1 dip),
+//    bank (lean into a turn), dead (0..1), deadDir (1 falls back, -1 falls forward), t, dt
+// Targets are computed first, then each joint eases toward its target, so moves blend into one another.
+const J = 24;
 export function poseHumanoid(rig, p) {
-  const t = p.t || 0, ph = p.phase || 0, mv = p.move || 0;
-  const cr = p.crouch || 0, sit = p.sit || 0, kneel = p.kneel || 0, air = p.air || 0;
+  const t = p.t || 0, ph = p.phase || 0, mv = p.move || 0, dt = p.dt || 0;
+  const cr = Math.min(1, (p.crouch || 0) + (p.land || 0) * 0.45), sit = p.sit || 0, kneel = p.kneel || 0, air = p.air || 0;
+  const hit = p.hit || 0, dd = p.dead || 0, dir = p.deadDir || 1;
   const amp = Math.min(1, mv) * 0.55 + Math.max(0, mv - 1) * 0.3;
   const sw = Math.sin(ph);
-  const { legL, legR, armL, armR, spine, neck, hips } = rig;
+  const still = Math.max(0, 1 - mv * 4);
+  const T = rig.T || (rig.T = new Float32Array(J));
 
   // legs
   let tl = -sw * amp - cr * 0.95, tr = sw * amp - cr * 0.95;
@@ -299,23 +304,27 @@ export function poseHumanoid(rig, p) {
   if (air) { tl = lerp(tl, -0.9, air); tr = lerp(tr, -0.3, air); kl = lerp(kl, 1.4, air); kr = lerp(kr, 0.9, air); }
   if (sit) { tl = lerp(tl, -1.45, sit); tr = lerp(tr, -1.35, sit); kl = lerp(kl, 0.35, sit); kr = lerp(kr, 0.6, sit); }
   if (kneel) { tl = lerp(tl, -1.5, kneel); tr = lerp(tr, 0.1, kneel); kl = lerp(kl, 1.6, kneel); kr = lerp(kr, 1.7, kneel); }
-  legL.h.rotation.x = tl; legR.h.rotation.x = tr; legL.k.rotation.x = kl; legR.k.rotation.x = kr;
-  legL.h.rotation.z = legR.h.rotation.z = 0;
-  if (p.fly) { legL.h.rotation.x = 0.35 + Math.sin(t * 3) * 0.1; legR.h.rotation.x = 0.25 - Math.sin(t * 3) * 0.1; legL.k.rotation.x = legR.k.rotation.x = 0.5; }
-  hips.position.y = rig.baseHip - Math.abs(Math.cos(ph)) * 0.04 * Math.min(1, mv) - cr * 0.3 - sit * 0.82 - kneel * 0.42 + air * 0.05;
+  if (p.fly) { tl = 0.35 + Math.sin(t * 3) * 0.1; tr = 0.25 - Math.sin(t * 3) * 0.1; kl = kr = 0.5; }
+  // a dying body's knees buckle before it falls
+  const buckle = dd ? Math.sin(Math.min(1, dd / 0.55) * Math.PI) * (1 - dd) : 0;
+  kl += buckle * 1.2; kr += buckle * 1.0; tl -= buckle * 0.6; tr -= buckle * 0.5;
+  if (dd) { const k = ease(clamp((dd - 0.3) / 0.7, 0, 1)); tl *= 1 - k; tr *= 1 - k; kl = lerp(kl, 0.15, k); kr = lerp(kr, 0.35, k); }
+  const shift = Math.sin(t * 0.55) * still;
+  T[0] = tl; T[1] = tr; T[2] = kl; T[3] = kr;
+  T[22] = 0.04 + shift * 0.04; T[23] = -0.04 + shift * 0.04;
+  T[4] = rig.baseHip - Math.abs(Math.cos(ph)) * 0.04 * Math.min(1, mv) - cr * 0.3 - sit * 0.82 - kneel * 0.42 + air * 0.05 - buckle * 0.25 - Math.abs(shift) * 0.012;
+  T[20] = shift * 0.025;
 
   // spine
-  let lean = (p.lean || 0) + cr * 0.32 + Math.max(0, Math.min(1, mv - 1)) * 0.22 + Math.sin(t * 1.6) * 0.015 + sit * 0.1 + kneel * 0.25;
-  let twist = 0, roll = 0;
-  if (p.drunk) { roll = Math.sin(t * 1.3) * 0.12; lean += Math.sin(t * 0.9) * 0.08; }
-  spine.rotation.set(lean, 0, roll);
+  let lean = (p.lean || 0) + cr * 0.32 + Math.max(0, Math.min(1, mv - 1)) * 0.22 + Math.sin(t * 1.6) * 0.015 + sit * 0.1 + kneel * 0.25 - hit * 0.35;
+  let twist = 0, roll = -shift * 0.035;
+  if (p.drunk) { roll += Math.sin(t * 1.3) * 0.12; lean += Math.sin(t * 0.9) * 0.08; }
 
   // arms at rest: a natural hang with walking swing
   const armSw = sw * amp * 0.9;
   let ls = [armSw, 0, 0.09], rs = [-armSw, 0, -0.09], le = -(0.2 + amp * 0.45), re = -(0.2 + amp * 0.45);
   if (mv > 1.2) { le = re = -1.2; }
   if (cr > 0.5 && mv < 1.2) { ls[0] -= 0.4; rs[0] -= 0.4; }
-  const set = (a, s, e) => { a.s.rotation.set(s[0], s[1], s[2]); a.e.rotation.set(e, 0, 0); };
 
   if (p.fly) { ls = [-0.3, 0, 0.4]; rs = [-0.3, 0, -0.4]; le = re = -0.8; }
   if (p.talk) { const g = Math.sin(t * 2.6) * 0.35 * p.talk; rs = [-0.55 - g, 0, -0.25]; re = -0.9 - g * 0.5; ls[2] = 0.2; }
@@ -334,7 +343,8 @@ export function poseHumanoid(rig, p) {
     twist += 0.25 * k;
   }
   if (p.xbow) { ls = [-1.35, 0, 0.45]; le = -0.65; rs = [-1.2, 0, -0.15]; re = -1.0; }
-  if (p.atk >= 0) {
+  const attacking = p.atk >= 0;
+  if (attacking) {
     const u = p.atk, st = p.style || 'slash';
     const w = clamp(u / 0.42, 0, 1), s = clamp((u - 0.42) / 0.2, 0, 1), r = clamp((u - 0.62) / 0.38, 0, 1);
     const ew = ease(w), es = ease(s), er = ease(r);
@@ -345,12 +355,13 @@ export function poseHumanoid(rig, p) {
       rs = [lerp(x, rs[0], er), 0, lerp(z, rs[2], er)];
       re = lerp(lerp(lerp(re, -1.1, ew), -0.15, es), re, er);
       twist += (0.45 * ew - 0.9 * es) * (1 - er) * d;
+      roll += 0.08 * (ew - es) * (1 - er) * d;
     } else if (st === 'overhead' || st === 'slam') {
       const x = lerp(lerp(rs[0], -2.9, ew), -0.4, es);
       rs = [lerp(x, rs[0], er), 0, rs[2]];
       re = lerp(lerp(lerp(re, -0.9, ew), -0.1, es), re, er);
       if (st === 'slam') { ls = [lerp(x, ls[0], er), 0, ls[2]]; le = re; }
-      lean += (-0.15 * ew + 0.4 * es) * (1 - er);
+      lean += (-0.18 * ew + 0.45 * es) * (1 - er);
     } else if (st === 'thrust' || st === 'stab') {
       rs = [lerp(lerp(rs[0], -1.2, ew), -1.55, es), 0, -0.1]; re = lerp(lerp(re, -1.9, ew), -0.05, es);
       rs[0] = lerp(rs[0], -armSw, er); re = lerp(re, -0.3, er);
@@ -358,26 +369,64 @@ export function poseHumanoid(rig, p) {
     } else if (st === 'cast') {
       rs = [lerp(lerp(rs[0], -2.7, ew), -1.3, es), 0, -0.2]; re = lerp(lerp(re, -1.2, ew), -0.1, es);
       rs[0] = lerp(rs[0], -armSw, er);
+      twist += (0.3 * ew - 0.5 * es) * (1 - er);
     } else if (st === 'claw') {
       const x = lerp(lerp(rs[0], -2.2, ew), -0.6, es);
       rs = [lerp(x, rs[0], er), 0, -0.3]; ls = [lerp(lerp(lerp(ls[0], -2.2, ew), -0.6, es), ls[0], er), 0, 0.3];
       re = le = -0.4; lean += 0.3 * es * (1 - er);
     }
   }
-  set(armL, ls, le); set(armR, rs, re);
-  spine.rotation.y = twist;
+  if (hit) { ls[2] += hit * 0.5; rs[2] -= hit * 0.5; ls[0] += hit * 0.4; rs[0] += hit * 0.4; }
+  if (dd) {
+    const k = ease(clamp((dd - 0.25) / 0.75, 0, 1));
+    const fx = dir > 0 ? -2.3 : -2.6;
+    ls = [lerp(ls[0], fx, k), 0, lerp(ls[2], 0.6, k)]; rs = [lerp(rs[0], dir > 0 ? -1.2 : -2.4, k), 0, lerp(rs[2], -0.5, k)];
+    le = lerp(le, -0.5, k); re = lerp(re, -0.8, k);
+    lean = lerp(lean, dir > 0 ? -0.2 : 0.3, k);
+  }
+  T[5] = lean; T[6] = twist; T[7] = roll;
+  T[8] = ls[0]; T[9] = ls[1]; T[10] = ls[2]; T[11] = le;
+  T[12] = rs[0]; T[13] = rs[1]; T[14] = rs[2]; T[15] = re;
+  T[16] = (p.nod || 0) + cr * -0.2 + sit * 0.2 - kneel * 0.15 - hit * 0.3 + (dd ? dir * 0.4 * dd : 0);
+  T[17] = p.look || 0;
+  T[18] = p.drunk ? Math.sin(t * 1.1) * 0.15 : 0;
+  T[19] = -dir * ease(clamp((dd - 0.25) / 0.75, 0, 1)) * 1.45;
+  T[21] = p.bank || 0;
 
-  neck.rotation.set((p.nod || 0) + cr * -0.2 + sit * 0.2 - kneel * 0.15, p.look || 0, p.drunk ? Math.sin(t * 1.1) * 0.15 : 0);
-  if (rig.cape) rig.cape.rotation.x = 0.06 + Math.min(1.6, mv) * 0.35 + Math.sin(t * 2.3) * 0.04 + cr * 0.4;
+  // ease each joint toward its target; attacks and deaths move faster than everyday motion
+  const C = rig.C;
+  if (!C || !dt) { rig.C = Float32Array.from(T); }
+  else {
+    const kq = 1 - Math.exp(-(attacking || hit > 0.5 ? 34 : 15) * dt), kl2 = 1 - Math.exp(-24 * dt);
+    for (let i = 0; i < J; i++) C[i] += (T[i] - C[i]) * (i <= 4 || i === 22 || i === 23 ? kl2 : kq);
+  }
+  const V = rig.C;
+  const { legL, legR, armL, armR, spine, neck, hips } = rig;
+  legL.h.rotation.set(V[0], 0, V[22]); legR.h.rotation.set(V[1], 0, V[23]);
+  legL.k.rotation.x = V[2]; legR.k.rotation.x = V[3];
+  hips.position.set(V[20], V[4], 0);
+  spine.rotation.set(V[5], V[6], V[7]);
+  armL.s.rotation.set(V[8], V[9], V[10]); armL.e.rotation.set(V[11], 0, 0);
+  armR.s.rotation.set(V[12], V[13], V[14]); armR.e.rotation.set(V[15], 0, 0);
+  neck.rotation.set(V[16], V[17], V[18]);
+  rig.root.rotation.x = V[19];
+  rig.root.rotation.z = V[21];
+
+  if (rig.cape) {
+    // a cape on a spring: it trails behind when running and swings back when you stop
+    const target = 0.06 + Math.min(1.6, mv) * 0.38 + cr * 0.4 + air * 0.5 + Math.sin(t * 2.3) * 0.04;
+    if (!dt) { rig.capeA = target; rig.capeV = 0; }
+    else {
+      rig.capeV = (rig.capeV || 0) + ((target - (rig.capeA ?? target)) * 55 - (rig.capeV || 0) * 7) * dt;
+      rig.capeA = (rig.capeA ?? target) + rig.capeV * dt;
+    }
+    rig.cape.rotation.x = clamp(rig.capeA, -0.1, 1.6);
+  }
   if (rig.tail) rig.tail.rotation.y = Math.sin(t * 2.5) * 0.4;
   if (rig.wings) {
     const f = p.fly ? Math.sin(t * 16) * 0.75 : Math.sin(t * 1.5) * 0.1;
     rig.wings[0].rotation.y = -0.35 - f; rig.wings[1].rotation.y = 0.35 + f;
   }
-  // falling over
-  const dd = p.dead || 0;
-  rig.root.rotation.x = -ease(dd) * 1.45;
-  if (dd) { armL.s.rotation.x = lerp(armL.s.rotation.x, -2.3, dd); armR.s.rotation.x = lerp(armR.s.rotation.x, -1.2, dd); hips.position.y = lerp(hips.position.y, rig.baseHip, dd); legL.h.rotation.x *= 1 - dd; legR.h.rotation.x *= 1 - dd; legL.k.rotation.x *= 1 - dd; legR.k.rotation.x *= 1 - dd; }
 }
 
 // ---------------------------------------------------------------- four-legged things: wolves and dogs
@@ -426,7 +475,7 @@ export function poseBeast(rig, p) {
   rig.neck.rotation.set((p.lunge || 0) * 0.4 - (p.bark || 0) * 0.5 + (p.sniff || 0) * 0.6 + (p.sit ? 0.4 : 0) - (p.howl || 0) * 1.0, p.look || 0, 0);
   rig.jaw.rotation.x = Math.max(p.bark || 0, p.lunge || 0, p.howl || 0) * 0.5;
   rig.tail.rotation.set(-0.2 + (p.wag ? Math.sin(t * 14) * 0.15 : 0) - run * 0.3, p.wag ? Math.sin(t * 14) * 0.6 : Math.sin(t * 2) * 0.15, 0);
-  rig.root.rotation.z = p.dead ? ease(Math.min(1, p.dead)) * Math.PI / 2 : 0;
+  rig.root.rotation.z = p.dead ? ease(Math.min(1, p.dead)) * Math.PI / 2 : (p.hit || 0) * 0.25;
 }
 
 // ---------------------------------------------------------------- birds: chickens and crows
