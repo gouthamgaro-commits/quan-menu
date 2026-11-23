@@ -4,6 +4,7 @@ import { buildWorld, terrainHeight, WATER, CAMP, mergeGeos } from './world.js';
 import { Sfx } from './audio.js';
 import { makeHumanoid, poseHumanoid, hold, setShadow } from './actors.js';
 import { createLife } from './life.js';
+import { createPost } from './post.js';
 
 const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -23,10 +24,28 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.3;
 renderer.autoClear = false;
 
+// ---------------------------------------------------------------- settings
+const SETTINGS_KEY = 'ravenmoor.settings';
+const coarse = matchMedia('(hover: none) and (pointer: coarse)').matches;
+const settings = Object.assign({ quality: coarse ? 'medium' : 'high', sens: 1, invert: false, volume: 0.9, music: 0.7, shake: true, fps: false },
+  (() => { try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch (e) { return {}; } })());
+function saveSettings() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* kept for this visit only */ } }
+
+// ---------------------------------------------------------------- loading
+const loadBar = document.getElementById('loadF'), loadMsg = document.getElementById('loadT');
+async function loadStep(frac, msg) {
+  if (loadBar) loadBar.style.width = (frac * 100).toFixed(0) + '%';
+  if (loadMsg) loadMsg.textContent = msg;
+  await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+}
+
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, 1, 0.08, 2400);
 camera.rotation.order = 'YXZ';
+await loadStep(0.08, 'Raising the walls of Ravenmoor…');
 const W = buildWorld(scene);
+await loadStep(0.5, 'Lighting the torches…');
+const post = createPost(renderer, scene, camera);
 const C = W.colliders;
 const sfx = new Sfx();
 let life = null;
@@ -36,9 +55,31 @@ const live = (a) => !!a && !a.dead && !a.gone;
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
   renderer.setSize(w, h, false);
+  post.resize(w, h);
   camera.aspect = vmCam.aspect = w / h;
   camera.updateProjectionMatrix(); vmCam.updateProjectionMatrix();
 }
+
+// Quality tiers trade sharpness, bloom, soft shadows and grass for speed.
+const QUALITY = {
+  high: { pr: 1.5, msaa: true, shadowSize: 2048, soft: true, shadowDist: 26, grass: 1 },
+  medium: { pr: 1.25, msaa: false, shadowSize: 2048, soft: false, shadowDist: 16, grass: 0.6 },
+  low: { pr: 1, msaa: false, shadowSize: 1024, soft: false, shadowDist: 0, grass: 0.3 },
+};
+function applyQuality(q = settings.quality) {
+  const Q = QUALITY[q] || QUALITY.high;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.pr) * (q === 'low' && coarse ? 0.85 : 1));
+  renderer.shadowMap.type = Q.soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+  if (W.moon.shadow.mapSize.x !== Q.shadowSize) {
+    W.moon.shadow.mapSize.set(Q.shadowSize, Q.shadowSize);
+    if (W.moon.shadow.map) { W.moon.shadow.map.dispose(); W.moon.shadow.map = null; }
+  }
+  G.shadowDist = Q.shadowDist;
+  if (W.setGrass) W.setGrass(Q.grass);
+  post.setQuality(q);
+  resize();
+}
+function applyAudio() { sfx.setVolume(settings.volume, settings.music); }
 
 // ---------------------------------------------------------------- collision
 const STEP = 0.5;
@@ -1369,6 +1410,7 @@ function updatePlayerModel(dt) {
   const showIt = G.view === 3 && G.state !== 'menu';
   pRig.root.visible = showIt && tpDist > 0.75;
   if (!showIt) return;
+  setShadow(pRig, G.shadowDist > 0);
   pW.forEach((w, i) => { w.visible = P.lockT > 0 ? i === 3 : i === P.weapon; });
   pRig.root.position.copy(P.pos);
   const hs = Math.hypot(P.vel.x, P.vel.z);
@@ -1498,6 +1540,7 @@ document.addEventListener('keydown', (e) => {
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code)) e.preventDefault();
   if (e.repeat) return;
   keys[e.code] = true;
+  if (!$('settings').classList.contains('hidden')) { if (e.code === 'Escape') show('settings', false); return; }
   if (G.state === 'pause') { if (e.code === 'KeyP' || e.code === 'Enter') pause(false); return; }
   if (G.state !== 'play') return;
   switch (e.code) {
@@ -1524,8 +1567,8 @@ window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; i
 document.addEventListener('mousemove', (e) => {
   if (touchMode || G.state !== 'play' || (!locked && !freeLook)) return;
   const mx = clamp(e.movementX || 0, -120, 120), my = clamp(e.movementY || 0, -120, 120);
-  const s = 0.0022 * (camera.fov / 75);
-  P.yaw -= mx * s; P.pitch = clamp(P.pitch - my * s, -1.5, 1.5);
+  const s = 0.0022 * settings.sens * (camera.fov / 75);
+  P.yaw -= mx * s; P.pitch = clamp(P.pitch - my * s * (settings.invert ? -1 : 1), -1.5, 1.5);
   input.mdx += mx; input.mdy += my;
 });
 document.addEventListener('mousedown', (e) => {
@@ -1599,8 +1642,8 @@ tz.addEventListener('pointermove', (e) => {
   } else if (e.pointerId === look.id && G.state === 'play') {
     const dx = e.clientX - look.x, dy = e.clientY - look.y;
     look.x = e.clientX; look.y = e.clientY;
-    const s = 0.0062 * (camera.fov / 75);
-    P.yaw -= dx * s; P.pitch = clamp(P.pitch - dy * s, -1.45, 1.45);
+    const s = 0.0062 * settings.sens * (camera.fov / 75);
+    P.yaw -= dx * s; P.pitch = clamp(P.pitch - dy * s * (settings.invert ? -1 : 1), -1.45, 1.45);
     input.mdx += dx * 1.4; input.mdy += dy * 1.4;
   }
 });
@@ -1657,7 +1700,7 @@ function logic(dt) {
   guardLodT -= dt;
   if (guardLodT <= 0) {
     guardLodT = 0.5;
-    for (const g of guards) { const d = Math.hypot(g.pos.x - P.pos.x, g.pos.z - P.pos.z); setShadow(g.m, d < 24); g.m.root.visible = d < 160; }
+    for (const g of guards) { const d = Math.hypot(g.pos.x - P.pos.x, g.pos.z - P.pos.z); setShadow(g.m, d < G.shadowDist + 2); g.m.root.visible = d < 160; }
   }
   updateParts(dt);
   input.firePressed = false;
@@ -1694,6 +1737,7 @@ function frame(now) {
     const fov = 75 - P.draw * 13 - (P.weapon === 2 && input.alt ? 30 : 0) + (P.sprint ? 5 : 0);
     if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = lerp(camera.fov, fov, 0.15); camera.updateProjectionMatrix(); }
   }
+  if (!settings.shake) G.shake = 0;
   if (G.shake > 0 && G.state !== 'menu') {
     const k = G.shake * 0.22;
     camera.position.x += rand(-k, k); camera.position.y += rand(-k, k); camera.position.z += rand(-k, k);
@@ -1706,20 +1750,31 @@ function frame(now) {
   if (tensionT <= 0) { tensionT = 0.4; sfx.setTension(G.state === 'play' && G.alertN ? 1 : 0); }
   if (G.state !== 'menu') { updateVM(dt); if (G.state === 'play') updateHUD(dt); }
 
-  renderer.clear();
-  renderer.render(scene, camera);
+  post.render(dt, W.rage);
   if (G.view === 1 && (G.state === 'play' || G.state === 'dead')) { renderer.clearDepth(); renderer.render(vmScene, vmCam); }
 
-  // drop resolution once if the machine is struggling
+  // step the graphics down if the machine is struggling
   fpsT += dt; fpsN++;
   if (fpsT > 2) {
-    if (fpsN / fpsT < 28 && ++lowFps === 2) { renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1) * 0.75); renderer.shadowMap.type = THREE.PCFShadowMap; resize(); }
+    const fps = fpsN / fpsT;
+    if (settings.fps) $('fps').textContent = fps.toFixed(0) + ' FPS';
+    if (G.state === 'play' && fps < 26 && !autoQ.done) {
+      if (++lowFps >= 2) {
+        lowFps = 0;
+        const next = autoQ.q === 'high' ? 'medium' : autoQ.q === 'medium' ? 'low' : null;
+        if (next) { autoQ.q = next; applyQuality(next); toast(`Graphics lowered to ${next} to keep things smooth. Change it in Settings.`, 'dim'); }
+        else autoQ.done = true;
+      }
+    } else lowFps = 0;
     fpsT = 0; fpsN = 0;
   }
 }
+const autoQ = { q: settings.quality, done: false };
 
+await loadStep(0.6, 'Charting the streets…');
 buildNav();
 buildChests();
+await loadStep(0.72, 'Waking the townsfolk, the beasts and the gods…');
 life = createLife({
   scene, W, P, G, actors, guards, camera, sfx,
   terrainHeight, groundAt, resolveXZ, los, findPath, makeNoise, hurtPlayer, hurtActor, damageArea, spawnShot, investigate, burst, volAt, toast, subtitle,
@@ -1729,8 +1784,40 @@ life = createLife({
 });
 for (const b of document.querySelectorAll('[data-view]')) b.addEventListener('click', () => toggleView(+b.dataset.view));
 updateViewUI();
+
+// ---------------------------------------------------------------- settings panel
+function syncSettingsUI() {
+  for (const b of document.querySelectorAll('[data-set="quality"] button')) b.setAttribute('aria-pressed', String(b.dataset.v === settings.quality));
+  $('sSens').value = settings.sens; $('oSens').textContent = settings.sens.toFixed(2) + '×';
+  $('sVol').value = settings.volume; $('oVol').textContent = Math.round(settings.volume * 100) + '%';
+  $('sMus').value = settings.music; $('oMus').textContent = Math.round(settings.music * 100) + '%';
+  $('sInv').checked = settings.invert; $('sShake').checked = settings.shake; $('sFps').checked = settings.fps;
+  $('fps').hidden = !settings.fps;
+  updateViewUI();
+}
+for (const b of document.querySelectorAll('[data-set="quality"] button')) b.addEventListener('click', () => {
+  settings.quality = autoQ.q = b.dataset.v; autoQ.done = false;
+  saveSettings(); applyQuality(); syncSettingsUI();
+});
+const bindRange = (id, key, after) => $(id).addEventListener('input', (e) => { settings[key] = +e.target.value; saveSettings(); if (after) after(); syncSettingsUI(); });
+bindRange('sSens', 'sens'); bindRange('sVol', 'volume', applyAudio); bindRange('sMus', 'music', applyAudio);
+const bindCheck = (id, key) => $(id).addEventListener('change', (e) => { settings[key] = e.target.checked; saveSettings(); syncSettingsUI(); });
+bindCheck('sInv', 'invert'); bindCheck('sShake', 'shake'); bindCheck('sFps', 'fps');
+function openSettings() { syncSettingsUI(); show('settings', true); $('setDone').focus(); }
+$('menuSet').addEventListener('click', openSettings);
+$('pauseSet').addEventListener('click', openSettings);
+$('setDone').addEventListener('click', () => show('settings', false));
+syncSettingsUI();
 resetGame();
-resize();
+applyQuality();
+applyAudio();
 show('hud', false);
+await loadStep(0.86, 'Forging shaders…');
+renderer.compile(scene, camera);
+post.render(0, 0);
+await loadStep(1, 'Ready');
+$('loading').classList.add('gone');
+setTimeout(() => $('loading').remove(), 700);
+show('menu', true);
 window.__game = { G, P, W, actors, get life() { return life; }, toggleView, guards, shots, camera, renderer, startGame, findPath, blocked, C, keys, input, stick, logic, stealthTarget, setTouch: (v) => setTouch(v), pause, assassinate, navH, pickpocket, findInteract, los, alertGuard };
 requestAnimationFrame(frame);

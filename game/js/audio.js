@@ -6,6 +6,7 @@ export class Sfx {
   constructor() {
     this.ctx = null;
     this.tension = 0;
+    this.master = 0.9; this.musicVol = 0.7; this.muted = false; this._bus = null;
     this.note = 4;
     this.tick = 0;
   }
@@ -16,7 +17,8 @@ export class Sfx {
     if (!AC) return;
     const ctx = this.ctx = new AC();
     this.out = ctx.createGain();
-    this.out.gain.value = 0.9;
+    this.out.gain.value = this.muted ? 0 : this.master;
+    this.mus = ctx.createGain(); this.mus.gain.value = this.musicVol; this.mus.connect(this.out);
     const comp = ctx.createDynamicsCompressor();
     this.out.connect(comp); comp.connect(ctx.destination);
 
@@ -41,16 +43,25 @@ export class Sfx {
       const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f;
       o.connect(df); o.start();
     }
-    df.connect(this.drone); this.drone.connect(this.out);
+    df.connect(this.drone); this.drone.connect(this.mus);
 
     setInterval(() => this.beat(), 240);
   }
 
   setTension(v) { this.tension = v; }
-  mute(m) { if (this.out) this.out.gain.value = m ? 0 : 0.9; }
+  mute(m) { this.muted = m; if (this.out) this.out.gain.value = m ? 0 : this.master; }
+  setVolume(master, music) {
+    this.master = master; this.musicVol = music;
+    if (this.out) this.out.gain.value = this.muted ? 0 : master;
+    if (this.mus) this.mus.gain.value = music;
+  }
 
   beat() {
     if (!this.ctx || this.ctx.state !== 'running') return;
+    this._bus = this.mus;
+    try { this.score(); } finally { this._bus = null; }
+  }
+  score() {
     this.tick++;
     if (this.tension > 0.5) {
       // Pursuit: war drum and a low, urgent line.
@@ -72,7 +83,7 @@ export class Sfx {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(Math.max(gain, 0.0002), t + attack);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    g.connect(this.out);
+    g.connect(this._bus || this.out);
     return g;
   }
 

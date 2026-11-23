@@ -253,8 +253,8 @@ export function buildWorld(scene) {
     clothRed: std(T.cloth, 0xb23a2e), clothBlue: std(T.cloth, 0x3c5f9a), clothTan: std(T.cloth, 0xb9a57e),
     iron: std(null, 0x2a2c30, { roughness: 0.6, metalness: 0.7 }),
     gold: std(null, 0xffc94a, { roughness: 0.3, metalness: 1, emissive: 0x6a4500 }),
-    winLit: new THREE.MeshBasicMaterial({ color: new THREE.Color(0.95, 0.47, 0.13) }),
-    winBlue: new THREE.MeshBasicMaterial({ color: new THREE.Color(0.16, 0.36, 0.95) }),
+    winLit: new THREE.MeshBasicMaterial({ color: new THREE.Color(1.7, 0.86, 0.26) }),
+    winBlue: new THREE.MeshBasicMaterial({ color: new THREE.Color(0.3, 0.6, 1.6) }),
     winDark: std(null, 0x0a0e16, { roughness: 0.25, metalness: 0.4 }),
   };
   for (const k of ['winLit', 'winBlue', 'winDark']) M[k].userData.noShadow = true;
@@ -359,6 +359,7 @@ export function buildWorld(scene) {
 
   scene.add(new THREE.HemisphereLight(0x6f86c9, 0x1c1712, 0.95));
   const moon = new THREE.DirectionalLight(0x9fb7ff, 1.5);
+  W.moon = moon;
   moon.castShadow = true;
   moon.shadow.mapSize.set(2048, 2048);
   const sc = moon.shadow.camera;

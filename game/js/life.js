@@ -1038,7 +1038,7 @@ export function createLife(ctx) {
       if (!a.fly && !a.noGround) a.pos.y = groundY(a);
       a.rig.root.position.copy(a.pos); a.rig.root.rotation.y = a.yaw;
       if (d < 150) a.pose(a);
-      if (doShadows && a.rig.legL || doShadows && a.rig.legs) setShadow(a.rig, d < 22);
+      if (doShadows && a.rig.legL || doShadows && a.rig.legs) setShadow(a.rig, d < (G.shadowDist ?? 22));
       if ((a.team === 'wild' || a.team === 'demon') && a.target === P && d < 35) threat++;
     }
     // keep bodies from stacking up
