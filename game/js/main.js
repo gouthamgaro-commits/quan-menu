@@ -5,6 +5,7 @@ import { Sfx } from './audio.js';
 import { makeHumanoid, poseHumanoid, hold, setShadow } from './actors.js';
 import { createLife } from './life.js';
 import { createPost } from './post.js';
+import { addNature } from './nature.js';
 
 const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -44,6 +45,8 @@ const camera = new THREE.PerspectiveCamera(75, 1, 0.08, 2400);
 camera.rotation.order = 'YXZ';
 await loadStep(0.08, 'Raising the walls of Ravenmoor…');
 const W = buildWorld(scene);
+await loadStep(0.4, 'Growing the grass…');
+const nature = addNature(scene, W);
 await loadStep(0.5, 'Lighting the torches…');
 const post = createPost(renderer, scene, camera);
 const C = W.colliders;
@@ -1790,6 +1793,7 @@ function frame(now) {
   }
   updatePlayerModel(dt);
   W.update(G.t, dt, camera);
+  nature.update(G.t, dt, camera, renderer, P.pos, W.rage);
 
   tensionT -= dt;
   if (tensionT <= 0) { tensionT = 0.4; sfx.setTension(G.state === 'play' && G.alertN ? 1 : 0); }

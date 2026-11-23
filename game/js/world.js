@@ -240,7 +240,7 @@ export function buildWorld(scene) {
   const T = makeTextures();
   const batch = new Batch();
   const W = {
-    colliders: [], torches: [], hide: [], chests: [], banners: [], spawns: [], doors: [], tex: T,
+    colliders: [], torches: [], hide: [], chests: [], banners: [], spawns: [], doors: [], chimneys: [], tex: T,
     camp: CAMP, crown: { x: -4, y: 1.3, z: -50 }, grave: GRAVE, shrine: SHRINE, lair: LAIR, rift: RIFT, graves: [],
   };
 
@@ -258,6 +258,10 @@ export function buildWorld(scene) {
     winDark: std(null, 0x0a0e16, { roughness: 0.25, metalness: 0.4 }),
   };
   for (const k of ['winLit', 'winBlue', 'winDark']) M[k].userData.noShadow = true;
+  M.flowers = [0xc0304a, 0xe0c040, 0x8a4ac0, 0xe07a30, 0xf0f0f0].map((c) => std(null, c));
+  M.leafy = std(null, 0x2f5a2a);
+  M.signs = [0x8a3a2a, 0x2a5a7a, 0x6a7a3a, 0x7a5a2a].map((c) => std(T.wood, c));
+  for (const k of ['leafy']) M[k].userData.noShadow = true;
   W.mat = M;
 
   // --- builders ---
@@ -334,8 +338,10 @@ export function buildWorld(scene) {
         float m=dot(d,moonDir);
         col+=vec3(1.,.97,.88)*smoothstep(.99915,.99945,m)*2.4;
         col+=vec3(.42,.52,.8)*pow(max(m,0.),420.)*.6+vec3(.10,.14,.26)*pow(max(m,0.),26.)*.55;
-        float band=fbm2(d.xz/(d.y+.25)*1.4+time*.004);
-        col=mix(col, col*.55+vec3(.05,.065,.11), smoothstep(.5,.85,band)*smoothstep(.0,.25,h)*.6);
+        float band=fbm2(d.xz/(d.y+.22)*1.3+vec2(time*.012,time*.004));
+        float cl=smoothstep(.48,.82,band)*smoothstep(.0,.22,h);
+        vec3 cc=vec3(.045,.06,.1)+vec3(.32,.36,.46)*pow(max(m,0.),10.)+vec3(.05,.06,.09)*smoothstep(.6,.9,band);
+        col=mix(col, cc, cl*.8);
         col=mix(col,vec3(0.03,0.045,0.09),smoothstep(0.02,-.12,h));
         vec3 hell=vec3(.20,.035,.02)+vec3(.9,.22,.05)*exp(-max(h,0.)*5.)+vec3(.35,.05,.02)*smoothstep(.55,.9,band)*smoothstep(.0,.3,h);
         col=mix(col, hell+col*.3, rage);
@@ -430,6 +436,7 @@ export function buildWorld(scene) {
     }));
     m.position.set(0, WATER, 84);
     scene.add(m);
+    W.water = m;
   }
 
   // ================= outer walls =================
@@ -540,6 +547,7 @@ export function buildWorld(scene) {
     const e = jetty ? 0.5 : 0, axis = w >= d ? 'x' : 'z';
     roof(cx, h, cz, w + e, d + e, rh, axis, roofMats[rnd() * roofMats.length | 0], wall);
     box(cx + (axis === 'x' ? w * 0.28 : 0), h + rh * 0.25, cz + (axis === 'z' ? d * 0.28 : 0), 0.7, rh + 0.5, 0.7, M.stone, { col: false });
+    if (rnd() < 0.6) W.chimneys.push({ x: cx + (axis === 'x' ? w * 0.28 : 0), y: h + rh * 1.25 + 0.55, z: cz + (axis === 'z' ? d * 0.28 : 0) });
     const doorSide = -Math.sign(cx);
     for (const [nx, nz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const L = nx ? d : w, n = Math.max(1, Math.floor(L / 2.7));
@@ -548,13 +556,30 @@ export function buildWorld(scene) {
         for (const wy of jetty ? [1.25, 3.45] : [1.25]) {
           const out = (wy > 2.7 ? e / 2 : 0) + 0.03;
           const px = nx ? cx + nx * (w / 2 + out) : cx + o, pz = nz ? cz + nz * (d / 2 + out) : cz + o;
-          if (nx === doorSide && wy < 2 && i === (n >> 1)) { box(px, 0, pz, 0.1, 2.05, 1.1, M.darkwood, { col: false }); W.doors.push({ x: px + nx * 0.9, z: pz }); continue; }
+          if (nx === doorSide && wy < 2 && i === (n >> 1)) {
+            box(px, 0, pz, 0.1, 2.05, 1.1, M.darkwood, { col: false }); W.doors.push({ x: px + nx * 0.9, z: pz });
+            // a shop sign hangs over doors near the market and the main street
+            if (Math.abs(cx) < 26 && cz > -16 && cz < 50 && rnd() < 0.55) {
+              box(px + nx * 0.4, 2.62, pz + 0.75, 0.8, 0.06, 0.06, M.iron, { col: false });
+              box(px + nx * 0.62, 2.0, pz + 0.75, 0.05, 0.55, 0.62, M.signs[rnd() * M.signs.length | 0], { col: false, uv: 0.7 });
+            }
+            continue;
+          }
           const m = rnd() < 0.3 ? M.winLit : M.winDark;
           pane(px, wy, pz, 0.85, 1.05, !!nx, m);
+          // window boxes full of flowers under some lower windows
+          if (wy < 2 && rnd() < 0.28) {
+            const ox = nx * 0.13, oz = nz * 0.13, fx = nx ? 0.2 : 0.95, fz = nx ? 0.95 : 0.2;
+            box(px + ox, 0.55, pz + oz, fx, 0.18, fz, M.darkwood, { col: false });
+            box(px + ox, 0.73, pz + oz, fx * 0.8, 0.08, fz * 0.85, M.leafy, { col: false });
+            for (let f = 0; f < 4; f++) {
+              const u = (f + 0.5) / 4 - 0.5;
+              box(px + ox + (nx ? 0 : u * 0.8), 0.78, pz + oz + (nx ? u * 0.8 : 0), 0.09, 0.09, 0.09, M.flowers[(rnd() * M.flowers.length) | 0], { col: false });
+            }
+          }
         }
       }
     }
-    // something to climb on
     // something to climb on, always under the eaves (the low edge of the roof)
     if (rnd() < 0.7 || h < 4) {
       let px, pz;
@@ -600,6 +625,12 @@ export function buildWorld(scene) {
     const g = new THREE.CylinderGeometry(0.5, 0.5, 0.12, 12); g.rotateX(Math.PI / 2); g.translate(-6 + ox, 0.5, 15 + oz); batch.add(M.darkwood, g);
   }
   chest(10.5, 0, 21.4, { gold: 60 });
+  const bench = (x, z, ry) => { box(x, 0.42, z, 1.8, 0.08, 0.42, M.wood, { ry, col: false }); for (const o of [-0.7, 0.7]) box(x + Math.cos(ry) * o, 0, z - Math.sin(ry) * o, 0.1, 0.42, 0.38, M.darkwood, { ry, col: false }); col(x - 0.9, x + 0.9, z - 0.9, z + 0.9, 0, 0.5); };
+  bench(6, 18.2, 0); bench(-41, 14.5, 0); bench(-2.5, 24.5, 0);
+  const sackM = std(T.cloth, 0xb9a57e);
+  for (const [x, z] of [[-12.6, 9.6], [-12.4, 10.3], [12.6, 18.8], [12.4, 20.2], [-8.6, 21.3], [8.4, 9.8]]) {
+    const g = new THREE.IcosahedronGeometry(0.3, 1); g.scale(1, 1.15, 0.85); g.translate(x, 0.32, z); batch.add(sackM, g);
+  }
   lampPost(-15.5, 6); lampPost(15.5, 6); lampPost(15.5, 24.4); lampPost(-15.5, 24.4);
   lampPost(4.6, 40); lampPost(-4.6, 30); lampPost(4.6, -3); lampPost(-4.6, -14);
   lampPost(-29.2, 52.6); lampPost(31, 52.2); lampPost(-53.6, 14); lampPost(53.6, -12); lampPost(-31, -18.6); lampPost(31, -18.6);
@@ -781,6 +812,7 @@ export function buildWorld(scene) {
     }
     fm.count = tm.count = n;
     fm.castShadow = tm.castShadow = true; fm.receiveShadow = true;
+    W.foliage = fm;
     scene.add(fm, tm);
   }
   // bushes: crouch in them to vanish
@@ -798,6 +830,7 @@ export function buildWorld(scene) {
     }
     bm.castShadow = true; bm.receiveShadow = true;
     scene.add(bm);
+    W.bushes = bm;
   }
   // scattered rocks
   {
