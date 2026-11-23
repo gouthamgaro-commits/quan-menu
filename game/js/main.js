@@ -279,7 +279,17 @@ function toast(msg, cls = '') {
   while ($('toasts').children.length > (window.innerHeight < 520 ? 3 : 5)) $('toasts').firstChild.remove();
 }
 let subT = 0;
-function subtitle(msg) { $('sub').textContent = msg; $('sub').style.opacity = 1; subT = 2.8; }
+function subtitle(msg) {
+  const el = $('sub'), m = /^([^:“*]{1,40}):\s*(.*)$/.exec(msg);
+  el.textContent = '';
+  if (m) {
+    const who = m[1], sp = document.createElement('span');
+    sp.className = 'who ' + (who === 'Bro' ? 'bro' : /Guard|Marshal|Hellspawn|Troll/.test(who) ? 'foe' : /Ember God/.test(who) ? 'god' : /Pale Lady/.test(who) ? 'lady' : 'folk');
+    sp.textContent = who.toUpperCase();
+    el.append(sp, document.createTextNode(m[2]));
+  } else el.textContent = msg;
+  el.style.opacity = 1; subT = 2.6 + msg.length * 0.03;
+}
 
 const compassMarks = [['N', 0, -1], ['E', 1, 0], ['S', 0, 1], ['W', -1, 0]].map(([l, dx, dz]) => {
   const el = document.createElement('span'); el.textContent = l; el.className = 'cm' + (l === 'N' ? ' north' : '');
@@ -418,9 +428,178 @@ function updateHUD(dt) {
   }
 
   if (subT > 0) { subT -= dt; if (subT <= 0) $('sub').style.opacity = 0; }
+  updateFeedback(dt, maxDet);
   P.hurtT = Math.max(0, P.hurtT - dt);
   setStyle('vig', 'opacity', Math.min(1, P.hurtT * 2 + (P.hp < 35 ? (35 - P.hp) / 60 : 0)).toFixed(2));
   setStyle('shade', 'opacity', (P.crouch ? 0.55 : 0.15).toFixed(2));
+}
+
+// ---------------------------------------------------------------- feedback and guidance
+const K = (key, touch) => (touchMode ? touch : key);
+const _proj = new V3();
+function objTarget3() {
+  const [x, z] = objTarget();
+  if (G.stage === 1 && !G.keyDrop) { const m = guards.find((g) => g.type === 'marshal' && !g.dead); if (m) return [x, m.pos.y + 2.6, z]; }
+  if (G.keyDrop) return [x, G.keyDrop.y + 0.8, z];
+  return [x, groundAt(x, z, 60) + 1.7, z];
+}
+function updateObjMarker() {
+  const el = $('objMk');
+  const [ox, oy, oz] = objTarget3();
+  const d = Math.hypot(ox - P.pos.x, oz - P.pos.z);
+  if (G.state !== 'play' || d < 5) { setStyle('objMk', 'display', 'none'); return; }
+  _proj.set(ox, oy, oz).project(camera);
+  const w = innerWidth, h = innerHeight, m = 46, top = 96, bottom = 120;
+  let x = (_proj.x * 0.5 + 0.5) * w, y = (-_proj.y * 0.5 + 0.5) * h;
+  const behind = _proj.z > 1;
+  const edge = behind || x < m || x > w - m || y < top || y > h - bottom;
+  if (edge) {
+    let dx = x - w / 2, dy = y - h / 2;
+    if (behind) { dx = -dx; dy = -dy; }
+    if (Math.abs(dx) + Math.abs(dy) < 1e-3) dy = 1;
+    const sc = Math.min((w / 2 - m) / Math.max(Math.abs(dx), 1e-6), ((dy < 0 ? h / 2 - top : h / 2 - bottom)) / Math.max(Math.abs(dy), 1e-6));
+    x = w / 2 + dx * sc; y = h / 2 + dy * sc;
+    el.querySelector('.arr').style.transform = `rotate(${(Math.atan2(dy, dx) + Math.PI / 2).toFixed(3)}rad)`;
+  }
+  toggleClass('objMk', 'edge', edge);
+  setStyle('objMk', 'display', 'flex');
+  el.style.left = x.toFixed(0) + 'px'; el.style.top = y.toFixed(0) + 'px';
+  setText('objMkD', d.toFixed(0) + ' m');
+}
+const dmgEls = [];
+for (let i = 0; i < 4; i++) { const el = document.createElement('div'); el.className = 'dmg'; $('dets').appendChild(el); dmgEls.push({ el, t: 0, x: 0, z: 0 }); }
+let dmgI = 0;
+function damageFrom(pos) { const d = dmgEls[dmgI++ % dmgEls.length]; d.t = 1.2; d.x = pos.x; d.z = pos.z; }
+let hitMkT = 0;
+function hitMarker(kill) { hitMkT = kill ? 0.4 : 0.22; $('hitmk').classList.toggle('kill', !!kill); }
+const BOSS = { troll: 'The Bridge Troll', demon: 'Hellspawn', rift: 'Heart of the Rift' };
+function bossTarget() {
+  let best = null, bd = 36;
+  for (const a of actors) {
+    if (!live(a)) continue;
+    const name = a.kind === 'guard' ? (a.type === 'marshal' ? 'Lord Marshal Varek' : null) : BOSS[a.kind];
+    if (!name) continue;
+    const engaged = a.target === P || (P.lastTarget === a && G.t - P.lastTargetT < 8) || (a.kind === 'guard' && a.state === 'alert');
+    const d = Math.hypot(a.pos.x - P.pos.x, a.pos.z - P.pos.z);
+    if (engaged && d < bd) { bd = d; best = { a, name }; }
+  }
+  return best;
+}
+let bannerT = 0;
+function banner(title, sub) { $('bannerT').textContent = title; $('bannerS').textContent = sub || ''; $('banner').classList.add('show'); bannerT = 3.8; }
+const seenHints = (() => { try { return new Set(JSON.parse(localStorage.getItem('ravenmoor.hints')) || []); } catch (e) { return new Set(); } })();
+const hintQ = [];
+let hintT = 0;
+function hint(id, text) {
+  if (seenHints.has(id) || hintQ.some((h) => h.id === id)) return;
+  hintQ.push({ id, text });
+}
+function updateHints(dt) {
+  if (hintT > 0) { hintT -= dt; if (hintT <= 0) { $('hint').classList.remove('show'); hintT = -0.8; } return; }
+  if (hintT < 0) { hintT = Math.min(0, hintT + dt); return; }
+  const h = hintQ.shift();
+  if (!h) return;
+  seenHints.add(h.id);
+  try { localStorage.setItem('ravenmoor.hints', JSON.stringify([...seenHints])); } catch (e) { /* tips repeat next visit */ }
+  $('hintT').textContent = h.text; $('hint').classList.add('show'); hintT = 7.5;
+}
+function checkHints(maxDet) {
+  if (maxDet > 0.35) hint('suspect', 'A guard is getting suspicious. Get out of sight or into the dark before the bar fills.');
+  if (G.alertN > 0) hint('hunted', `You've been spotted! Break line of sight to lose them, or fight. Smoke bombs (${K('Q', 'the cloud button')}) blind pursuers.`);
+  if (P.hidden) hint('hidden', 'Crouched in a bush, you are almost invisible.');
+  if (P.hp < 45 && P.potions > 0) hint('lowhp', `You're badly hurt. Drink a healing draught (${K('H', 'the flask button')}).`);
+  if (P.weapon === 1) hint('bow', `Hold ${K('left click', 'STRIKE')} to draw and release to shoot. Unaware targets take double damage, and headshots more.`);
+  if (P.weapon === 2) hint('xbow', `One heavy bolt, then a slow reload. ${K('Right-click', 'AIM')} to zoom in.`);
+  if (P.weapon === 3) hint('knives', 'Throwing knives are quiet. Walk over them afterwards to pick them up.');
+  if (G.hasKey && !G.hasCrown) hint('key', 'The treasury door is behind the throne in the great hall.');
+  if (G.hasCrown) hint('meteor', "Glowing rings show where the Ember God's fire will land. Keep moving!");
+  if (G.stats.time > 35) hint('map', `Lost? Open the map with ${K('M', 'the map button')}.`);
+  if (!G.blessing && Math.hypot(P.pos.x - W.shrine.x, P.pos.z - W.shrine.z) < 24) hint('shrine', `A shrine to the Pale Lady. Pray there (${K('E', 'tap the prompt')}) for her blessing.`);
+  if (!life.quests.rift && Math.hypot(P.pos.x - W.rift.x, P.pos.z - W.rift.z) < 40) hint('rift', 'A demon rift. Smash the glowing heart inside the portal to seal it.');
+  if (life.bro && life.bro.downed) hint('bro', `Bro is down. Get close and ${K('press E', 'tap the prompt')} to help him up.`);
+}
+function updateFeedback(dt, maxDet) {
+  updateObjMarker();
+  for (const d of dmgEls) {
+    if (d.t <= 0) continue;
+    d.t -= dt;
+    d.el.style.opacity = Math.max(0, d.t / 1.2).toFixed(2);
+    d.el.style.transform = `rotate(${relAngle(d.x - P.pos.x, d.z - P.pos.z).toFixed(3)}rad)`;
+  }
+  hitMkT = Math.max(0, hitMkT - dt);
+  setStyle('hitmk', 'opacity', hitMkT > 0 ? '1' : '0');
+  const b = bossTarget();
+  setStyle('boss', 'display', b ? 'block' : 'none');
+  if (b) { setText('bossN', b.name.toUpperCase()); setStyle('bossF', 'width', (Math.max(0, b.a.hp) / (b.a.maxHp || b.a.hp) * 100).toFixed(1) + '%'); }
+  if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) $('banner').classList.remove('show'); }
+  checkHints(maxDet);
+  updateHints(dt);
+}
+
+// ---------------------------------------------------------------- map
+const MAP = { x0: -140, z0: -100, size: 280, px: 900 };
+const mapBase = document.createElement('canvas');
+mapBase.width = mapBase.height = MAP.px;
+const mX = (x) => (x - MAP.x0) / MAP.size * MAP.px, mZ = (z) => (z - MAP.z0) / MAP.size * MAP.px;
+function drawMapBase() {
+  const g = mapBase.getContext('2d'), N = 180, cell = MAP.size / N;
+  const small = document.createElement('canvas'); small.width = small.height = N;
+  const sg = small.getContext('2d'), img = sg.createImageData(N, N);
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const x = MAP.x0 + (i + 0.5) * cell, z = MAP.z0 + (j + 0.5) * cell, h = terrainHeight(x, z), k = (j * N + i) * 4;
+    let r = 22 + h * 1.4, gg = 38 + h * 2.2, b = 24 + h * 0.9;
+    if (Math.max(Math.abs(x), Math.abs(z)) < 58) { r = 58; gg = 54; b = 48; }
+    if (h < -1.0 && Math.abs(z - 84) < 35) { r = 18; gg = 40; b = 70; }
+    img.data[k] = r; img.data[k + 1] = gg; img.data[k + 2] = b; img.data[k + 3] = 255;
+  }
+  sg.putImageData(img, 0, 0);
+  g.imageSmoothingEnabled = true;
+  g.drawImage(small, 0, 0, MAP.px, MAP.px);
+  // the road to the camp and the bridge
+  g.strokeStyle = '#7a6448'; g.lineWidth = 6 / MAP.size * MAP.px; g.beginPath(); g.moveTo(mX(0), mZ(58)); g.lineTo(mX(0), mZ(138)); g.lineTo(mX(CAMP.x), mZ(CAMP.z)); g.stroke();
+  for (const c of C) {
+    const w = c.x1 - c.x0, d = c.z1 - c.z0;
+    if (c.tree) { g.fillStyle = '#16301c'; g.beginPath(); g.arc(mX((c.x0 + c.x1) / 2), mZ((c.z0 + c.z1) / 2), 3.2, 0, 7); g.fill(); continue; }
+    if (c.y1 - c.y0 < 2.2 || w * d > 2000 || c.y0 < -10) continue;
+    g.fillStyle = c.roof ? '#7a4a34' : c.y1 > 5.5 ? '#4a4a52' : '#5c5446';
+    g.fillRect(mX(c.x0), mZ(c.z0), w / MAP.size * MAP.px, d / MAP.size * MAP.px);
+  }
+  g.font = '700 15px Cinzel, Georgia, serif'; g.textAlign = 'center';
+  const label = (t, x, z, col = '#e8dfc6') => { g.lineWidth = 4; g.strokeStyle = 'rgba(0,0,0,0.75)'; g.strokeText(t, mX(x), mZ(z)); g.fillStyle = col; g.fillText(t, mX(x), mZ(z)); };
+  label('THE KEEP', 0, -26); label('MARKET', 0, 9); label('CHURCH', -41, -18); label('GATE', 0, 66); label('RIVER', 70, 80, '#8fb0d8');
+  label('YOUR CAMP', CAMP.x, CAMP.z + 9); label('GRAVEYARD', W.grave.x, W.grave.z - 16); label('RUINED TOWER', W.rift.x, W.rift.z + 10);
+  label('SHRINE', W.shrine.x, W.shrine.z - 6, '#9fc0ff'); label('WINDMILL', 96, 33); label('BRIDGE', 13, 77);
+  g.font = '900 30px Cinzel, Georgia, serif'; label('RAVENMOOR', 0, -70, '#e9b84a');
+}
+function drawMap() {
+  if (!mapBase.drawn) { drawMapBase(); mapBase.drawn = true; }
+  const cv = $('mapC'), g = cv.getContext('2d');
+  g.drawImage(mapBase, 0, 0);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  const mark = (t, x, z, col, size = 20) => { g.font = `700 ${size}px Georgia, serif`; g.lineWidth = 4; g.strokeStyle = 'rgba(0,0,0,0.8)'; g.strokeText(t, mX(x), mZ(z)); g.fillStyle = col; g.fillText(t, mX(x), mZ(z)); };
+  for (const c of W.chests) if (!c.opened) { g.fillStyle = '#d9a33a'; g.strokeStyle = '#000'; g.lineWidth = 2; g.fillRect(mX(c.x) - 5, mZ(c.z) - 5, 10, 10); g.strokeRect(mX(c.x) - 5, mZ(c.z) - 5, 10, 10); }
+  if (!life.quests.blessing) mark('☾', W.shrine.x, W.shrine.z, '#9fc0ff', 24);
+  if (!life.quests.rift) mark('✶', W.rift.x, W.rift.z, '#ff6a4a', 24);
+  const [ox, , oz] = objTarget3();
+  mark('◆', ox, oz, '#ffd36a', 26);
+  if (life.bro) mark('●', life.bro.pos.x, life.bro.pos.z, '#a6dc84', 18);
+  const px = mX(P.pos.x), pz = mZ(P.pos.z), a = Math.atan2(-Math.cos(P.yaw), -Math.sin(P.yaw));
+  g.save(); g.translate(px, pz); g.rotate(a + Math.PI / 2);
+  g.beginPath(); g.moveTo(0, -14); g.lineTo(9, 10); g.lineTo(0, 5); g.lineTo(-9, 10); g.closePath();
+  g.fillStyle = '#e9b84a'; g.strokeStyle = '#000'; g.lineWidth = 3; g.stroke(); g.fill();
+  g.restore();
+}
+function openMap(fromPause) {
+  if (!fromPause && G.state !== 'play') return;
+  G.mapOpen = true; G.mapFromPause = !!fromPause;
+  if (!fromPause) { G.state = 'pause'; releaseTouch(); }
+  drawMap(); show('mapView', true); $('mapClose').focus();
+  if (document.pointerLockElement) document.exitPointerLock();
+}
+function closeMap() {
+  if (!G.mapOpen) return;
+  G.mapOpen = false; show('mapView', false);
+  if (!G.mapFromPause) { G.state = 'play'; sfx.init(); if (!freeLook && !touchMode) requestLock(); }
 }
 
 // ---------------------------------------------------------------- particles
@@ -488,7 +667,7 @@ function makeGuard(s) {
   if (!s.fixed) p.y = navH(p.x, p.z);
   const hp = s.type === 'marshal' ? 280 : s.type === 'archer' ? 70 : 100;
   const g = {
-    s, type: s.type, kind: 'guard', team: 'town', R: 0.42, H: s.type === 'marshal' ? 2.05 : 1.8, body: true, canAssassinate: true, foe: null, foeT: Math.random() * 0.5, hy: 0, mv: 0, m: makeModel(s.type), pos: p, yaw: s.yaw || 0, look: s.yaw || 0, headYaw: 0, hp, state: 'patrol', det: 0,
+    s, type: s.type, kind: 'guard', team: 'town', R: 0.42, H: s.type === 'marshal' ? 2.05 : 1.8, body: true, canAssassinate: true, foe: null, foeT: Math.random() * 0.5, hy: 0, mv: 0, m: makeModel(s.type), pos: p, yaw: s.yaw || 0, look: s.yaw || 0, headYaw: 0, hp, maxHp: hp, state: 'patrol', det: 0,
     path: null, pi: 0, wp: 0, wait: 0, repath: 0, pgx: 1e9, pgz: 1e9, seenT: 0, last: new V3(), goal: new V3(), stun: 0, atk: null, atkCd: 0,
     shootCd: rand(0.5, 2), searchT: 0, susT: 0, lookT: 0, dead: false, deathT: 0, found: false, picked: false, walk: 0, sw: 0,
     pocket: s.type === 'marshal' ? 150 : 12 + (Math.random() * 30 | 0), barkCd: 0, bodyT: Math.random(), seed: Math.random() * 10,
@@ -854,6 +1033,7 @@ function updateShots(dt) {
         if (head && hitG.kind !== 'rift') toast('Headshot', 'dim');
         P.violentT = 1.5; P.lastTarget = hitG; P.lastTargetT = G.t;
         hurtActor(hitG, dmg, { from: P, silent: unaware, missile: true });
+        hitMarker(!live(hitG));
       }
       sfx.hit(volAt(hitG.pos));
       if (s.kind === 'fire') burst('spark', s.p.x, s.p.y, s.p.z, 8, 3, 0.2, 0.4);
@@ -978,6 +1158,7 @@ function assassinate() {
   burst('blood', g.pos.x, g.pos.y + g.H * 0.75, g.pos.z, 10, 2.4, 0.16, 0.6);
   P.violentT = 1; P.lastTarget = g; P.lastTargetT = G.t;
   if (g.kind === 'guard') killGuard(g, true, P); else hurtActor(g, 9999, { from: P, silent: true });
+  hitMarker(true);
 }
 function pickpocket(g) {
   g.picked = true; if (g.kind === 'guard') g.det += 0.12; G.stats.picked++;
@@ -1012,6 +1193,7 @@ function hurtPlayer(dmg, from, attacker) {
     }
   }
   P.hp -= dmg; P.hurtT = 0.5; P.roll = rand(-0.08, 0.08);
+  if (from) damageFrom(from);
   sfx.hurt();
   if (P.hp <= 0) die();
 }
@@ -1171,6 +1353,19 @@ function aim() {
 }
 function fireShot(kind, speed, dmg) {
   aim();
+  if (touchMode) {
+    // on touch screens, nudge the shot onto a foe close to the crosshair
+    const grav = kind === 'bolt' ? 7 : kind === 'knife' ? 13 : 10;
+    let best = null, bd = Math.cos(0.12), bl = 0;
+    for (const a of actors) {
+      if (!live(a) || !(a.kind === 'guard' || a.team === 'wild' || a.team === 'demon')) continue;
+      const cx = a.pos.x - eyePos.x, cy = a.pos.y + a.H * 0.6 - eyePos.y, cz = a.pos.z - eyePos.z, L = Math.hypot(cx, cy, cz);
+      if (L > 45 || L < 1.5) continue;
+      const dot = (cx * camDir.x + cy * camDir.y + cz * camDir.z) / L;
+      if (dot > bd && los(eyePos.x, eyePos.y, eyePos.z, a.pos.x, a.pos.y + a.H * 0.6, a.pos.z)) { bd = dot; best = a; bl = L; }
+    }
+    if (best) { const tt = bl / speed; camDir.set(best.pos.x - eyePos.x, best.pos.y + best.H * 0.6 + 0.5 * grav * tt * tt - eyePos.y, best.pos.z - eyePos.z).normalize(); }
+  }
   const o = eyePos.clone().addScaledVector(camDir, 0.45);
   o.y -= 0.06;
   spawnShot(kind, o, camDir, speed, dmg, null);
@@ -1188,7 +1383,7 @@ function swordHit(heavy) {
     if (g.kind !== 'guard') {
       let dmg = heavy ? 56 : 34;
       if (!g.aware && g.kind !== 'rift') dmg *= 2.6; else if (g.stun > 0) dmg *= 1.8;
-      sfx.hit(); hurtActor(g, dmg, { from: P, melee: true });
+      sfx.hit(); hurtActor(g, dmg, { from: P, melee: true }); hitMarker(!live(g));
       continue;
     }
     const unaware = g.state !== 'alert';
@@ -1200,7 +1395,7 @@ function swordHit(heavy) {
     let dmg = heavy ? 56 : 34;
     if (unaware) dmg *= 2.6; else if (g.stun > 0) dmg *= 1.8;
     sfx.hit();
-    hurtGuard(g, dmg, { from: P });
+    hurtGuard(g, dmg, { from: P }); hitMarker(g.dead);
   }
   if (any) { makeNoise(P.pos, 12); P.violentT = 1.5; return; }
   aim();
@@ -1511,9 +1706,35 @@ function requestLock() {
     }
   }, 900);
 }
-function startGame() {
+let checkpoint = null;
+function saveCheckpoint() {
+  checkpoint = {
+    stage: G.stage, pos: P.pos.clone(), yaw: P.yaw, gold: G.gold, hasKey: G.hasKey, hasCrown: G.hasCrown, doorOpen: G.doorOpen,
+    marshalDead: G.marshalDead, contract: G.contract, blessing: G.blessing, stats: { ...G.stats },
+    inv: { arrows: P.arrows, bolts: P.bolts, knives: P.knives, potions: Math.max(P.potions, 1), smoke: Math.max(P.smoke, 1) },
+  };
+}
+function restoreCheckpoint(cp) {
+  P.pos.copy(cp.pos); P.yaw = cp.yaw; Object.assign(P, cp.inv);
+  Object.assign(G, { stage: cp.stage, gold: cp.gold, contract: cp.contract, blessing: cp.blessing, stats: { ...cp.stats } });
+  if (G.blessing) { life.quests.blessing = true; if (W.shrineFx) W.shrineFx.done = true; }
+  const m = guards.find((g) => g.type === 'marshal');
+  if (cp.hasKey) { G.hasKey = true; if (m) { m.picked = true; m.pocket = 0; } }
+  if (cp.marshalDead && m) { Object.assign(m, { dead: true, state: 'dead', deathT: 1, deadDir: 1, found: true, hp: 0 }); G.marshalDead = true; poseGuard(m, false); }
+  if (cp.doorOpen) { G.doorOpen = true; doorCol.y0 = doorCol.y1 = -60; door.position.y = 4.85; }
+  if (cp.hasCrown) {
+    G.hasCrown = true; crown.visible = false; G.alarm = true;
+    for (const [x, z] of W.reinforce) investigate(makeGuard({ type: 'guard', post: [x, z], yaw: 0 }), new V3(rand(-4, 4), 0, rand(-40, -36)), 30, true);
+    life.onCrownStolen();
+  }
+  if (life.bro) life.bro.pos.set(P.pos.x - Math.cos(P.yaw) * 1.6, P.pos.y, P.pos.z + Math.sin(P.yaw) * 1.6);
+  pYaw = P.yaw + Math.PI;
+}
+function startGame(fromCheckpoint) {
   sfx.init();
   resetGame();
+  if (fromCheckpoint === true && checkpoint) restoreCheckpoint(checkpoint); else checkpoint = null;
+  pYaw = P.yaw + Math.PI;
   G.state = 'play';
   show('menu', false); show('end', false); show('pause', false); show('hud', true);
   if (!touchMode) requestLock();
@@ -1542,16 +1763,17 @@ function pause(on) {
     show('pause', true);
   } else if (!on && G.state === 'pause') { G.state = 'play'; show('pause', false); sfx.init(); if (!freeLook && !touchMode) requestLock(); }
 }
-function endScreen(title, html, btn) {
+function endScreen(title, html, btn, cp) {
   releaseTouch();
   $('endT').textContent = title; $('endB').innerHTML = html; $('endBtn').textContent = btn;
+  $('endCp').classList.toggle('hidden', !cp);
   show('end', true); show('hud', false);
   if (document.pointerLockElement) document.exitPointerLock();
 }
 function die() {
   P.dead = true; P.hp = 0; G.state = 'dead'; G.endT = 0;
   sfx.setTension(0);
-  setTimeout(() => endScreen('You Are Slain', '<p>Your body will hang from the gatehouse by morning.</p>', 'Try again'), 1600);
+  setTimeout(() => endScreen('You Are Slain', '<p>Your body will hang from the gatehouse by morning.</p>', checkpoint ? 'START OVER' : 'TRY AGAIN', !!checkpoint), 1600);
 }
 function win() {
   G.state = 'won';
@@ -1577,9 +1799,9 @@ function win() {
     <p class="total">Total: ${G.gold + bonus} gold</p>`, 'Play again');
 }
 function updateObjectives() {
-  if (G.stage === 0 && Math.abs(P.pos.x) < 56 && Math.abs(P.pos.z) < 56) { G.stage = 1; toast('You are inside Ravenmoor.', 'dim'); }
-  if (G.stage <= 1 && G.hasKey) G.stage = 2;
-  if (G.stage <= 2 && G.hasCrown) G.stage = 3;
+  if (G.stage === 0 && Math.abs(P.pos.x) < 56 && Math.abs(P.pos.z) < 56) { G.stage = 1; banner('Ravenmoor', 'You are inside the walls. Find Lord Marshal Varek.'); saveCheckpoint(); }
+  if (G.stage <= 1 && G.hasKey) { G.stage = 2; banner('The Key Is Yours', 'Now the treasury, behind the throne.'); saveCheckpoint(); }
+  if (G.stage <= 2 && G.hasCrown) { G.stage = 3; saveCheckpoint(); setTimeout(() => { if (G.state === 'play') banner('The Ember God Wakes', 'Run for the camp beyond the river.'); }, 2200); }
   if (G.stage === 3 && Math.hypot(P.pos.x - CAMP.x, P.pos.z - CAMP.z) < 6.5) win();
 }
 
@@ -1589,6 +1811,7 @@ document.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   keys[e.code] = true;
   if (!$('settings').classList.contains('hidden')) { if (e.code === 'Escape') show('settings', false); return; }
+  if (G.mapOpen) { if (e.code === 'KeyM' || e.code === 'Escape' || e.code === 'Enter') closeMap(); return; }
   if (G.state === 'pause') { if (e.code === 'KeyP' || e.code === 'Enter') pause(false); return; }
   if (G.state !== 'play') return;
   switch (e.code) {
@@ -1601,7 +1824,7 @@ document.addEventListener('keydown', (e) => {
     case 'KeyV': whistle(); break;
     case 'KeyG': life.broCommand(); break;
     case 'KeyT': toggleView(); break;
-    case 'KeyM': G.muted = !G.muted; sfx.mute(G.muted); toast(G.muted ? 'Sound off' : 'Sound on', 'dim'); break;
+    case 'KeyM': openMap(); break;
     case 'KeyP': pause(true); break;
     case 'Escape': if (freeLook) pause(true); break;
     case 'Digit1': switchWeapon(0); break;
@@ -1631,10 +1854,13 @@ document.addEventListener('pointerlockchange', () => {
   locked = document.pointerLockElement === canvas;
   if (locked) freeLook = false; else if (G.state === 'play' && !freeLook) pause(true);
 });
-$('startBtn').addEventListener('click', startGame);
-$('endBtn').addEventListener('click', startGame);
+$('startBtn').addEventListener('click', () => startGame(false));
+$('endBtn').addEventListener('click', () => startGame(false));
 $('resumeBtn').addEventListener('click', () => pause(false));
-$('restartBtn').addEventListener('click', startGame);
+$('pauseMap').addEventListener('click', () => openMap(true));
+$('mapClose').addEventListener('click', closeMap);
+$('endCp').addEventListener('click', () => startGame(true));
+$('restartBtn').addEventListener('click', () => startGame(false));
 $('soundBtn').addEventListener('click', () => { G.muted = !G.muted; sfx.mute(G.muted); $('soundBtn').textContent = G.muted ? 'SOUND OFF' : 'SOUND ON'; });
 $('rotateBtn').addEventListener('click', () => $('rotate').classList.add('dismissed'));
 window.addEventListener('resize', () => { resize(); delete hudCache.cHalf; if (stick.id === null) placeStick(); });
@@ -1714,7 +1940,7 @@ holdBtn('bJump', () => { input.jump = true; keys.Space = true; }, () => { keys.S
 holdBtn('bBlock', () => { input.alt = true; }, () => { input.alt = false; });
 holdBtn('bCrouch', () => { P.crouch = !P.crouch; });
 holdBtn('iSmoke', throwSmoke); holdBtn('iHeal', drinkPotion); holdBtn('iWhistle', whistle);
-holdBtn('iBro', () => life.broCommand()); holdBtn('iView', () => toggleView());
+holdBtn('iBro', () => life.broCommand()); holdBtn('iView', () => toggleView()); holdBtn('iMap', () => openMap());
 for (let i = 0; i < 4; i++) holdBtn('slot' + i, () => switchWeapon(i));
 $('pauseBtn').addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); pause(true); });
 $('obj').addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); G.hintT = G.hintT > 0 ? 0 : 8; });
@@ -1838,7 +2064,7 @@ buildChests();
 await loadStep(0.72, 'Waking the townsfolk, the beasts and the gods…');
 life = createLife({
   scene, W, P, G, actors, guards, camera, sfx,
-  terrainHeight, groundAt, resolveXZ, los, findPath, makeNoise, hurtPlayer, hurtActor, damageArea, spawnShot, investigate, burst, volAt, toast, subtitle,
+  terrainHeight, groundAt, resolveXZ, los, findPath, makeNoise, hurtPlayer, hurtActor, damageArea, spawnShot, investigate, burst, volAt, toast, subtitle, banner,
   onDeath: onLifeDeath,
   inNav: (x, z) => x >= OX && x < OX + NX && z >= OZ && z < OZ + NZ,
   freeNear: (x, z) => { const i = nearestFree(cellOf(x, z)); return i < 0 ? [x, z] : [OX + i % NX + 0.5, OZ + ((i / NX) | 0) + 0.5]; },
@@ -1880,5 +2106,5 @@ await loadStep(1, 'Ready');
 $('loading').classList.add('gone');
 setTimeout(() => $('loading').remove(), 700);
 show('menu', true);
-window.__game = { G, P, W, actors, get life() { return life; }, toggleView, guards, shots, camera, renderer, startGame, findPath, blocked, C, keys, input, stick, logic, stealthTarget, setTouch: (v) => setTouch(v), pause, assassinate, navH, pickpocket, findInteract, los, alertGuard };
+window.__game = { G, P, W, actors, openMap, closeMap, saveCheckpoint, get checkpoint() { return checkpoint; }, hurtPlayer, banner, hint, get life() { return life; }, toggleView, guards, shots, camera, renderer, startGame, findPath, blocked, C, keys, input, stick, logic, stealthTarget, setTouch: (v) => setTouch(v), pause, assassinate, navH, pickpocket, findInteract, los, alertGuard };
 requestAnimationFrame(frame);

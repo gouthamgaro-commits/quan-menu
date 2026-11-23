@@ -119,6 +119,34 @@ body.touch .slot { pointer-events: auto; touch-action: none; }
 .slot.on svg.i { color: var(--gold-hi); }
 .slot kbd { position: absolute; left: 4px; top: 2px; font: 600 9px var(--display); color: var(--parch-dim); }
 .slot .a { font: 600 11px var(--display); color: var(--gold); font-variant-numeric: tabular-nums; min-height: 12px; }
+#objMk { left: 0; top: 0; display: none; flex-direction: column; align-items: center; gap: 2px; transform: translate(-50%, -50%); color: var(--gold); font: 700 15px var(--display); text-shadow: 0 0 8px rgba(0, 0, 0, 0.9); }
+#objMk small { font: 600 9.5px var(--display); letter-spacing: 0.1em; color: var(--parch); }
+#objMk .arr { display: none; font-size: 18px; }
+#objMk.edge .arr { display: block; }
+#objMk.edge .dia { display: none; }
+.dmg { position: absolute; left: -70px; top: -70px; width: 140px; height: 140px; border-radius: 50%; border-top: 5px solid rgba(255, 50, 30, 0.95); opacity: 0; filter: drop-shadow(0 0 6px rgba(255, 40, 20, 0.8)); }
+#hitmk { left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; opacity: 0; }
+#hitmk::before, #hitmk::after { content: ''; position: absolute; left: 50%; top: 0; width: 2px; height: 100%; margin-left: -1px; background: #fff; box-shadow: 0 0 4px #000; }
+#hitmk::before { transform: rotate(45deg); } #hitmk::after { transform: rotate(-45deg); }
+#hitmk.kill::before, #hitmk.kill::after { background: #ff4a3a; }
+#boss { top: calc(var(--st) + 66px); left: 50%; transform: translateX(-50%); width: min(380px, 60vw); text-align: center; display: none; }
+#boss b { font: 700 11px var(--display); letter-spacing: 0.22em; color: #ffcf9a; }
+#boss .bar { height: 6px; margin-top: 4px; border-color: rgba(255, 140, 80, 0.4); }
+#bossF { background: linear-gradient(90deg, #7a1608, #e0461e); width: 100%; transition: width 0.15s; }
+#banner { left: 50%; top: 37%; transform: translate(-50%, -50%); text-align: center; opacity: 0; transition: opacity 0.8s; width: 90vw; pointer-events: none; }
+#banner h3 { margin: 0; font: 900 clamp(26px, 5vw, 52px) var(--display); letter-spacing: 0.08em; color: var(--parch); text-shadow: 0 2px 0 #000, 0 0 30px rgba(233, 184, 74, 0.5); }
+#banner p { margin: 6px 0 0; font-style: italic; font-size: clamp(14px, 2vw, 19px); color: var(--parch-dim); }
+#banner.show { opacity: 1; }
+#hint { top: calc(var(--st) + 112px); right: var(--sr); max-width: min(300px, 40vw); padding: 7px 14px; background: var(--panel-solid); border-left: 2px solid var(--gold); font-size: 14.5px; line-height: 1.3; opacity: 0; transition: opacity 0.4s; text-align: left; }
+#hint.show { opacity: 1; }
+#hint b { font: 600 9.5px var(--display); letter-spacing: 0.2em; color: var(--gold); display: block; margin-bottom: 2px; }
+#sub .who { font-style: normal; font: 600 0.78em var(--display); letter-spacing: 0.1em; margin-right: 6px; }
+#sub .bro { color: #a6dc84; } #sub .foe { color: #ff8a7a; } #sub .god { color: #ffb45a; } #sub .lady { color: #a9c8ff; } #sub .folk { color: #e8d9b0; }
+#mapView { z-index: 22; background: rgba(4, 6, 11, 0.9); }
+#mapView .card { width: min(760px, 100%); }
+#mapC { width: min(86vh, 92vw, 720px); height: auto; aspect-ratio: 1; display: block; margin: 0 auto; border: 1px solid var(--line); background: #0b1210; }
+.mapLegend { display: flex; flex-wrap: wrap; gap: 6px 16px; justify-content: center; margin: 10px 0 12px; font-size: 13px; color: var(--parch-dim); }
+.mapLegend i { font-style: normal; font-weight: 700; margin-right: 4px; }
 #keys { right: var(--sr); bottom: var(--sb); text-align: right; font-size: 12.5px; line-height: 1.55; color: var(--parch-dim); opacity: 0.8; }
 #keys b { color: var(--parch); font: 600 10px var(--display); letter-spacing: 0.06em; }
 
@@ -255,6 +283,7 @@ button { cursor: pointer; }
   <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4.5a1.5 1.5 0 0 1 3 0V12M14 11.5V6a1.5 1.5 0 0 1 3 0v8a7 7 0 0 1-7 7h-.5a6 6 0 0 1-4.6-2.2L2.5 15a1.6 1.6 0 0 1 2.4-2.1L8 15"/></symbol>
   <symbol id="i-bro" viewBox="0 0 24 24"><circle cx="8" cy="7" r="3"/><circle cx="16.5" cy="8" r="2.5"/><path d="M2.5 20c0-3.6 2.5-6 5.5-6s5.5 2.4 5.5 6M13 15.2c1-.8 2.2-1.2 3.5-1.2 2.8 0 5 2.2 5 5.5"/></symbol>
   <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M3 6l6-2.5 6 2.5 6-2.5v14.5L15 20.5l-6-2.5-6 2.5zM9 3.5v14.5M15 6v14.5"/></symbol>
   <symbol id="i-phone" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M8 3.5A9 9 0 0 1 16 3.5M16 3.5l-1.5-1.5M16 3.5 14.5 5"/></symbol>
 </svg>
 <div id="loading"><div class="card">
@@ -302,11 +331,17 @@ button { cursor: pointer; }
       <button class="item" id="iWhistle" aria-label="Whistle"><kbd class="kb-only">V</kbd><svg class="i"><use href="#i-whistle"/></svg></button>
       <button class="item" id="iBro" aria-label="Tell Bro to wait or follow"><kbd class="kb-only">G</kbd><svg class="i"><use href="#i-bro"/></svg></button>
       <button class="item" id="iView" aria-label="Switch camera"><kbd class="kb-only">T</kbd><svg class="i"><use href="#i-eye"/></svg></button>
+      <button class="item" id="iMap" aria-label="Map"><kbd class="kb-only">M</kbd><svg class="i"><use href="#i-map"/></svg></button>
     </div>
   </div>
   <div id="dets"></div>
   <div id="draw"></div><div id="cross"></div>
   <div id="ctx"></div>
+  <div id="objMk"><span class="dia">◆</span><span class="arr">▲</span><small id="objMkD"></small></div>
+  <div id="hitmk"></div>
+  <div id="boss"><b id="bossN"></b><div class="bar"><i id="bossF"></i></div></div>
+  <div id="hint"><b>TIP</b><span id="hintT"></span></div>
+  <div id="banner"><h3 id="bannerT"></h3><p id="bannerS"></p></div>
   <div id="sub"></div>
   <div id="bc">
     <div id="gem"><div id="gemF"></div></div>
@@ -319,7 +354,7 @@ button { cursor: pointer; }
   </div>
   <div id="keys" class="kb-only">
     <b>C</b> crouch · <b>SPACE</b> jump / climb · <b>SHIFT</b> sprint<br>
-    <b>RIGHT CLICK</b> block / aim · <b>G</b> Bro · <b>T</b> camera · <b>P</b> pause
+    <b>RIGHT CLICK</b> block / aim · <b>G</b> Bro · <b>T</b> camera · <b>M</b> map · <b>P</b> pause
   </div>
   <div id="stick" class="touch-only"><div id="knob"></div><div class="lbl">MOVE</div></div>
   <button class="tb touch-only" id="bAtk" aria-label="Attack"><svg class="i"><use id="atkIcon" href="#i-sword"/></svg><span id="atkL">STRIKE</span></button>
@@ -352,6 +387,7 @@ button { cursor: pointer; }
       <div><span>Smoke · heal · whistle</span><b>Q · H · V</b></div>
       <div><span>Bro: wait or follow</span><b>G</b></div>
       <div><span>First or third person</span><b>T</b></div>
+      <div><span>Map</span><b>M</b></div>
     </div>
     <div class="ctl touch-only">
       <div><span>Move: left thumb, push to the edge to run</span><b>STICK</b></div>
@@ -362,7 +398,7 @@ button { cursor: pointer; }
       <div><span>Block, parry, aim</span><b>BLOCK</b></div>
       <div><span>Assassinate, steal, loot</span><b>TAP THE PROMPT</b></div>
       <div><span>Weapons · smoke · heal · whistle</span><b>TAP THE ICONS</b></div>
-      <div><span>Bro waits or follows · switch camera</span><b>TOP RIGHT</b></div>
+      <div><span>Bro · camera · map</span><b>TOP RIGHT</b></div>
     </div>
     <p class="note">The town lives: merchants, a bard, beggars and dogs. Beyond the walls: wolves, a troll, the risen dead, a demon rift, and gods.</p>
     <p class="note kb-only">Torchlight betrays you. Darkness and bushes hide you when you crouch.</p>
@@ -384,6 +420,7 @@ button { cursor: pointer; }
     <div class="row">
       <button class="btn" id="resumeBtn">RESUME</button>
       <button class="btn ghost" id="soundBtn">SOUND ON</button>
+      <button class="btn ghost" id="pauseMap">MAP</button>
       <button class="btn ghost" id="pauseSet">SETTINGS</button>
       <button class="btn ghost" id="restartBtn">RESTART</button>
     </div>
@@ -401,7 +438,17 @@ button { cursor: pointer; }
   <label class="srow"><span>Show frame rate</span><input type="checkbox" id="sFps"></label>
   <button class="btn" id="setDone">DONE</button>
 </div></div>
-<div id="end" class="overlay hidden"><div class="card"><h2 id="endT"></h2><div id="endB"></div><button class="btn" id="endBtn"></button></div></div>
+<div id="mapView" class="overlay hidden"><div class="card">
+  <canvas id="mapC" width="900" height="900" aria-label="Map of Ravenmoor and the land around it"></canvas>
+  <div class="mapLegend">
+    <span><i style="color:#e9b84a">▲</i>You</span><span><i style="color:#a6dc84">●</i>Bro</span><span><i style="color:#ffd36a">◆</i>Objective</span>
+    <span><i style="color:#d9a33a">■</i>Unopened chest</span><span><i style="color:#9fc0ff">☾</i>Shrine</span><span><i style="color:#ff6a4a">✶</i>Demon rift</span>
+  </div>
+  <button class="btn" id="mapClose">BACK TO THE NIGHT</button>
+</div></div>
+<div id="end" class="overlay hidden"><div class="card"><h2 id="endT"></h2><div id="endB"></div>
+  <div class="row"><button class="btn" id="endBtn"></button><button class="btn ghost hidden" id="endCp">RETRY FROM CHECKPOINT</button></div>
+</div></div>
 <div id="rotate" class="overlay"><div class="card">
   <svg class="i"><use href="#i-phone"/></svg>
   <h2 style="font: 700 22px var(--display); margin: 0 0 8px;">Turn your phone sideways</h2>

@@ -622,6 +622,7 @@ export function createLife(ctx) {
       if (mine.every((o) => o.kind !== 'skeleton' || o.dead) && !L.quests.grave) {
         L.quests.grave = true; G.gold += 150;
         ctx.toast('The graveyard rests again. You find 150 gold among the bones.', 'gold');
+        ctx.banner('The Dead Rest Again', '+150 gold');
       }
     };
     return a;
@@ -667,6 +668,7 @@ export function createLife(ctx) {
     a.onDeath = () => {
       L.quests.troll = true; G.gold += 200; sfx.roar(ctx.volAt(a.pos), 0.6);
       ctx.toast("The troll falls. Its hoard of stolen coin is yours: 200 gold.", 'gold');
+      ctx.banner('The Troll Falls', 'Its hoard is yours: +200 gold');
     };
     return a;
   }
@@ -741,6 +743,7 @@ export function createLife(ctx) {
       a.gem.visible = false;
       for (const o of mine) if (o.kind === 'imp' && live(o)) kill(o, { from: 'rift' });
       ctx.toast('The rift collapses. The imps burn away with it. +400 gold', 'gold');
+      ctx.banner('The Rift Is Sealed', '+400 gold');
     };
     return a;
   }
@@ -791,7 +794,7 @@ export function createLife(ctx) {
     a.ai = demonAI;
     a.pose = (a) => humanPose(a, a.nova ? { atk: 0.3, style: 'slam', lean: -0.2 } : { lean: 0.1 });
     a.onHurt = (h) => { if (h.from && h.from !== 'god') a.target = h.from; sfx.grunt(ctx.volAt(a.pos) * 1.4); };
-    a.onDeath = () => { L.quests.demon = true; G.gold += 250; sfx.roar(ctx.volAt(a.pos), 1.4); ctx.toast('The hellspawn is banished. +250 gold', 'gold'); };
+    a.onDeath = () => { L.quests.demon = true; G.gold += 250; sfx.roar(ctx.volAt(a.pos), 1.4); ctx.toast('The hellspawn is banished. +250 gold', 'gold'); ctx.banner('The Hellspawn Is Banished', '+250 gold'); };
     return a;
   }
   function demonAI(a, dt) {
@@ -914,6 +917,7 @@ export function createLife(ctx) {
     sfx.choir();
     setTimeout(() => ctx.subtitle('The Pale Lady: “Walk unseen, little shadow. The night is yours.”'), 1600);
     ctx.toast('Blessing of the Pale Lady: you are harder to see, and darkness slowly heals you.', 'gold');
+    setTimeout(() => ctx.banner('Blessed by the Pale Lady', 'You are harder to see, and darkness heals you'), 2500);
   }
   function updateLady(dt) {
     if (ladyT < 0) return;
