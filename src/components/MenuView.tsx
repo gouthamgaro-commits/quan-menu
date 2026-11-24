@@ -15,7 +15,15 @@ import {
   type Allergen, type Dish, type Lang, type Media, type Pay, type SoldOut, type Topping,
 } from "@/lib/types";
 import { bankName, vietQr } from "@/lib/vietqr";
+import {
+  Armchair, Coffee, CreditCard, Flame, Lock, MapPin, Minus, Play, Plus, ReceiptText, Search, Star, Trash2, TriangleAlert, Volume2, X,
+} from "lucide-react";
 import QrImage from "./QrImage";
+
+/** The word over the stall's name, in the customer's language. */
+const MENU_WORD: Record<Lang, string> = { en: "Menu", ko: "메뉴", zh: "菜单", ja: "メニュー" };
+/** Icons are drawn at the text's size and hidden from screen readers (the text says it all). */
+const ic = { className: "i", "aria-hidden": true } as const;
 
 interface Props {
   name: string;
@@ -383,16 +391,58 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
     const desc = d.desc ? d.desc[lang] || d.desc.en : "";
     const n = qtyOf(i);
     const gone = out.has(d.vi);
+    // The first photo or video sits on the card; tapping it opens all of them.
+    const cover = d.media?.[0];
     return (
-      <div key={i} className={"dish" + (n ? " on" : "") + (gone ? " gone" : "")}>
-        {(d.special || gone) && (
-          <div className="badges">
-            {gone && <span className="badge out">{L.soldOut}</span>}
-            {d.special && !gone && <span className="badge star">⭐ {L.mustTry}</span>}
-          </div>
-        )}
-        <div className="dish-top">
+      <div key={i} className={"dish" + (cover ? " has-photo" : "") + (n ? " on" : "") + (gone ? " gone" : "")}>
+        <div className="d-body">
+          {(d.special || gone) && (
+            <div className="badges">
+              {gone && <span className="badge out">{L.soldOut}</span>}
+              {d.special && !gone && <span className="badge star"><Star {...ic} /> {L.mustTry}</span>}
+            </div>
+          )}
           <Title className="tn">{title}</Title>
+          <div className="vn" lang="vi">
+            {done && <span>{d.vi}</span>}
+            <button className={"say" + (saying === "d" + i ? " on" : "")} onClick={() => say([d.vi], "d" + i)} aria-label={`${L.say}: ${d.vi}`}>
+              <Volume2 {...ic} /> {L.say} {d.pron && <i>“{d.pron}”</i>}
+            </button>
+          </div>
+          {desc && <p>{desc}</p>}
+          {hasOpts(d) && (
+            <div className="opt-hint">
+              <Coffee {...ic} />
+              {[d.opts?.sizes?.length && O.size, d.opts?.sugar && O.sugar, d.opts?.ice && O.ice, d.opts?.tops && toppings.length && O.toppings].filter(Boolean).join(" · ")}
+            </div>
+          )}
+        </div>
+        {cover && (
+          <button className="d-photo m-thumb" onClick={() => setViewer({ items: d.media!, at: 0, title })}
+            aria-label={`${title}: ${cover.type === "video" ? "video" : "photo"} 1 of ${d.media!.length}`}>
+            {cover.type === "video" ? (
+              <video src={cover.url + "#t=0.1"} muted playsInline preload="metadata" tabIndex={-1} />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={cover.url} alt="" loading="lazy" />
+            )}
+            {cover.type === "video" && <span className="media-play" aria-hidden><Play /></span>}
+            {d.media!.length > 1 && <span className="d-count" aria-hidden>+{d.media!.length - 1}</span>}
+          </button>
+        )}
+        <div className="tags">
+          {d.spice > 0 && (
+            <span className="chili" title="Spicy" aria-label={`Spicy ${d.spice} of 3`}>
+              {Array.from({ length: d.spice }, (_, k) => <Flame key={k} aria-hidden />)}
+            </span>
+          )}
+          {d.alg.map((a) => (
+            <span key={a} className="tag">
+              {ALLERGENS[a][lang]}
+            </span>
+          ))}
+        </div>
+        <div className="d-foot">
           <div className="pr">
             {d.opts?.sizes?.length ? (
               d.opts.sizes.map((z) => <b key={z.k} className="sz"><span>{z.k}</span> {vnd(z.price)}</b>)
@@ -401,55 +451,14 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
             )}
             <small>{inCurrency(d.opts?.sizes?.[0]?.price || d.price, cur, rates[cur])}</small>
           </div>
-        </div>
-        <div className="vn" lang="vi">
-          {done && <span>{d.vi}</span>}
-          <button className={"say" + (saying === "d" + i ? " on" : "")} onClick={() => say([d.vi], "d" + i)} aria-label={`${L.say}: ${d.vi}`}>
-            🔊 {L.say} {d.pron && <i>“{d.pron}”</i>}
-          </button>
-        </div>
-        {desc && <p>{desc}</p>}
-        {hasOpts(d) && (
-          <div className="opt-hint">
-            {[d.opts?.sizes?.length && O.size, d.opts?.sugar && O.sugar, d.opts?.ice && O.ice, d.opts?.tops && toppings.length && O.toppings].filter(Boolean).join(" · ")}
-          </div>
-        )}
-        {!!d.media?.length && (
-          <div className="m-media">
-            {d.media.map((m, k) => (
-              <button key={m.url} className="m-thumb" onClick={() => setViewer({ items: d.media!, at: k, title })}
-                aria-label={`${title}: ${m.type === "video" ? "video" : "photo"} ${k + 1} of ${d.media!.length}`}>
-                {m.type === "video" ? (
-                  <video src={m.url + "#t=0.1"} muted playsInline preload="metadata" tabIndex={-1} />
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={m.url} alt="" loading="lazy" />
-                )}
-                {m.type === "video" && <span className="media-play" aria-hidden>▶</span>}
-              </button>
-            ))}
-          </div>
-        )}
-        <div className="dish-top">
-          <div className="tags">
-            {d.spice > 0 && (
-              <span className="chili" title="Spicy" aria-label={`Spicy ${d.spice} of 3`}>
-                {"🌶".repeat(d.spice)}
-              </span>
-            )}
-            {d.alg.map((a) => (
-              <span key={a} className="tag">
-                {ALLERGENS[a][lang]}
-              </span>
-            ))}
-          </div>
-          <div className="qty">
-            <button aria-label="Remove one" disabled={!n} onClick={() => minus(i)}>
-              −
+          {/* Just "+" until the dish is in the order, then "− 2 +". */}
+          <div className={"qty" + (n ? " has" : "")}>
+            <button className="sub" aria-label="Remove one" disabled={!n} onClick={() => minus(i)}>
+              <Minus {...ic} />
             </button>
-            <span aria-live="polite">{n}</span>
-            <button aria-label={hasOpts(d) ? O.choose : "Add one"} disabled={gone || closed} onClick={() => plus(i)}>
-              +
+            <span className="n" aria-live="polite">{n}</span>
+            <button className="add" aria-label={hasOpts(d) ? O.choose : "Add one"} disabled={gone || closed} onClick={() => plus(i)}>
+              <Plus {...ic} />
             </button>
           </div>
         </div>
@@ -460,7 +469,7 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
   const anyVisible = dishes.some((_, i) => visible(i));
   const avoidBtn = (
     <button type="button" className={"avoid-btn" + (avoid.length ? " on" : "")} aria-expanded={avoidOpen} onClick={() => setAvoidOpen(!avoidOpen)}>
-      ⚠️ {L.avoid}{avoid.length ? ` · ${avoid.length}` : ""}
+      <TriangleAlert {...ic} /> {L.avoid}{avoid.length ? ` · ${avoid.length}` : ""}
     </button>
   );
 
@@ -468,9 +477,10 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
     <div className={"menu" + (full ? " full" : "")} lang={lang}>
       <div className="m-head">
         <div>
+          <div className="eyebrow">Thực đơn · <span lang={lang}>{MENU_WORD[lang]}</span></div>
           <h1 className="stall">{name || "Your stall"}</h1>
-          {area && <div className="meta">{area}</div>}
-          {table && <div className="meta tbl">🪑 {L.table(table)}</div>}
+          {area && <div className="meta"><MapPin {...ic} /> {area}</div>}
+          {table && <div><div className="meta tbl"><Armchair {...ic} /> {L.table(table)}</div></div>}
         </div>
         <div className="bar">
           <div className="langbar" role="group" aria-label="Language">
@@ -484,8 +494,11 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
         </div>
         {dishes.length >= 10 && (
           <div className="tools">
-            <input className="find" type="search" value={find} placeholder={`🔎 ${L.search}`} aria-label={L.search}
-              onChange={(e) => setFind(e.target.value)} />
+            <div className="search">
+              <Search {...ic} />
+              <input className="find" type="search" value={find} placeholder={L.search} aria-label={L.search}
+                onChange={(e) => setFind(e.target.value)} />
+            </div>
             {allergic && avoidBtn}
           </div>
         )}
@@ -514,12 +527,12 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
       <div className="m-list" ref={listRef}>
         {closed && closedUntil && (
           <div className="closed" role="status">
-            <b>🔒 {L.closed}</b>
+            <b><Lock {...ic} /> {L.closed}</b>
             <span>{L.reopens(shortDay(addDays(closedUntil, 1), lang))} · {L.closedHint}</span>
           </div>
         )}
         {!dishes.length && <div className="empty">{L.empty}</div>}
-        {hiddenCount > 0 && <p className="avoid-note">⚠️ {L.hidden(hiddenCount)} · {L.avoidNote}</p>}
+        {hiddenCount > 0 && <p className="avoid-note"><TriangleAlert {...ic} /> {L.hidden(hiddenCount)} · {L.avoidNote}</p>}
         {dishes.length > 0 && !anyVisible && q && <div className="empty">{L.noMatch}</div>}
         {groups
           ? groups.map((g, k) => {
@@ -539,26 +552,38 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
         {maps && dishes.length > 0 && (
           <div className="review">
             <span>{L.reviewAsk}</span>
-            <a className="btn" href={maps} target="_blank" rel="noreferrer noopener">⭐ {L.review}</a>
+            <a className="btn" href={maps} target="_blank" rel="noreferrer noopener"><Star {...ic} /> {L.review}</a>
           </div>
         )}
         {!maps && hints && dishes.length > 0 && <p className="vhint" lang={hints.lang}>⭐ {hints.review}</p>}
+        {dishes.length > 0 && (
+          <div className="m-fine">
+            <span>{L.note}</span>
+            <label className="cur">
+              {L.currency}
+              <select value={cur} onChange={(e) => isCurrency(e.target.value) && pickCur(e.target.value)} aria-label={L.currency}>
+                {CURRENCY_CODES.map((c) => <option key={c} value={c}>{c} {CURRENCIES[c].sym}</option>)}
+              </select>
+            </label>
+            {rates[cur] ? <a href="https://www.exchangerate-api.com" target="_blank" rel="noreferrer">Rates by Exchange Rate API</a> : null}
+          </div>
+        )}
       </div>
 
+      {/* The order bar floats over the menu: the total on the left, then one big button. */}
       <div className="m-foot">
-        <button className="btn primary" disabled={!count || blocked} onClick={openOrder}>
-          {blocked ? `🔒 ${L.closed}` : !count ? L.show0 : !sent.length ? L.show(count) : freshCount ? L.showMore(freshCount) : `💳 ${L.bill}`}
-        </button>
-        <small>
-          {L.note}{" "}
-          <label className="cur">
-            {L.currency}{" "}
-            <select value={cur} onChange={(e) => isCurrency(e.target.value) && pickCur(e.target.value)} aria-label={L.currency}>
-              {CURRENCY_CODES.map((c) => <option key={c} value={c}>{c} {CURRENCIES[c].sym}</option>)}
-            </select>
-          </label>
-          {rates[cur] ? <> · <a href="https://www.exchangerate-api.com" target="_blank" rel="noreferrer">Rates by Exchange Rate API</a></> : null}
-        </small>
+        <div className={"cartbar" + (count && !blocked ? "" : " empty")}>
+          {count > 0 && !blocked && (
+            <div className="sum">
+              <b>{vnd(total)}</b>
+              <small>{inCurrency(total, cur, rates[cur])}</small>
+            </div>
+          )}
+          <button className="btn primary" disabled={!count || blocked} onClick={openOrder}>
+            {blocked ? <Lock {...ic} /> : sent.length && !freshCount ? <ReceiptText {...ic} /> : null}
+            {blocked ? L.closed : !count ? L.show0 : !sent.length ? L.show(count) : freshCount ? L.showMore(freshCount) : L.bill}
+          </button>
+        </div>
       </div>
 
       {viewer && (
@@ -593,7 +618,7 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
         return (
           <div className="sheet" role="dialog" aria-modal="true" aria-label={O.options} onClick={() => setPick(null)}>
             <div className="sheet-card" onClick={(e) => e.stopPropagation()}>
-              <div className="sheet-h"><h3>{title}</h3><button className="icon" aria-label={L.close} onClick={() => setPick(null)}>✕</button></div>
+              <div className="sheet-h"><h3>{title}</h3><button className="icon" aria-label={L.close} onClick={() => setPick(null)}><X {...ic} /></button></div>
               {!!o.sizes?.length && (
                 <fieldset><legend>{O.size}</legend><div className="pills">
                   {o.sizes.map((z) => <button key={z.k} type="button" aria-pressed={pick.size === z.k} onClick={() => set({ size: z.k })}>{z.k} · {vnd(z.price)}</button>)}
@@ -627,7 +652,9 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
         );
       })()}
 
+      {/* The order screen: a receipt on the brand's jade, big enough for the vendor to read at arm's length. */}
       {shown && (
+        <div className="order-wrap">
         <div className="order" role="dialog" aria-modal="true" aria-label={shown.mode === "bill" ? L.billHead : L.head} lang="vi">
           <h3 lang={lang}>{shown.mode === "bill" ? L.billHead : L.head}</h3>
           {table && <div className="tno">Bàn {table} <span lang={lang}>· {L.table(table)}</span></div>}
@@ -665,7 +692,7 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
             </div>
           )}
           <div className="tot">{shown.mode === "more" ? "Tổng cộng" : "Tổng"}: {vnd(total)} <small lang={lang}>{inCurrency(total, cur, rates[cur])}</small></div>
-          <button className={"btn readout" + (saying === "order" ? " on" : "")} onClick={() => say(orderParts(shown), "order")} lang={lang}>🔊 {L.readOrder}</button>
+          <button className={"btn readout" + (saying === "order" ? " on" : "")} onClick={() => say(orderParts(shown), "order")} lang={lang}><Volume2 {...ic} /> {L.readOrder}</button>
           <div className="ono">Mã đơn #{orderNo} <span lang={lang}>· {L.order} #{orderNo}</span></div>
           {pay && total > 0 && (
             showPay ? (
@@ -682,15 +709,16 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
                 }}>{copied ? L.copied : L.copyAcct}</button>
               </div>
             ) : (
-              <button className="btn paybtn" onClick={() => setShowPay(true)} lang={lang}>💳 {L.pay}</button>
+              <button className="btn paybtn" onClick={() => setShowPay(true)} lang={lang}><CreditCard {...ic} /> {L.pay}</button>
             )
           )}
           {!pay && hints && <p className="vhint" lang={hints.lang}>💳 {hints.pay}</p>}
-          {maps && <a className="btn" href={maps} target="_blank" rel="noreferrer noopener" lang={lang}>⭐ {L.review}</a>}
+          {maps && <a className="btn" href={maps} target="_blank" rel="noreferrer noopener" lang={lang}><Star {...ic} /> {L.review}</a>}
           <button ref={closeRef} className="btn" onClick={() => setShown(null)} lang={lang}>
             {L.close}
           </button>
-          <button className="btn newo" onClick={newOrder} lang={lang}>🗑 {L.newOrder}</button>
+          <button className="btn newo" onClick={newOrder} lang={lang}><Trash2 {...ic} /> {L.newOrder}</button>
+        </div>
         </div>
       )}
     </div>

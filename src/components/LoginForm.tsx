@@ -50,7 +50,7 @@ export default function LoginForm() {
 
   if (DEMO) {
     return (
-      <main className="page">
+      <main className="page auth">
         <div className="card">
           <h1>{t.demoTitle}</h1>
           <p>{t.demoText}</p>
@@ -104,7 +104,7 @@ export default function LoginForm() {
   }
 
   return (
-    <main className="page">
+    <main className="page auth">
       <div className="card">
         <div className="row" style={{ justifyContent: "space-between" }}><a className="logo" href="/">Quán<span>.</span></a><LangSwitch /></div>
         <h1>{t.loginTitle}</h1>
