@@ -139,7 +139,9 @@ function StoryViewer({ stories, at, onMove, onClose }: { stories: Story[]; at: S
   return (
     <dialog ref={ref} className="story-viewer" aria-label={`Story: ${story.title}`} onClose={onClose} onKeyDown={keys}>
       <div className="story-stage">
-        <CatalogImage key={piece.slug} src={piece.image} alt={piece.title} fill loading="eager" sizes="(min-width: 640px) 28rem, 100vw" className="object-cover" />
+        {/* The whole photo (a product's shoes sit at its foot), over a blurred copy of itself. */}
+        <CatalogImage key={`${piece.slug}-backdrop`} src={piece.image} alt="" fill loading="eager" sizes="(min-width: 640px) 28rem, 100vw" className="story-backdrop object-cover" />
+        <CatalogImage key={piece.slug} src={piece.image} alt={piece.title} fill loading="eager" sizes="(min-width: 640px) 28rem, 100vw" className="story-photo object-contain" />
         {next && (
           <span aria-hidden className="pointer-events-none absolute size-px overflow-hidden opacity-0">
             <CatalogImage src={next.image} alt="" fill loading="eager" sizes="(min-width: 640px) 28rem, 100vw" className="object-cover" />

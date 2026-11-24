@@ -1702,6 +1702,14 @@
       border-radius: 1rem;
     }
   }
+  .story-backdrop {
+    filter: blur(28px) brightness(0.5) saturate(1.2);
+    scale: 1.2;
+  }
+  /* A little above the middle, so the shade at the foot keeps clear of the piece. */
+  .story-photo {
+    object-position: 50% 38%;
+  }
   .story-tap {
     position: absolute;
     top: 0;
