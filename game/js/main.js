@@ -748,7 +748,10 @@ function poseGuard(g, moving) {
   g.look = g.yaw + g.hy;
   const fighting = g.state === 'alert' || !!g.foe;
   g.mv = lerp(g.mv, moving ? (fighting ? 1.7 : g.state === 'search' ? 1.15 : 0.85) : 0, 0.2);
-  const p = { t: G.t + g.seed, dt: g.pdt, phase: g.walk, move: g.mv, look: g.hy, lean: g.stun > 0 ? 0.35 : 0, atk: -1, hit: g.hitT || 0, dead: g.dead ? g.deathT : 0, deadDir: g.deadDir };
+  // a guard who gives up the hunt shakes his head
+  g.gestT = (g.gestT ?? 9) + (g.pdt || 0);
+  const p = { t: G.t + g.seed, dt: g.pdt, phase: g.walk, move: g.mv, look: g.hy, lean: g.stun > 0 ? 0.35 : 0, atk: -1, hit: g.hitT || 0, dead: g.dead ? g.deathT : 0, deadDir: g.deadDir,
+    gesture: g.gestT < 2.6 && !fighting && !g.dead ? 'shake' : null, gT: g.gestT };
   if (g.atk) { p.atk = g.atk.t < g.atk.wind ? g.atk.t / g.atk.wind * 0.42 : 0.42 + (g.atk.t - g.atk.wind) / 0.45 * 0.58; p.style = g.type === 'marshal' ? 'overhead' : 'slash'; }
   if (g.lantern && !g.atk) p.lantern = 1;
   if (g.type === 'archer') { p.aim = fighting ? 1 : 0; p.draw = clamp(1 - g.shootCd / 1.5, 0, 1); }
@@ -851,7 +854,7 @@ function updateGuard(g, dt) {
       if (sees) g.goal.copy(P.pos);
       g.yaw = turn(g.yaw, Math.atan2(g.goal.x - g.pos.x, g.goal.z - g.pos.z), dt * 3.5);
       if (g.det >= 1) { alertGuard(g); break; }
-      if (g.susT > 1.7) { if (g.det >= 0.3) investigate(g, g.goal, 7, true); else { g.state = 'patrol'; bark(g, 'lost'); } }
+      if (g.susT > 1.7) { if (g.det >= 0.3) investigate(g, g.goal, 7, true); else { g.state = 'patrol'; bark(g, 'lost'); g.gestT = 0; } }
       break;
     case 'search':
       if (g.det >= 1) { alertGuard(g); break; }
@@ -865,7 +868,7 @@ function updateGuard(g, dt) {
           if (g.lookT <= 0) { g.lookT = 2.6; g.goal.x += rand(-6, 6); g.goal.z += rand(-6, 6); g.path = null; }
         }
       }
-      if (g.searchT <= 0) { g.state = 'patrol'; g.path = null; g.det = Math.min(g.det, 0.25); bark(g, 'lost'); }
+      if (g.searchT <= 0) { g.state = 'patrol'; g.path = null; g.det = Math.min(g.det, 0.25); bark(g, 'lost'); g.gestT = 0; }
       break;
     case 'alert': {
       if (sees) { g.seenT = 0; g.last.copy(P.pos); } else { g.seenT += dt; if (g.seenT < 1.2) g.last.copy(P.pos); }
@@ -1676,7 +1679,7 @@ function updatePlayerModel(dt) {
   const backwards = hs > 0.5 && (P.vel.x * Math.sin(pYaw) + P.vel.z * Math.cos(pYaw)) / hs < -0.3;
   pMv = lerp(pMv, P.onGround ? hs / 4.3 : 0, 1 - Math.exp(-12 * dt));
   pCr = lerp(pCr, P.crouch ? 1 : 0, 1 - Math.exp(-10 * dt));
-  const p = { t: G.t, dt, phase: backwards ? -P.bob : P.bob, move: pMv, crouch: pCr, air: P.onGround || P.mantle ? 0 : 1, climb: P.mantle ? 1 - Math.min(1, P.mantle.t) : 0, atk: -1, dead: P.dead ? Math.min(1, G.endT / 1.1) : 0, hit: Math.min(1, P.hurtT * 2), land: P.landT, bank: pBank };
+  const p = { t: G.t, dt, phase: backwards ? -P.bob : P.bob, pm: 1.95, move: pMv, crouch: pCr, air: P.onGround || P.mantle ? 0 : 1, climb: P.mantle ? 1 - Math.min(1, P.mantle.t) : 0, atk: -1, dead: P.dead ? Math.min(1, G.endT / 1.1) : 0, hit: Math.min(1, P.hurtT * 2), land: P.landT, bank: pBank };
   if (P.swing) { p.atk = Math.min(1, P.swing.t / P.swing.dur); p.style = ['slash', 'slashL', 'overhead'][P.swing.dir]; }
   else if (P.lockT > 0) { p.atk = 1 - P.lockT / 0.55; p.style = 'stab'; }
   else if (P.throwT > 0) { p.atk = 1 - P.throwT / 0.5; p.style = 'cast'; }

@@ -47,8 +47,9 @@ const LINES = {
   bard: ['♪ Oh the crows fly high o’er Ravenmoor... ♪', '♪ ...and the crown burns red in the keep so tall... ♪'],
   beggar: ['Spare a coin for an old soldier?', 'A coin buys a secret, friend.'],
   folk: ['Evening.', 'Cold night.', "Don't stand in the road.", 'Late to be out, stranger.'],
+  dancer: ['Dance with me, stranger! No? Your loss.', 'He only knows the one song. I only know the one dance.', 'Keep playing, bard! The night is young!'],
 };
-const TITLE = { merchant: 'Merchant', priest: 'Priest', drunk: 'Drunk', lamplighter: 'Lamplighter', child: 'Child', bard: 'Bard', beggar: 'Beggar', folk: 'Townsfolk' };
+const TITLE = { merchant: 'Merchant', priest: 'Priest', drunk: 'Drunk', lamplighter: 'Lamplighter', child: 'Child', bard: 'Bard', beggar: 'Beggar', folk: 'Townsfolk', dancer: 'Dancer' };
 const SCREAM = {
   body: ['A body! Murder! Guards!', 'Somebody help! Guards!'],
   murder: ['Murderer! Guards! Guards!', 'Help! A killer!'],
@@ -208,7 +209,7 @@ export function createLife(ctx) {
     return false;
   }
   const atkP = (a) => (a.atk ? (a.atk.t < a.atk.o.wind ? a.atk.t / a.atk.o.wind * 0.42 : 0.42 + (a.atk.t - a.atk.o.wind) / a.atk.o.rec * 0.58) : -1);
-  const humanPose = (a, extra) => poseHumanoid(a.rig, Object.assign({ t: a.t, dt: a.pdt, phase: a.phase, move: a.mv, crouch: a.crouch, atk: atkP(a), style: a.atk ? a.atk.o.style : null, hit: a.hitT || 0, dead: a.dead ? a.deathT : 0, deadDir: a.deadDir }, extra));
+  const humanPose = (a, extra) => poseHumanoid(a.rig, Object.assign({ t: a.t, dt: a.pdt, phase: a.phase, pm: a.stride || 4.2, move: a.mv, crouch: a.crouch, atk: atkP(a), style: a.atk ? a.atk.o.style : null, hit: a.hitT || 0, dead: a.dead ? a.deathT : 0, deadDir: a.deadDir }, extra));
   function wander(a, home, radius, speed, dt, idleMin = 2, idleMax = 6) {
     if (a.wait > 0) { a.wait -= dt; a.mv = lerp(a.mv, 0, 0.2); return; }
     if (!a.goal) { const r = rand(2, radius), an = rand(0, 6.28); a.goal = new V3(home.x + Math.cos(an) * r, 0, home.z + Math.sin(an) * r); }
@@ -224,7 +225,11 @@ export function createLife(ctx) {
     const tag = textSprite('BRO', '#a6dc84'); tag.position.y = 2.3; tag.scale.set(0.9, 0.225, 1); rig.root.add(tag);
     const a = base('bro', 'player', rig, P.pos.x - 1.6, P.pos.z + 1.8, { hp: 160, R: 0.45, H: 1.85, canAssassinate: false, mode: 'follow', downed: false, barkCd: 6, tag, idleT: rand(35, 60), following: false, stuckFar: 0 });
     a.ai = broAI;
-    a.pose = (a) => humanPose(a, { kneel: a.downed ? 1 : 0, nod: a.downed ? 0.5 : 0 });
+    a.pose = (a) => {
+      a.gestT += a.pdt || 0;
+      humanPose(a, { kneel: a.downed ? 1 : 0, nod: a.downed ? 0.5 : 0, gesture: a.gestT < 2 && !a.downed ? 'agree' : null, gT: a.gestT });
+    };
+    a.gestT = 9;
     a.onHurt = (h) => { if (h.from && h.from !== P && typeof h.from === 'object' && live(h.from)) a.target = h.from; a.fightT = 6; sfx.grunt(ctx.volAt(a.pos)); };
     return a;
   }
@@ -315,6 +320,7 @@ export function createLife(ctx) {
     const a = L.bro;
     if (!a || a.downed) return;
     a.mode = a.mode === 'wait' ? 'follow' : 'wait';
+    a.gestT = 0;
     broSay(a.mode === 'wait' ? 'wait' : 'follow', true);
     ctx.toast(a.mode === 'wait' ? 'Bro waits here.' : 'Bro follows you.', 'dim');
   };
@@ -330,6 +336,7 @@ export function createLife(ctx) {
     if (role === 'beggar') { o.top = 0x5a5040; o.pants = 0x4a4234; o.head = 'hood'; o.hood = 0x4a4234; o.beard = 0x9a9590; }
     if (role === 'lamplighter') { o.head = 'hat'; o.hatColor = 0x1a1a1a; o.cape = 0x3a3a4a; }
     if (role === 'bard') { o.top = 0x8a3a6a; o.head = 'hat'; o.hatColor = 0x5a1a3a; o.cape = 0x3a5a8a; }
+    if (role === 'dancer') { o.dress = 'long'; o.dressColor = pick([0xb03a3a, 0xc0802a, 0x3a7a5a]); o.top = 0xd8cfb8; o.head = 'long'; delete o.beard; }
     if (role === 'child') { o.scale = 0.66; delete o.beard; if (o.head === 'bald' || o.head === 'hat') o.head = 'hair'; }
     return o;
   }
@@ -348,17 +355,28 @@ export function createLife(ctx) {
     });
     a.spot = o.spot ? { x: o.spot[0], z: o.spot[1] } : null;
     a.ai = villagerAI;
-    a.pose = (a) => humanPose(a, {
-      sit: a.state === 'sit' ? 1 : 0, cower: a.state === 'cower' ? 1 : 0, talk: a.talking ? 1 : 0,
+    a.pose = (a) => {
+      // in a conversation the two take turns: one talks with their hands, the other nods or shakes their head
+      const turn = a.partner ? Math.floor(a.convT / 3.2) : 0;
+      const speaking = a.talking && (!a.partner || (turn % 2 === 0) === a.leads);
+      const listening = a.talking && a.partner && !speaking;
+      const dancing = a.role === 'dancer' && a.state === 'idle' && a.dancing;
+      humanPose(a, {
+      sit: a.state === 'sit' ? 1 : 0, cower: a.state === 'cower' ? 1 : 0, talk: speaking ? 1 : 0,
+      gesture: listening ? ((turn * 7 + (a.leads ? 3 : 0)) % 10 < 7 ? 'agree' : 'shake') : null, gT: (a.convT || 0) % 3.2,
+      sad: a.role === 'beggar' && a.state === 'sit' ? (dist(a.pos, P.pos) < 6 ? 0.2 : 0.55) : 0,
+      danceW: dancing ? 1 : 0, dance: a.danceT,
       lute: a.role === 'bard' && a.state === 'idle' ? 1 : 0, lantern: a.role === 'lamplighter' || a.role === 'priest' ? 1 : 0,
-      drunk: a.role === 'drunk' && !a.dead ? 1 : 0, look: a.look || 0,
-    });
+      drunk: a.role === 'drunk' && !a.dead ? 1 : 0, look: dancing ? 0 : a.look || 0,
+      });
+    };
+    a.danceT = 0; a.convT = 0;
     a.onHurt = (h) => fright(a, h.from && h.from.pos ? h.from.pos : P.pos, 'hurt');
     return a;
   }
   function fright(a, pos, why) {
     if (!live(a) || a.state === 'flee' || a.state === 'cower') return;
-    a.aware = true; a.path = null; a.talking = false;
+    a.aware = true; a.path = null; a.talking = false; a.partner = null; a.dancing = false;
     a.state = a.role === 'beggar' || a.role === 'child' && why === 'monster' ? 'cower' : 'flee'; a.cowerT = 9;
     const v = ctx.volAt(a.pos);
     if (why !== 'panic') {
@@ -386,7 +404,7 @@ export function createLife(ctx) {
   function planNext(a) {
     let g;
     switch (a.role) {
-      case 'merchant': case 'bard':
+      case 'merchant': case 'bard': case 'dancer':
         if (dist(a.pos, a.spot) > 0.8) g = [a.spot.x, a.spot.z]; else { a.wait = rand(5, 10); a.faceYaw = a.spotYaw; return; }
         break;
       case 'lamplighter': a.ri = (a.ri + 1) % LAMPS.length; g = LAMPS[a.ri]; break;
@@ -406,7 +424,7 @@ export function createLife(ctx) {
       }
     }
     a.goal = new V3(g[0] + rand(-0.4, 0.4), 0, g[1] + rand(-0.4, 0.4));
-    a.state = 'walk'; a.faceYaw = undefined; a.talking = false;
+    a.state = 'walk'; a.faceYaw = undefined; a.talking = false; a.partner = null;
   }
   function villagerAI(a, dt) {
     a.senseT -= dt; a.lineCd -= dt;
@@ -442,12 +460,20 @@ export function createLife(ctx) {
       default: {
         a.mv = lerp(a.mv, 0, 0.2); a.wait -= dt;
         if (a.faceYaw !== undefined) a.yaw = turn(a.yaw, a.faceYaw, dt * 3);
+        if (a.talking) a.convT += dt;
+        if (a.role === 'dancer') {
+          // she dances while the bard plays at his spot
+          const bard = mine.find((o) => o.role === 'bard');
+          a.dancing = !!bard && live(bard) && bard.state === 'idle' && !bard.aware && dist(a.pos, a.spot) < 1.2;
+          if (a.dancing) a.danceT += dt;
+        }
         a.look = dP < 5 ? clamp(turn(0, Math.atan2(P.pos.x - a.pos.x, P.pos.z - a.pos.z) - a.yaw, 9), -0.9, 0.9) : lerp(a.look || 0, 0, 0.05);
         // strike up a conversation with a neighbour
         if (!a.talking && (a.role === 'folk' || a.role === 'drunk')) {
           for (const o of mine) {
             if (o === a || o.kind !== 'villager' || !live(o) || o.state !== 'idle' || !(o.role === 'folk' || o.role === 'drunk') || dist(o.pos, a.pos) > 2.6) continue;
             a.talking = o.talking = true;
+            a.partner = o; o.partner = a; a.leads = true; o.leads = false; a.convT = o.convT = 0;
             a.faceYaw = Math.atan2(o.pos.x - a.pos.x, o.pos.z - a.pos.z); o.faceYaw = a.faceYaw + Math.PI;
             a.wait = o.wait = Math.max(a.wait, o.wait, rand(6, 10));
             if (dP < 10 && chatCd <= 0) {
@@ -975,6 +1001,7 @@ export function createLife(ctx) {
     spawnVillager('merchant', 10.5, 21.0, { spot: [10.5, 21.0], spotYaw: Math.PI });
     spawnVillager('priest', -41, 11.6);
     spawnVillager('bard', 3.9, 18.2, { spot: [3.9, 18.2], spotYaw: -2.4 });
+    spawnVillager('dancer', 2.3, 16.4, { spot: [2.3, 16.4], spotYaw: 0.74, yaw: 0.74 });
     spawnVillager('drunk', -3, 12); spawnVillager('drunk', 2.5, 22);
     spawnVillager('lamplighter', -15.5, 6.8);
     spawnVillager('beggar', -5.6, 53.6, { state: 'sit', spotYaw: Math.PI, yaw: Math.PI });

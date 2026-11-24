@@ -1,11 +1,50 @@
 // Every person, beast, demon and god is assembled here from rounded parts on a joint
 // hierarchy (hips → spine → shoulders → elbows → hands, hips → knees → feet), then
-// posed procedurally each frame. All characters face +z in their own space.
+// posed each frame. People stand, walk, run, sneak, nod and dance with Mixamo motion
+// capture (mocap.js); fighting, aiming, climbing, sitting and dying are layered on top
+// procedurally. All characters face +z in their own space.
 import * as THREE from 'three';
+import { MOCAP, N as MN, Q as MQ } from './mocap.js';
 
 const ease = (t) => t * t * (3 - 2 * t);
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const lerp = (a, b, t) => a + (b - a) * t;
+
+// ---------------------------------------------------------------- motion capture
+const MC = {};
+for (const k in MOCAP) {
+  const c = MOCAP[k], s = atob(c.d), d = new Float32Array(s.length >> 1);
+  for (let i = 0; i < d.length; i++) d[i] = ((s.charCodeAt(i * 2) | (s.charCodeAt(i * 2 + 1) << 8)) << 16 >> 16) / MQ;
+  MC[k] = { ...c, d };
+}
+// add w × (clip at u) into out; u is the fraction of the clip (it wraps when loop is set)
+function addClip(out, c, u, w, loop) {
+  if (!(w > 0)) return;
+  const n = c.n;
+  const f = loop ? (u - Math.floor(u)) * n : clamp(u, 0, 1) * (n - 1);
+  const i0 = Math.min(n - 1, Math.floor(f)), i1 = loop ? (i0 + 1) % n : Math.min(n - 1, i0 + 1), k = f - Math.floor(f);
+  const d = c.d, a = i0 * MN, b = i1 * MN;
+  for (let j = 0; j < MN; j++) out[j] += w * (d[a + j] + (d[b + j] - d[a + j]) * k);
+}
+// the height of the lower foot's sole above the ground, for a pose v in poseHumanoid's layout
+const fkQ = new THREE.Quaternion(), fkQ2 = new THREE.Quaternion(), fkE = new THREE.Euler(), fkV = new THREE.Vector3(), fkK = new THREE.Vector3(), fkH = new THREE.Quaternion();
+const SOLE = [[0, -0.49, 0.04], [0, -0.49, 0.15], [0, -0.49, -0.07]];
+function lowFoot(v, baseHip) {
+  fkH.setFromEuler(fkE.set(v[24], v[25], v[26], 'YXZ'));
+  let low = 1e9;
+  for (let s = 0; s < 2; s++) {
+    const side = s ? -1 : 1, tx = v[s], kn = v[2 + s], tz = v[22 + s], ty = v[28 + s];
+    fkK.set(side * 0.095, -0.03, 0).applyQuaternion(fkH);
+    const hy = fkK.y;
+    fkQ.copy(fkH).multiply(fkQ2.setFromEuler(fkE.set(tx, ty, tz, 'XYZ')));
+    const ky = hy + fkV.set(0, -0.44, 0).applyQuaternion(fkQ).y;
+    fkQ.multiply(fkQ2.setFromEuler(fkE.set(kn, 0, 0, 'XYZ')));
+    for (const p of SOLE) low = Math.min(low, ky + fkV.set(p[0], p[1], p[2]).applyQuaternion(fkQ).y);
+  }
+  return v[4] + low;
+}
+export const GESTURES = { agree: MC.agree.dur, shake: MC.shake.dur };
+export const DANCE_LEN = MC.dance.dur;
 
 const matCache = new Map();
 export function mat(color, o = {}) {
@@ -134,7 +173,8 @@ export function makeHumanoid(o = {}) {
   const root = new THREE.Group();
   root.rotation.order = 'YXZ';
   const hips = joint(root, 0, 0.95, 0);
-  const rig = { root, hips, o, baseHip: 0.95, props: {} };
+  hips.rotation.order = 'YXZ';
+  const rig = { root, hips, o, baseHip: 0.95, props: {}, seed: Math.random() * 10 };
   mesh(hips, sphere(), pants, 0, 0, 0, 0.17 * b, 0.12, 0.12, 1, 1, sh);
 
   const leg = (side) => {
@@ -284,23 +324,54 @@ export function hold(rig, hand, kind, o) {
   return p;
 }
 
-// p: phase, move (0 still, 1 walk, 2 run), crouch, sit, air, climb, atk (0..1 or <0), style, block, aim, draw,
-//    xbow, cower, talk, lute, lantern, drunk, fly, kneel, look, nod, lean, hit (0..1 flinch), land (0..1 dip),
-//    bank (lean into a turn), dead (0..1), deadDir (1 falls back, -1 falls forward), t, dt
-// Targets are computed first, then each joint eases toward its target, so moves blend into one another.
-const J = 24;
+// p: phase, move (0 still, 1 walk, 2 run), pm (phase per metre, so steps match the ground), crouch, sit, air,
+//    climb, atk (0..1 or <0), style, block, aim, draw, xbow, cower, talk, lute, lantern, drunk, fly, kneel, look,
+//    nod, lean, hit (0..1 flinch), land (0..1 dip), bank (lean into a turn), dead (0..1), deadDir (1 falls back,
+//    -1 falls forward), gesture ('agree' or 'shake'), gT (seconds into it), sad (0..1), dance (seconds), danceW,
+//    t, dt
+// The motion-capture base comes first, then the procedural layers, then each joint eases toward its target,
+// so moves blend into one another.
+const J = 30;
+const UPPER = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 24, 25, 26];
+const tmp = new Float32Array(MN);
 export function poseHumanoid(rig, p) {
   const t = p.t || 0, ph = p.phase || 0, mv = p.move || 0, dt = p.dt || 0;
   const cr = Math.min(1, (p.crouch || 0) + (p.land || 0) * 0.45), sit = p.sit || 0, kneel = p.kneel || 0, air = p.air || 0;
   const hit = p.hit || 0, dd = p.dead || 0, dir = p.deadDir || 1;
-  const amp = Math.min(1, mv) * 0.55 + Math.max(0, mv - 1) * 0.3;
-  const sw = Math.sin(ph);
-  const still = Math.max(0, 1 - mv * 4);
   const T = rig.T || (rig.T = new Float32Array(J));
 
-  // legs
-  let tl = -sw * amp - cr * 0.95, tr = sw * amp - cr * 0.95;
-  let kl = Math.max(0, -Math.cos(ph)) * amp * 1.3 + cr * 1.7, kr = Math.max(0, Math.cos(ph)) * amp * 1.3 + cr * 1.7;
+  // ---- motion capture: idle, walk and run, with the stride locked to the distance actually covered
+  const B = rig.B || (rig.B = new Float32Array(MN));
+  B.fill(0);
+  // layer weights ease, so the captured motion itself never needs smoothing
+  const kw = dt ? 1 - Math.exp(-9 * dt) : 1;
+  const W = rig.W || (rig.W = { m: clamp(mv, 0, 1), r: clamp(mv - 1, 0, 1), c: cr, sad: 0, dance: 0 });
+  W.m += (clamp(mv, 0, 1) - W.m) * kw; W.r += (clamp(mv - 1, 0, 1) - W.r) * kw;
+  W.c += (cr - W.c) * kw; W.sad += ((p.sad || 0) - W.sad) * kw * 0.5; W.dance += ((p.danceW || 0) - W.dance) * kw * 0.5;
+  const wm = W.m, wr = W.r;
+  const dist = ph / (p.pm || 4.2);
+  let step = rig.lastDist === undefined ? 0 : dist - rig.lastDist;
+  rig.lastDist = dist;
+  if (Math.abs(step) > 3) step = 0;
+  const stride = lerp(MC.walk.stride, MC.run.stride, wr) * (rig.o.scale || 1) * (rig.o.stride || 1);
+  rig.u = (rig.u || 0) + step / stride;
+  addClip(B, MC.idle, (t + rig.seed) / MC.idle.dur, 1 - wm, true);
+  addClip(B, MC.walk, rig.u, wm * (1 - wr), true);
+  addClip(B, MC.run, rig.u, wm * wr, true);
+  if (W.dance > 0.001) {
+    tmp.fill(0); addClip(tmp, MC.dance, (p.dance || 0) / MC.dance.dur, 1, true);
+    for (let j = 0; j < MN; j++) B[j] = lerp(B[j], tmp[j], W.dance);
+  }
+  // sneaking and slumping are offsets on the upper body; the legs crouch procedurally below
+  for (const j of UPPER) B[j] += MC.sneak.d[j] * W.c + MC.sad.d[j] * W.sad;
+  if (p.gesture) {
+    const g = MC[p.gesture === 'shake' ? 'shake' : 'agree'], u = (p.gT || 0) / g.dur;
+    addClip(B, g, u, clamp(Math.min(u, 1 - u) * 8, 0, 1), false);
+  }
+
+  // ---- legs
+  let tl = B[0] - cr * 0.95, tr = B[1] - cr * 0.95;
+  let kl = B[2] * (1 - cr * 0.35) + cr * 1.55, kr = B[3] * (1 - cr * 0.35) + cr * 1.55;
   if (air) { tl = lerp(tl, -0.9, air); tr = lerp(tr, -0.3, air); kl = lerp(kl, 1.4, air); kr = lerp(kr, 0.9, air); }
   if (sit) { tl = lerp(tl, -1.45, sit); tr = lerp(tr, -1.35, sit); kl = lerp(kl, 0.35, sit); kr = lerp(kr, 0.6, sit); }
   if (kneel) { tl = lerp(tl, -1.5, kneel); tr = lerp(tr, 0.1, kneel); kl = lerp(kl, 1.6, kneel); kr = lerp(kr, 1.7, kneel); }
@@ -309,37 +380,37 @@ export function poseHumanoid(rig, p) {
   const buckle = dd ? Math.sin(Math.min(1, dd / 0.55) * Math.PI) * (1 - dd) : 0;
   kl += buckle * 1.2; kr += buckle * 1.0; tl -= buckle * 0.6; tr -= buckle * 0.5;
   if (dd) { const k = ease(clamp((dd - 0.3) / 0.7, 0, 1)); tl *= 1 - k; tr *= 1 - k; kl = lerp(kl, 0.15, k); kr = lerp(kr, 0.35, k); }
-  const shift = Math.sin(t * 0.55) * still;
+  // poses that take the legs over damp the captured hip sway and thigh twist
+  const held = clamp(sit + kneel + air + (p.fly ? 1 : 0) + (p.climb || 0) + dd, 0, 1), free = 1 - held;
   T[0] = tl; T[1] = tr; T[2] = kl; T[3] = kr;
-  T[22] = 0.04 + shift * 0.04; T[23] = -0.04 + shift * 0.04;
-  T[4] = rig.baseHip - Math.abs(Math.cos(ph)) * 0.04 * Math.min(1, mv) - cr * 0.3 - sit * 0.82 - kneel * 0.42 + air * 0.05 - buckle * 0.25 - Math.abs(shift) * 0.012;
-  T[20] = shift * 0.025;
+  T[22] = lerp(0.04, B[22], free); T[23] = lerp(-0.04, B[23], free);
+  T[28] = B[28] * free; T[29] = B[29] * free;
+  T[4] = rig.baseHip + B[4] * free - sit * 0.82 - kneel * 0.42 + air * 0.05 - buckle * 0.25;
+  T[20] = B[20] * free; T[27] = B[27] * free;
+  T[24] = B[24] * free; T[25] = B[25] * free; T[26] = B[26] * free;
 
-  // spine
-  let lean = (p.lean || 0) + cr * 0.32 + Math.max(0, Math.min(1, mv - 1)) * 0.22 + Math.sin(t * 1.6) * 0.015 + sit * 0.1 + kneel * 0.25 - hit * 0.35;
-  let twist = 0, roll = -shift * 0.035;
+  // ---- spine
+  let lean = B[5] + (p.lean || 0) + sit * 0.1 + kneel * 0.25 - hit * 0.35;
+  let twist = B[6], roll = B[7];
   if (p.drunk) { roll += Math.sin(t * 1.3) * 0.12; lean += Math.sin(t * 0.9) * 0.08; }
 
-  // arms at rest: a natural hang with walking swing
-  const armSw = sw * amp * 0.9;
-  let ls = [armSw, 0, 0.09], rs = [-armSw, 0, -0.09], le = -(0.2 + amp * 0.45), re = -(0.2 + amp * 0.45);
-  if (mv > 1.2) { le = re = -1.2; }
-  if (cr > 0.5 && mv < 1.2) { ls[0] -= 0.4; rs[0] -= 0.4; }
-
+  // ---- arms: as captured, then overridden by whatever the hands are doing
+  let ls = [B[8], B[9], B[10]], rs = [B[12], B[13], B[14]], le = B[11], re = B[15];
+  const rs0 = rs.slice(), re0 = re;
   if (p.fly) { ls = [-0.3, 0, 0.4]; rs = [-0.3, 0, -0.4]; le = re = -0.8; }
   if (p.talk) { const g = Math.sin(t * 2.6) * 0.35 * p.talk; rs = [-0.55 - g, 0, -0.25]; re = -0.9 - g * 0.5; ls[2] = 0.2; }
   if (p.lantern) { ls = [-0.65, 0, 0.12]; le = -0.95; }
   if (p.lute) { ls = [-0.95, 0.2, 0.35]; le = -1.35; rs = [-0.65 + Math.sin(t * 9) * 0.06, 0, -0.35]; re = -1.45; }
-  if (p.cower) { const c = p.cower; ls = [lerp(ls[0], -2.5, c), 0, lerp(ls[2], 0.55, c)]; rs = [lerp(rs[0], -2.5, c), 0, lerp(rs[2], -0.55, c)]; le = lerp(le, -1.7, c); re = lerp(re, -1.7, c); }
-  if (p.climb) { const c = p.climb; ls = [lerp(ls[0], -2.8, c), 0, 0.15]; rs = [lerp(rs[0], -2.8, c), 0, -0.15]; le = lerp(le, -0.4, c); re = lerp(re, -0.4, c); }
+  if (p.cower) { const c = p.cower; ls = [lerp(ls[0], -2.5, c), lerp(ls[1], 0, c), lerp(ls[2], 0.55, c)]; rs = [lerp(rs[0], -2.5, c), lerp(rs[1], 0, c), lerp(rs[2], -0.55, c)]; le = lerp(le, -1.7, c); re = lerp(re, -1.7, c); }
+  if (p.climb) { const c = p.climb; ls = [lerp(ls[0], -2.8, c), lerp(ls[1], 0, c), lerp(ls[2], 0.15, c)]; rs = [lerp(rs[0], -2.8, c), lerp(rs[1], 0, c), lerp(rs[2], -0.15, c)]; le = lerp(le, -0.4, c); re = lerp(re, -0.4, c); }
   if (air && !p.climb) { ls[2] += air * 0.5; rs[2] -= air * 0.5; ls[0] -= air * 0.4; rs[0] -= air * 0.4; }
   if (sit) { ls = [-0.5, 0, 0.15]; rs = [-0.5, 0, -0.15]; le = re = -0.9; }
   if (kneel) { ls = [-0.2, 0, 0.1]; rs = [-0.2, 0, -0.1]; le = re = -0.6; }
-  if (p.block) { const k = p.block; rs = [lerp(rs[0], -1.25, k), 0, lerp(rs[2], 0.55, k)]; re = lerp(re, -1.3, k); ls = [lerp(ls[0], -1.1, k), 0, lerp(ls[2], 0.2, k)]; le = lerp(le, -1.2, k); }
+  if (p.block) { const k = p.block; rs = [lerp(rs[0], -1.25, k), lerp(rs[1], 0, k), lerp(rs[2], 0.55, k)]; re = lerp(re, -1.3, k); ls = [lerp(ls[0], -1.1, k), lerp(ls[1], 0, k), lerp(ls[2], 0.2, k)]; le = lerp(le, -1.2, k); }
   if (p.aim) {
     const k = p.aim, d = p.draw || 0;
-    ls = [lerp(ls[0], -1.55, k), 0, lerp(ls[2], 0.1, k)]; le = lerp(le, -0.05, k);
-    rs = [lerp(rs[0], -1.6, k), 0, lerp(rs[2], -0.25 + d * 0.35, k)]; re = lerp(re, -(0.9 + d * 1.9), k);
+    ls = [lerp(ls[0], -1.55, k), lerp(ls[1], 0, k), lerp(ls[2], 0.1, k)]; le = lerp(le, -0.05, k);
+    rs = [lerp(rs[0], -1.6, k), lerp(rs[1], 0, k), lerp(rs[2], -0.25 + d * 0.35, k)]; re = lerp(re, -(0.9 + d * 1.9), k);
     twist += 0.25 * k;
   }
   if (p.xbow) { ls = [-1.35, 0, 0.45]; le = -0.65; rs = [-1.2, 0, -0.15]; re = -1.0; }
@@ -347,32 +418,32 @@ export function poseHumanoid(rig, p) {
   if (attacking) {
     const u = p.atk, st = p.style || 'slash';
     const w = clamp(u / 0.42, 0, 1), s = clamp((u - 0.42) / 0.2, 0, 1), r = clamp((u - 0.62) / 0.38, 0, 1);
-    const ew = ease(w), es = ease(s), er = ease(r);
+    const ew = ease(w), es = ease(s), er = ease(r), ry = rs[1] * Math.max(1 - ew, er);
     if (st === 'slash' || st === 'slashL') {
       const d = st === 'slash' ? 1 : -1;
       const A = [-2.4, 0, -0.75 * d], B = [-0.55, 0, 0.75 * d];
       const x = lerp(lerp(rs[0], A[0], ew), B[0], es), z = lerp(lerp(rs[2], A[2], ew), B[2], es);
-      rs = [lerp(x, rs[0], er), 0, lerp(z, rs[2], er)];
+      rs = [lerp(x, rs[0], er), ry, lerp(z, rs[2], er)];
       re = lerp(lerp(lerp(re, -1.1, ew), -0.15, es), re, er);
       twist += (0.45 * ew - 0.9 * es) * (1 - er) * d;
       roll += 0.08 * (ew - es) * (1 - er) * d;
     } else if (st === 'overhead' || st === 'slam') {
       const x = lerp(lerp(rs[0], -2.9, ew), -0.4, es);
-      rs = [lerp(x, rs[0], er), 0, rs[2]];
+      rs = [lerp(x, rs[0], er), ry, rs[2]];
       re = lerp(lerp(lerp(re, -0.9, ew), -0.1, es), re, er);
-      if (st === 'slam') { ls = [lerp(x, ls[0], er), 0, ls[2]]; le = re; }
+      if (st === 'slam') { ls = [lerp(x, ls[0], er), ls[1] * Math.max(1 - ew, er), ls[2]]; le = re; }
       lean += (-0.18 * ew + 0.45 * es) * (1 - er);
     } else if (st === 'thrust' || st === 'stab') {
-      rs = [lerp(lerp(rs[0], -1.2, ew), -1.55, es), 0, -0.1]; re = lerp(lerp(re, -1.9, ew), -0.05, es);
-      rs[0] = lerp(rs[0], -armSw, er); re = lerp(re, -0.3, er);
+      rs = [lerp(lerp(rs[0], -1.2, ew), -1.55, es), ry, lerp(-0.1, rs0[2], er)]; re = lerp(lerp(re, -1.9, ew), -0.05, es);
+      rs[0] = lerp(rs[0], rs0[0], er); re = lerp(re, re0, er);
       lean += 0.2 * es * (1 - er);
     } else if (st === 'cast') {
-      rs = [lerp(lerp(rs[0], -2.7, ew), -1.3, es), 0, -0.2]; re = lerp(lerp(re, -1.2, ew), -0.1, es);
-      rs[0] = lerp(rs[0], -armSw, er);
+      rs = [lerp(lerp(rs[0], -2.7, ew), -1.3, es), ry, lerp(-0.2, rs0[2], er)]; re = lerp(lerp(re, -1.2, ew), -0.1, es);
+      rs[0] = lerp(rs[0], rs0[0], er); re = lerp(re, re0, er);
       twist += (0.3 * ew - 0.5 * es) * (1 - er);
     } else if (st === 'claw') {
       const x = lerp(lerp(rs[0], -2.2, ew), -0.6, es);
-      rs = [lerp(x, rs[0], er), 0, -0.3]; ls = [lerp(lerp(lerp(ls[0], -2.2, ew), -0.6, es), ls[0], er), 0, 0.3];
+      rs = [lerp(x, rs[0], er), ry, -0.3]; ls = [lerp(lerp(lerp(ls[0], -2.2, ew), -0.6, es), ls[0], er), ls[1] * Math.max(1 - ew, er), 0.3];
       re = le = -0.4; lean += 0.3 * es * (1 - er);
     }
   }
@@ -380,31 +451,38 @@ export function poseHumanoid(rig, p) {
   if (dd) {
     const k = ease(clamp((dd - 0.25) / 0.75, 0, 1));
     const fx = dir > 0 ? -2.3 : -2.6;
-    ls = [lerp(ls[0], fx, k), 0, lerp(ls[2], 0.6, k)]; rs = [lerp(rs[0], dir > 0 ? -1.2 : -2.4, k), 0, lerp(rs[2], -0.5, k)];
+    ls = [lerp(ls[0], fx, k), lerp(ls[1], 0, k), lerp(ls[2], 0.6, k)]; rs = [lerp(rs[0], dir > 0 ? -1.2 : -2.4, k), lerp(rs[1], 0, k), lerp(rs[2], -0.5, k)];
     le = lerp(le, -0.5, k); re = lerp(re, -0.8, k);
     lean = lerp(lean, dir > 0 ? -0.2 : 0.3, k);
   }
   T[5] = lean; T[6] = twist; T[7] = roll;
   T[8] = ls[0]; T[9] = ls[1]; T[10] = ls[2]; T[11] = le;
   T[12] = rs[0]; T[13] = rs[1]; T[14] = rs[2]; T[15] = re;
-  T[16] = (p.nod || 0) + cr * -0.2 + sit * 0.2 - kneel * 0.15 - hit * 0.3 + (dd ? dir * 0.4 * dd : 0);
-  T[17] = p.look || 0;
-  T[18] = p.drunk ? Math.sin(t * 1.1) * 0.15 : 0;
+  T[16] = B[16] + (p.nod || 0) + sit * 0.2 - kneel * 0.15 - hit * 0.3 + (dd ? dir * 0.4 * dd : 0);
+  T[17] = B[17] + (p.look || 0);
+  T[18] = B[18] + (p.drunk ? Math.sin(t * 1.1) * 0.15 : 0);
   T[19] = -dir * ease(clamp((dd - 0.25) / 0.75, 0, 1)) * 1.45;
   T[21] = p.bank || 0;
 
-  // ease each joint toward its target; attacks and deaths move faster than everyday motion
+  // The captured motion plays as it is; only the procedural difference from it eases, so moves blend into
+  // one another without dulling the capture. Attacks and deaths move faster than everyday motion.
+  B[4] += rig.baseHip; B[19] = B[21] = 0;
   const C = rig.C;
-  if (!C || !dt) { rig.C = Float32Array.from(T); }
+  if (!C || !dt) { rig.C = Float32Array.from(T, (x, i) => x - B[i]); }
   else {
     const kq = 1 - Math.exp(-(attacking || hit > 0.5 ? 34 : 15) * dt), kl2 = 1 - Math.exp(-24 * dt);
-    for (let i = 0; i < J; i++) C[i] += (T[i] - C[i]) * (i <= 4 || i === 22 || i === 23 ? kl2 : kq);
+    for (let i = 0; i < J; i++) C[i] += (T[i] - B[i] - C[i]) * (i <= 4 || i >= 22 && i !== 24 && i !== 25 && i !== 26 ? kl2 : kq);
   }
-  const V = rig.C;
+  const V = rig.V || (rig.V = new Float32Array(J));
+  for (let i = 0; i < J; i++) V[i] = B[i] + rig.C[i];
+  // keep the feet on the ground: whatever the procedural layers did to the legs (crouching, landing),
+  // move the hips so the lower foot sits where the capture had it
+  if (free > 0.01) V[4] += (lowFoot(B, rig.baseHip) - lowFoot(V, rig.baseHip)) * free;
   const { legL, legR, armL, armR, spine, neck, hips } = rig;
-  legL.h.rotation.set(V[0], 0, V[22]); legR.h.rotation.set(V[1], 0, V[23]);
+  legL.h.rotation.set(V[0], V[28], V[22]); legR.h.rotation.set(V[1], V[29], V[23]);
   legL.k.rotation.x = V[2]; legR.k.rotation.x = V[3];
-  hips.position.set(V[20], V[4], 0);
+  hips.position.set(V[20], V[4], V[27]);
+  hips.rotation.set(V[24], V[25], V[26]);
   spine.rotation.set(V[5], V[6], V[7]);
   armL.s.rotation.set(V[8], V[9], V[10]); armL.e.rotation.set(V[11], 0, 0);
   armR.s.rotation.set(V[12], V[13], V[14]); armR.e.rotation.set(V[15], 0, 0);

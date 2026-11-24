@@ -2,7 +2,8 @@
 
 A first-person medieval stealth and combat game that runs in the browser. It is
 self-contained: no build step, no assets to download. The town, textures,
-music and sound effects are all generated in code. The only dependency is
+music and sound effects are all generated in code. People move with motion
+capture from Mixamo, baked into a small data file. The only dependency is
 three.js, which is copied into `vendor/`.
 
 ## Run it
@@ -41,8 +42,10 @@ depends on how often you were hunted and how many people you killed.
 - **The town is alive.** Merchants cry their wares, a bard plays by the well,
   drunks stagger about, a priest walks his rounds, a lamplighter tends the
   lamps, a beggar sells secrets for a coin, and children chase a dog through
-  the square. They gossip, often about things worth knowing. Kill in front
-  of them and they scream for the guards and run home to hide.
+  the square, and a dancer dances to the bard's song. They gossip, often about
+  things worth knowing: one talks with their hands while the other nods or
+  shakes their head. Kill in front of them and they scream for the guards and
+  run home to hide.
 - **Animals give you away.** Dogs bark at you, chickens flap and cluck, and
   crows on the rooftops scatter, cawing, when you come too close.
 - **Beyond the walls:** wolf packs howl in the forest, a troll sleeps by the
@@ -145,8 +148,13 @@ they give up the hunt.
   third-person cameras, guard AI with A* pathfinding over a navigation grid,
   stealth, combat between every kind of creature, HUD, and game flow.
 - `js/actors.js`: builds every character (people, wolves, birds, demons,
-  gods) from rounded parts on a joint skeleton, and animates them: walking,
-  running, crouching, climbing, sword swings, bow draws, flying and falling.
+  gods) from rounded parts on a joint skeleton, and animates them. People
+  stand, walk, run, sneak, nod and dance with motion capture, with the stride
+  locked to the ground so feet don't slide; sword swings, bow draws, blocking,
+  climbing, sitting, flinching and falling are layered on top.
+- `js/mocap.js`: the motion capture, baked into the skeleton's joint angles.
+- `tools/bake-mocap.mjs`: the offline baker that made `mocap.js` (its header
+  says how to run it).
 - `js/life.js`: Bro, the townsfolk and their animals, the monsters, the
   demon rift, the gods, and the meteors.
 - `js/nature.js`: grass and wind, the river shader, chimney smoke, torch
@@ -154,3 +162,9 @@ they give up the hunt.
 - `js/post.js`: bloom and colour grading.
 - `js/audio.js`: WebAudio sound effects, wind, and adaptive music.
 - `vendor/jsm/`: three.js's post-processing passes, copied unchanged.
+
+## Credits
+
+The idle, walk, run, sneak, nod, head-shake and samba animations are Mixamo
+motion capture (mixamo.com, Adobe), taken from the X Bot and Michelle models
+that ship with the three.js examples. Everything else is made in code.
