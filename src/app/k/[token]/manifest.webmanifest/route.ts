@@ -15,8 +15,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
       start_url: `/k/${token}`,
       scope: `/k/${token}`,
       display: "standalone",
-      background_color: "#eef2ef",
-      theme_color: "#14211c",
+      background_color: "#f6f5f1",
+      theme_color: "#f6f5f1",
       icons: [
         { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
         { src: "/icon-512.png", sizes: "512x512", type: "image/png" },

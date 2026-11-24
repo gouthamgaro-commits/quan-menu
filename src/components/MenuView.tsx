@@ -652,7 +652,7 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
         );
       })()}
 
-      {/* The order screen: a receipt on the brand's jade, big enough for the vendor to read at arm's length. */}
+      {/* The order screen: a paper receipt over the dimmed menu, big enough for the vendor to read at arm's length. */}
       {shown && (
         <div className="order-wrap">
         <div className="order" role="dialog" aria-modal="true" aria-label={shown.mode === "bill" ? L.billHead : L.head} lang="vi">

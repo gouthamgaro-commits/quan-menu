@@ -94,7 +94,7 @@ export default async function Home() {
           <h2>{t.ctaTitle}</h2>
           <p>{t.ctaText}</p>
           <div className="row" style={{ justifyContent: "center" }}>
-            <a className="btn gold" href={start}>{me ? t.heroMine : t.heroStart} <ArrowRight {...ic} /></a>
+            <a className="btn inverse" href={start}>{me ? t.heroMine : t.heroStart} <ArrowRight {...ic} /></a>
             <a className="btn" href="/m/demo-cafe">{t.heroExample}</a>
           </div>
         </section>
