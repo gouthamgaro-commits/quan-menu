@@ -1,7 +1,8 @@
 // Store designs: each of the twenty-one builds the storefront its own way and stays accessible;
 // "Preview on the store" shows an unsaved look only in the browser that opens the signed
 // link; the home page follows the store's own section order; the WhatsApp chat button and
-// each store's own icon; a film in the opening banner; shop the look on its photo; a product's 360° view.
+// each store's own icon; a film in the opening banner; shop the look on its photo; stories; a
+// product's 360° view.
 import { join } from "node:path";
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { OWNER } from "./support/env";
@@ -676,6 +677,60 @@ test("shop the look: the owner tags pieces on the banner's photo, and their dots
     await sheet.getByRole("button", { name: "Add to bag" }).click();
     const bag = page.getByRole("dialog", { name: /^Your bag \(\d+\)$/ });
     await expect(bag.getByRole("link", { name: "White Bustier Corset Top" }).first()).toBeVisible();
+  } finally {
+    await db().from("store_settings").update({ homepage: before!.homepage }).eq("id", 1);
+  }
+});
+
+test("stories: round pictures that open full screen, a piece at a time, with Add to bag", async ({ page }) => {
+  const { data: before } = await db().from("store_settings").select("homepage").eq("id", 1).single();
+  try {
+    // The Gen Z designs show stories under the banner; any store can turn them on.
+    await page.goto("/admin/settings?tab=homepage");
+    await page.getByLabel(/^Show Stories/).check();
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await expect(page.getByText("Settings saved.").first()).toBeVisible();
+
+    await page.goto("/");
+    const stories = page.getByRole("region", { name: "Stories" });
+    await stories.scrollIntoViewIfNeeded();
+    const first = stories.getByRole("button", { name: /^New in: \d+ pieces$/ });
+    const count = Number((await first.getAttribute("aria-label"))!.match(/(\d+) pieces/)![1]);
+    expect(count).toBeGreaterThanOrEqual(3);
+    expect(await stories.getByRole("button").count()).toBeGreaterThanOrEqual(2);
+    await first.click();
+    const viewer = page.getByRole("dialog", { name: "Story: New in" });
+    await expect(viewer.getByText(`1 / ${count}`)).toBeVisible();
+
+    // Pieces move on by themselves; paused, they wait for a tap or the arrow keys.
+    await expect(viewer.getByText(`2 / ${count}`)).toBeVisible({ timeout: 9000 });
+    const pause = viewer.getByRole("button", { name: "Pause the story" });
+    await pause.click();
+    await expect(pause).toHaveAttribute("aria-pressed", "true");
+    await viewer.getByRole("button", { name: "Next piece" }).click();
+    await expect(viewer.getByText(`3 / ${count}`)).toBeVisible();
+    await page.keyboard.press("ArrowLeft");
+    await expect(viewer.getByText(`2 / ${count}`)).toBeVisible();
+    await expectAccessible(page, "a story");
+
+    // Add to bag, as Quick add: options first where the piece has them.
+    const title = (await viewer.locator(".story-title").textContent())!;
+    await viewer.getByRole("button", { name: "Add to bag" }).click();
+    const sheet = page.getByRole("dialog", { name: title, exact: true });
+    const bag = page.getByRole("dialog", { name: /^Your bag \(\d+\)$/ });
+    await expect(sheet.or(bag)).toBeVisible();
+    if (await sheet.isVisible()) {
+      await sheet.locator("button[aria-label^='Size ']:not([disabled])").first().click();
+      await sheet.getByRole("button", { name: "Add to bag" }).click();
+    }
+    await expect(bag.getByRole("link", { name: title }).first()).toBeVisible();
+
+    // Escape closes the bag, then the story; the story's circle is marked watched.
+    await page.keyboard.press("Escape");
+    await expect(bag).toBeHidden();
+    await page.keyboard.press("Escape");
+    await expect(viewer).toBeHidden();
+    await expect(first).toHaveAttribute("aria-label", /, watched$/);
   } finally {
     await db().from("store_settings").update({ homepage: before!.homepage }).eq("id", 1);
   }

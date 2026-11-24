@@ -1,6 +1,7 @@
-// The store as an app, and two shortcuts for shoppers: each store installs with its own name,
+// The store as an app, and shortcuts for shoppers: each store installs with its own name,
 // colours and icons and shows its own page when the shopper is offline; a product goes into the
-// bag straight from a list (Quick add); and a customer prints or saves their order's invoice.
+// bag straight from a list (Quick add); a shopper asks a friend about a piece on WhatsApp; and a
+// customer prints or saves their order's invoice.
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { expectAccessible, orderLink, placeOrder } from "./support/helpers";
@@ -63,6 +64,27 @@ test("Quick add puts a product in the bag without leaving the list", async ({ pa
   await expect(bag).toBeVisible();
   await expect(bag.getByRole("link", { name: "Bias-Cut Satin Slip Dress" }).first()).toBeVisible();
   await expect(page).toHaveURL(/\/shop\?q=satin$/);
+});
+
+test("Ask your bestie sends the piece, as chosen, to a friend on WhatsApp", async ({ page }) => {
+  await page.goto("/products/bias-cut-satin-slip-dress");
+  const ask = page.getByRole("link", { name: /Ask your bestie/ });
+  await expect(ask).toHaveAttribute("target", "_blank");
+  const size = page.locator("button[aria-label^='Size ']:not([disabled])").first();
+  const label = (await size.getAttribute("aria-label"))!.replace(/^Size /, "");
+  await size.click();
+
+  // WhatsApp asks whom to send it to; the message has the piece, its price and a link to it in
+  // the size chosen.
+  await expect.poll(async () => new URL((await ask.getAttribute("href"))!).searchParams.get("text")).toContain(`size=${encodeURIComponent(label)}`);
+  const href = new URL((await ask.getAttribute("href"))!);
+  expect(`${href.origin}${href.pathname}`).toBe("https://wa.me/");
+  const text = href.searchParams.get("text")!;
+  expect(text).toMatch(/^Should I get this\?/);
+  // It comes in two colours; the first is chosen to begin with.
+  expect(text).toContain(`Bias-Cut Satin Slip Dress (Champagne, ${label})`);
+  expect(text).toMatch(/₹[\d,]+/);
+  expect(text).toContain(`http://localhost:3000/products/bias-cut-satin-slip-dress?color=Champagne&size=${encodeURIComponent(label)}`);
 });
 
 test("a customer prints or saves their order's invoice, without the store's header and footer", async ({ page }) => {

@@ -42,13 +42,14 @@ export type GalleryStyle = "thumbs" | "stack" | "grid";
 
 /** Homepage sections, in the order a design shows them unless the store reorders them. */
 export const SECTION_KEYS = [
-  "hero", "trust", "departments", "new", "promos", "best", "seasonal", "collections", "brands", "campaign", "spotlight", "statement", "showcase", "rack", "aisle",
+  "hero", "stories", "trust", "departments", "new", "promos", "best", "seasonal", "collections", "brands", "campaign", "spotlight", "statement", "showcase", "rack", "aisle",
   "marquee", "numbers", "lookbook", "index", "bento", "moodboard", "doors", "reel", "drop", "vibes", "scrapbook", "coverflow", "flip", "showroom", "leaderboard", "exhibition", "spread", "blocks", "swipe", "pool", "lineup", "story", "recommended", "newsletter",
 ] as const;
 export type SectionKey = (typeof SECTION_KEYS)[number];
 
 export const SECTION_LABELS: Record<SectionKey, string> = {
   hero: "Main banner",
+  stories: "Stories: round pictures that open full screen, as on Instagram (what's new, your featured collections, the sale)",
   trust: "Delivery, returns and payment promises",
   departments: "Departments",
   new: "New arrivals",
@@ -321,7 +322,7 @@ export const DESIGNS: Record<DesignKey, Design> = {
     headingWeight: 800,
     motion: "cinematic",
     intro: "name",
-    sections: ["hero", "showcase", "marquee", "departments", "rack", "spotlight", "statement", "new", "numbers", "brands", "recommended"],
+    sections: ["hero", "stories", "showcase", "marquee", "departments", "rack", "spotlight", "statement", "new", "numbers", "brands", "recommended"],
     palettes: ["ultraviolet", "cyber", "magma", "toxic"],
     headings: ["archivo", "unbounded", "syne", "bricolage"],
     bodies: ["inter", "dm-sans", "figtree", "outfit"],
@@ -347,7 +348,7 @@ export const DESIGNS: Record<DesignKey, Design> = {
     headingWeight: 400,
     motion: "subtle",
     intro: "none",
-    sections: ["hero", "drop", "departments", "marquee", "best", "collections", "numbers", "new", "recommended"],
+    sections: ["hero", "stories", "drop", "departments", "marquee", "best", "collections", "numbers", "new", "recommended"],
     palettes: ["concrete", "volt", "utility", "blueprint"],
     headings: ["anton", "archivo", "space-grotesk", "bricolage"],
     bodies: ["space-mono", "inter", "work-sans"],
@@ -372,7 +373,7 @@ export const DESIGNS: Record<DesignKey, Design> = {
     headingTracking: "-0.01em",
     motion: "subtle",
     intro: "none",
-    sections: ["hero", "departments", "vibes", "new", "promos", "best", "trust", "collections", "recommended"],
+    sections: ["hero", "stories", "departments", "vibes", "new", "promos", "best", "trust", "collections", "recommended"],
     palettes: ["chrome", "aqua", "cyberpink", "starlight"],
     headings: ["bagel", "unbounded", "syne", "outfit"],
     bodies: ["figtree", "dm-sans", "nunito", "outfit"],
@@ -397,7 +398,7 @@ export const DESIGNS: Record<DesignKey, Design> = {
     headingTracking: "-0.01em",
     motion: "subtle",
     intro: "none",
-    sections: ["hero", "departments", "scrapbook", "promos", "new", "campaign", "best", "brands", "recommended"],
+    sections: ["hero", "stories", "departments", "scrapbook", "promos", "new", "campaign", "best", "brands", "recommended"],
     palettes: ["kraft", "riso", "newsprint", "highlighter"],
     headings: ["instrument", "dm-serif", "fraunces", "bricolage"],
     bodies: ["work-sans", "karla", "dm-sans", "space-mono"],
@@ -647,7 +648,7 @@ export const DESIGNS: Record<DesignKey, Design> = {
     headingTracking: "0.01em",
     motion: "subtle",
     intro: "none",
-    sections: ["hero", "marquee", "lineup", "new", "departments", "best", "promos", "recommended"],
+    sections: ["hero", "stories", "marquee", "lineup", "new", "departments", "best", "promos", "recommended"],
     palettes: ["fest-night", "holi", "laser", "sunburn"],
     headings: ["bungee", "anton", "bagel", "unbounded"],
     bodies: ["outfit", "dm-sans", "figtree", "nunito"],

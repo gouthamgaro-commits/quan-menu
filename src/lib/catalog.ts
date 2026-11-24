@@ -8,6 +8,7 @@ import { contextStoreId } from "./store";
 import { supabasePublic } from "./supabase/public";
 import { PAGE_SIZE, type SearchParams } from "./catalog-options";
 import { MAX_LOOKS, type LookPin } from "./looks";
+import { pieceOf } from "./stories";
 import type { Facets, LookSpot, ProductCard, ProductPage, Tables } from "./types";
 
 const CACHE = { tags: ["catalog"], revalidate: 300 };
@@ -92,9 +93,7 @@ export async function getLookPins(spots: LookSpot[] | undefined): Promise<LookPi
   if (lost.length) for (const p of await productCardsByIds(Object.values(bySlug))) cards.set(p.id, p);
   return valid.flatMap((s) => {
     const p = cards.get(s.product) ?? (s.slug ? cards.get(bySlug[s.slug] ?? "") : undefined);
-    if (!p) return [];
-    const product = { slug: p.slug, title: p.title, image: p.image_url, price: p.price, maxPrice: p.max_price, compareAt: p.compare_at_price, soldOut: p.available_stock <= 0 };
-    return [{ x: s.x, y: s.y, product }];
+    return p ? [{ x: s.x, y: s.y, product: pieceOf(p) }] : [];
   });
 }
 

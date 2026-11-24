@@ -10,7 +10,7 @@ import type { ProductPage, SizeGuide } from "@/lib/types";
 import { colorsOf, firstColor, sizesOf, variantFor as findVariant } from "@/lib/variants";
 import { Button, cx } from "../../ui/controls";
 import { Dialog } from "../../ui/Dialog";
-import { CheckIcon, MapPinIcon, MinusIcon, PlusIcon, ReturnIcon, RulerIcon, ShareIcon, StarIcon, TruckIcon } from "../../ui/icons";
+import { ArrowRight, ChatIcon, CheckIcon, MapPinIcon, MinusIcon, PlusIcon, ReturnIcon, RulerIcon, ShareIcon, StarIcon, TruckIcon } from "../../ui/icons";
 import { rememberViewed } from "../RecentlyViewed";
 import { useStore } from "../StoreProvider";
 import WishButton from "../WishButton";
@@ -48,6 +48,9 @@ export default function ProductView({ product, currency, preview, stockAlerts, g
   const [busy, setBusy] = useState<"add" | "buy" | null>(null);
   const [guideOpen, setGuideOpen] = useState(false);
   const [shared, setShared] = useState(false);
+  // The store's address, for links shoppers send (known once the page is in the browser).
+  const [origin, setOrigin] = useState("");
+  useEffect(() => setOrigin(window.location.origin), []);
   // Phones: once the shopper scrolls past the bag button, a bar at the bottom keeps it in reach.
   const buyRow = useRef<HTMLDivElement>(null);
   const [pastBuy, setPastBuy] = useState(false);
@@ -105,6 +108,15 @@ export default function ProductView({ product, currency, preview, stockAlerts, g
     setBusy(null);
     if (ok && mode === "buy") router.push("/checkout");
   };
+
+  // Ask your bestie: the piece, as chosen, in a WhatsApp message to a friend (WhatsApp asks whom
+  // to send it to). The link opens the piece in the colour and size chosen.
+  const chosen = new URLSearchParams();
+  if (color && colors.length > 1) chosen.set("color", color);
+  if (size && sizes.length > 1) chosen.set("size", size);
+  const pieceLink = `${origin}/products/${product.slug}${chosen.size ? `?${chosen.toString()}` : ""}`;
+  const choice = [colors.length > 1 ? color : null, sizes.length > 1 ? size : null].filter(Boolean).join(", ");
+  const askText = `Should I get this? 👀\n${product.title}${choice ? ` (${choice})` : ""}, ${formatMoney(price, currency)}\n${pieceLink}`;
 
   const share = async () => {
     const url = window.location.href;
@@ -280,6 +292,22 @@ export default function ProductView({ product, currency, preview, stockAlerts, g
           </Button>
         )}
         <p className="mt-3 min-h-5 text-sm text-sale" role="alert" aria-live="assertive">{error}</p>
+        {!soldOut && !preview && (
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(askText)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-ask-bestie
+            className="group mt-1 flex items-center gap-3 rounded-btn border border-dashed border-line px-4 py-3 transition-colors hover:border-ink"
+          >
+            <ChatIcon size={20} className="shrink-0 text-brand" />
+            <span className="grid min-w-0">
+              <span className="text-sm font-semibold">Ask your bestie</span>
+              <span className="text-xs text-taupe">Can&apos;t decide? Send it to a friend on WhatsApp</span>
+            </span>
+            <ArrowRight size={14} className="ml-auto shrink-0 transition-transform group-hover:translate-x-0.5" />
+          </a>
+        )}
 
         <DeliveryChecker />
 

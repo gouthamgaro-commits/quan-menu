@@ -66,6 +66,15 @@ payment account and web address, and the platform's administrators create them f
   owner tags pieces in **Settings › Homepage** by tapping the photo and choosing the product (up
   to four; only pieces on sale show). The dots stay on the pieces however a design crops the photo,
   and move with it as the page scrolls.
+- Stories on the home page, as on Instagram: round pictures for what's new, the featured
+  collections and the sale, ringed in the store's colours until watched. Each opens full screen,
+  a piece at a time, with its price, Add to bag and a link to the piece. Pieces move on every five
+  seconds (never for shoppers who ask for less motion), or with a tap on either side, the arrow keys
+  or the buttons; holding a piece, the pause button or the bag opening over it stops the clock.
+  Under the banner in the Gen Z designs (Neon, Drop, Y2K, Zine, Festival); any store can turn
+  them on in **Settings › Homepage › Sections**.
+- Ask your bestie on every product page: one tap opens WhatsApp with the piece as chosen (colour
+  and size), its price and a link that opens it that way, for the shopper to send to a friend.
 - Bag with server-side pricing, discount codes, free-delivery progress. Guest bags are merged into
   the account on sign-in.
 - Checkout: contact → address (Indian states, PIN validation) → delivery options → payment
@@ -998,8 +1007,9 @@ motion), an owner's own numbers on the home page,
 an owner changing palette, fonts and design (and back), reordering the home page, the chat
 button and icon, a banner film uploaded, playing and pausing (and the photo instead for shoppers
 who ask for less motion), shop the look (a dot's tag, a piece into the bag from it, and the owner
-tagging another piece on the photo), and a 360° view switched on in the editor and turned with the
-keys and by dragging.
+tagging another piece on the photo), stories (turned on, moving on by themselves, paused, stepped
+through with taps and keys, a piece into the bag, marked watched), and a 360° view switched on in
+the editor and turned with the keys and by dragging.
 
 **Store type tests (4 unit, 5 database, 1 Playwright)** cover every type having its words,
 options, details and sizes, a clothing store keeping its words, and a product naming its own

@@ -25,6 +25,7 @@ import SwipeStack from "@/components/store/SwipeStack";
 import Showcase from "@/components/store/Showcase";
 import Hero from "@/components/store/heroes";
 import Spotlight, { type Chapter } from "@/components/store/Spotlight";
+import Stories from "@/components/store/Stories";
 import Vibes, { type Vibe } from "@/components/store/Vibes";
 import {
   BrandStrip,
@@ -50,6 +51,7 @@ import { formatMoney } from "@/lib/money";
 import { getSettings, homepageOf, socialOf } from "@/lib/settings";
 import { storeKind } from "@/lib/store-types";
 import { excerpt, jsonLd } from "@/lib/seo";
+import { storyOf, type Story } from "@/lib/stories";
 import { safeHref } from "@/lib/urls";
 import { chapterColors, showcaseColors } from "@/lib/theme";
 import { contextOrigin } from "@/lib/store";
@@ -142,6 +144,18 @@ export default async function Home() {
   const order = homeSections(design, home.sections);
   // Shop the look: the opening banner's tagged pieces, fetched only where the page shows it.
   const looks = order.includes("hero") ? await getLookPins(hero?.looks) : [];
+  // Stories: what's new, each featured collection and the sale, fetched only where the page shows them.
+  const stories: Story[] = order.includes("stories")
+    ? (
+        await Promise.all([
+          storyOf("new", "New in", "/shop?sort=newest", newest),
+          ...data.trending.slice(0, 5).map(async (c) =>
+            storyOf(`collection-${c.slug}`, c.title, `/collections/${c.slug}`, (await searchProducts({ collection: c.slug, sort: "featured", limit: 12 })).items, c.image_url || c.banner_url),
+          ),
+          searchProducts({ onSale: true, sort: "featured", limit: 12 }).then((r) => storyOf("sale", "Sale", "/shop?sale=1", r.items)),
+        ])
+      ).filter((x): x is Story => !!x)
+    : [];
   // Shop by vibe: the featured collections' pieces, fetched only where the page shows them.
   const vibes: Vibe[] = order.includes("vibes")
     ? await Promise.all(
@@ -161,6 +175,7 @@ export default async function Home() {
         looks={looks}
       />
     ),
+    stories: () => stories.length >= 2 && <Stories stories={stories} />,
     trust: () => <TrustStrip settings={settings} variant={design.key} />,
     departments: () => <Departments departments={data.departments} variant={design.departments} browse={kind.words.browse} early={order.indexOf("departments") === 1} />,
     new: () =>
