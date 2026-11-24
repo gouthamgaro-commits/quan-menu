@@ -59,6 +59,25 @@ depends on how often you were hunted and how many people you killed.
 
 Press **T** to switch between third person (the default) and first person.
 
+## Finding your way
+
+- A gold diamond on screen marks your objective, with its distance. When it's
+  off screen it becomes an arrow at the edge.
+- **M** (or the map button) opens a map of the town and the land around it,
+  with you, Bro, your objective, unopened chests, the shrine and the rift.
+- Tips appear the first time something new happens (being spotted, getting
+  hurt, a new weapon, the shrine, the rift). Each shows once.
+- If you die, you can retry from the last checkpoint: entering town, taking
+  the key, or taking the crown.
+
+## Settings
+
+The settings panel (from the start screen or the pause menu) has graphics
+quality, camera view, look sensitivity, invert look, volume, music volume,
+camera shake and a frame-rate readout. Choices are remembered. Graphics
+quality controls resolution, bloom, shadows and grass density, and the game
+steps it down on its own if the frame rate drops too low.
+
 ## Play styles
 
 - **Sword:** left click for a three-hit combo (the third swing is heavy).
@@ -115,7 +134,8 @@ they give up the hunt.
 | Smoke bomb / heal / whistle | Q / H / V |
 | Bro: wait or follow | G |
 | Third or first person | T |
-| Pause / mute | P / M |
+| Map | M |
+| Pause (sound and settings are in the pause menu) | P |
 
 ## Code
 
@@ -129,4 +149,8 @@ they give up the hunt.
   running, crouching, climbing, sword swings, bow draws, flying and falling.
 - `js/life.js`: Bro, the townsfolk and their animals, the monsters, the
   demon rift, the gods, and the meteors.
+- `js/nature.js`: grass and wind, the river shader, chimney smoke, torch
+  embers, mist and laundry.
+- `js/post.js`: bloom and colour grading.
 - `js/audio.js`: WebAudio sound effects, wind, and adaptive music.
+- `vendor/jsm/`: three.js's post-processing passes, copied unchanged.
