@@ -333,6 +333,7 @@ export function hold(rig, hand, kind, o) {
 // so moves blend into one another.
 const J = 30;
 const UPPER = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 24, 25, 26];
+const LEGS = [0, 1, 2, 3, 22, 23, 24, 25, 26, 28, 29];
 const tmp = new Float32Array(MN);
 export function poseHumanoid(rig, p) {
   const t = p.t || 0, ph = p.phase || 0, mv = p.move || 0, dt = p.dt || 0;
@@ -477,7 +478,11 @@ export function poseHumanoid(rig, p) {
   for (let i = 0; i < J; i++) V[i] = B[i] + rig.C[i];
   // keep the feet on the ground: whatever the procedural layers did to the legs (crouching, landing),
   // move the hips so the lower foot sits where the capture had it
-  if (free > 0.01) V[4] += (lowFoot(B, rig.baseHip) - lowFoot(V, rig.baseHip)) * free;
+  if (free > 0.01) {
+    let off = 0;
+    for (const i of LEGS) off = Math.max(off, Math.abs(rig.C[i]));
+    if (off > 0.01) V[4] += (lowFoot(B, rig.baseHip) - lowFoot(V, rig.baseHip)) * free;
+  }
   const { legL, legR, armL, armR, spine, neck, hips } = rig;
   legL.h.rotation.set(V[0], V[28], V[22]); legR.h.rotation.set(V[1], V[29], V[23]);
   legL.k.rotation.x = V[2]; legR.k.rotation.x = V[3];
