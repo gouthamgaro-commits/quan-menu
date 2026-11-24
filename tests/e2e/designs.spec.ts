@@ -694,7 +694,7 @@ test("stories: round pictures that open full screen, a piece at a time, with Add
     await page.goto("/");
     const stories = page.getByRole("region", { name: "Stories" });
     await stories.scrollIntoViewIfNeeded();
-    const first = stories.getByRole("button", { name: /^New in: \d+ pieces$/ });
+    const first = stories.getByRole("button", { name: /^New in: \d+ pieces/ });
     const count = Number((await first.getAttribute("aria-label"))!.match(/(\d+) pieces/)![1]);
     expect(count).toBeGreaterThanOrEqual(3);
     expect(await stories.getByRole("button").count()).toBeGreaterThanOrEqual(2);
