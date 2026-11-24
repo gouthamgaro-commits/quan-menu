@@ -646,7 +646,8 @@ function part(parent, mat, w, h, d, x, y, z) {
   parent.add(m);
   return m;
 }
-function makeModel(type) {
+const lanternGlow = new THREE.SpriteMaterial({ map: W.tex.flame, color: 0xffb060, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+function makeModel(type, lantern) {
   const skin = pick([0xc79a78, 0xb98a68, 0xd9a882, 0xa8785a]);
   const o = type === 'marshal'
     ? { armor: 'plate', cape: 0x6a1010, head: 'crown', hair: 0x2a1d14, beard: 0x2a1d14, skin: 0xc49170, scale: 1.12, gloves: 0x2a2a2a, tallBoots: true }
@@ -656,7 +657,11 @@ function makeModel(type) {
   const rig = makeHumanoid(o);
   if (type === 'archer') hold(rig, 'L', 'bow');
   else if (type === 'marshal') hold(rig, 'R', 'greatsword');
-  else { hold(rig, 'R', 'sword'); hold(rig, 'L', 'shield', { color: 0x7a1c1c }); }
+  else if (lantern) {
+    hold(rig, 'R', 'sword');
+    const l = hold(rig, 'L', 'lantern');
+    const glow = new THREE.Sprite(lanternGlow); glow.scale.setScalar(0.9); glow.position.y = -0.12; l.add(glow);
+  } else { hold(rig, 'R', 'sword'); hold(rig, 'L', 'shield', { color: 0x7a1c1c }); }
   scene.add(rig.root);
   return rig;
 }
@@ -667,12 +672,13 @@ function makeGuard(s) {
   if (!s.fixed) p.y = navH(p.x, p.z);
   const hp = s.type === 'marshal' ? 280 : s.type === 'archer' ? 70 : 100;
   const g = {
-    s, type: s.type, kind: 'guard', team: 'town', R: 0.42, H: s.type === 'marshal' ? 2.05 : 1.8, body: true, canAssassinate: true, foe: null, foeT: Math.random() * 0.5, hy: 0, mv: 0, m: makeModel(s.type), pos: p, yaw: s.yaw || 0, look: s.yaw || 0, headYaw: 0, hp, maxHp: hp, state: 'patrol', det: 0,
+    s, type: s.type, kind: 'guard', team: 'town', R: 0.42, H: s.type === 'marshal' ? 2.05 : 1.8, body: true, canAssassinate: true, foe: null, foeT: Math.random() * 0.5, hy: 0, mv: 0, lantern: s.type === 'guard' && !!s.path && guards.length % 2 === 0, m: null, pos: p, yaw: s.yaw || 0, look: s.yaw || 0, headYaw: 0, hp, maxHp: hp, state: 'patrol', det: 0,
     path: null, pi: 0, wp: 0, wait: 0, repath: 0, pgx: 1e9, pgz: 1e9, seenT: 0, last: new V3(), goal: new V3(), stun: 0, atk: null, atkCd: 0,
     shootCd: rand(0.5, 2), searchT: 0, susT: 0, lookT: 0, dead: false, deathT: 0, found: false, picked: false, walk: 0, sw: 0,
     pocket: s.type === 'marshal' ? 150 : 12 + (Math.random() * 30 | 0), barkCd: 0, bodyT: Math.random(), seed: Math.random() * 10,
     pitch: s.type === 'marshal' ? 0.72 : rand(0.9, 1.2), dmg: s.type === 'marshal' ? 27 : 16, run: s.type === 'marshal' ? 4.5 : 4.75,
   };
+  g.m = makeModel(s.type, g.lantern);
   guards.push(g); actors.push(g);
   poseGuard(g, false);
   return g;
@@ -744,6 +750,7 @@ function poseGuard(g, moving) {
   g.mv = lerp(g.mv, moving ? (fighting ? 1.7 : g.state === 'search' ? 1.15 : 0.85) : 0, 0.2);
   const p = { t: G.t + g.seed, dt: g.pdt, phase: g.walk, move: g.mv, look: g.hy, lean: g.stun > 0 ? 0.35 : 0, atk: -1, hit: g.hitT || 0, dead: g.dead ? g.deathT : 0, deadDir: g.deadDir };
   if (g.atk) { p.atk = g.atk.t < g.atk.wind ? g.atk.t / g.atk.wind * 0.42 : 0.42 + (g.atk.t - g.atk.wind) / 0.45 * 0.58; p.style = g.type === 'marshal' ? 'overhead' : 'slash'; }
+  if (g.lantern && !g.atk) p.lantern = 1;
   if (g.type === 'archer') { p.aim = fighting ? 1 : 0; p.draw = clamp(1 - g.shootCd / 1.5, 0, 1); }
   else if (fighting && !g.atk) p.block = 0.35;
   poseHumanoid(m, p);
@@ -1231,6 +1238,12 @@ function computeVis(dt) {
   visT = 0.1;
   const I = W.indoor, indoor = P.pos.x > I.x0 && P.pos.x < I.x1 && P.pos.z > I.z0 && P.pos.z < I.z1 && P.pos.y < 6;
   let L = indoor ? 0.07 : 0.2;
+  // a guard's lantern lights up whoever is near it
+  for (const g of guards) {
+    if (!g.lantern || g.dead) continue;
+    const lx = g.pos.x + Math.sin(g.yaw) * 0.4, lz = g.pos.z + Math.cos(g.yaw) * 0.4, d = Math.hypot(lx - P.pos.x, g.pos.y + 1.1 - P.pos.y - 1, lz - P.pos.z);
+    if (d < 7.5 && los(lx, g.pos.y + 1.1, lz, P.pos.x, P.pos.y + 1, P.pos.z)) L += Math.pow(1 - d / 7.5, 1.4) * 0.9;
+  }
   for (const tc of W.torches) {
     const r = (tc.fire ? 13 : 10) * tc.s, d = Math.hypot(tc.x - P.pos.x, tc.y - P.pos.y - 1, tc.z - P.pos.z);
     if (d < r && los(tc.x, tc.y, tc.z, P.pos.x, P.pos.y + 1, P.pos.z)) L += Math.pow(1 - d / r, 1.4) * 0.95;
@@ -1773,7 +1786,8 @@ function endScreen(title, html, btn, cp) {
 function die() {
   P.dead = true; P.hp = 0; G.state = 'dead'; G.endT = 0;
   sfx.setTension(0);
-  setTimeout(() => endScreen('You Are Slain', '<p>Your body will hang from the gatehouse by morning.</p>', checkpoint ? 'START OVER' : 'TRY AGAIN', !!checkpoint), 1600);
+  const run = G.run;
+  setTimeout(() => { if (G.run === run && G.state === 'dead') endScreen('You Are Slain', '<p>Your body will hang from the gatehouse by morning.</p>', checkpoint ? 'START OVER' : 'TRY AGAIN', !!checkpoint); }, 1600);
 }
 function win() {
   G.state = 'won';

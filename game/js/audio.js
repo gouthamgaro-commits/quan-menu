@@ -197,5 +197,9 @@ export class Sfx {
       this.tone(f, 2.4, { type: 'sine', gain: 0.05, attack: 0.6 }); this.tone(f * 1.004, 2.4, { type: 'triangle', gain: 0.025, attack: 0.7 });
     }, d * 1000));
   }
+  owl(vol = 0.4) {
+    const hoot = (d, f) => setTimeout(() => this.tone(f, 0.32, { type: 'sine', gain: 0.09, f2: f * 0.86, vol, attack: 0.05 }), d);
+    hoot(0, 440); hoot(420, 470); hoot(700, 420);
+  }
   fanfare() { [293.66, 349.23, 440, 587.33].forEach((f, i) => setTimeout(() => this.pluck(f, 0.14), i * 170)); }
 }

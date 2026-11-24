@@ -566,6 +566,28 @@ export function createLife(ctx) {
     }
   }
 
+  // bats wheel around the keep's tower and the church spire
+  const bats = [];
+  function makeBats(cx, cy, cz, n, r) {
+    for (let i = 0; i < n; i++) {
+      const rig = makeBird('crow');
+      rig.root.scale.setScalar(0.75);
+      scene.add(rig.root);
+      bats.push({ rig, cx, cy, cz, r: r * rand(0.7, 1.3), a: rand(0, 6.28), sp: rand(0.8, 1.4) * (Math.random() < 0.5 ? -1 : 1), ph: rand(0, 6) });
+    }
+  }
+  function updateBats(dt) {
+    for (const b of bats) {
+      b.a += b.sp * dt; b.ph += dt;
+      const r = b.r + Math.sin(b.ph * 0.7) * 1.5;
+      const x = b.cx + Math.cos(b.a) * r, z = b.cz + Math.sin(b.a) * r, y = b.cy + Math.sin(b.ph * 1.9) * 1.4;
+      b.rig.root.visible = Math.abs(x - P.pos.x) + Math.abs(z - P.pos.z) < 160;
+      b.rig.root.rotation.y = Math.atan2(x - b.rig.root.position.x, z - b.rig.root.position.z);
+      b.rig.root.position.set(x, y, z);
+      poseBird(b.rig, { t: b.ph * 1.5, fly: true });
+    }
+  }
+
   // ---------------------------------------------------------------- beasts of the forest
   const WOLF = { reach: 1.5, wind: 0.32, rec: 0.5, dmg: 9, cd: 0.9, style: 'lunge', turn: 9 };
   function spawnWolf(x, z, pack) {
@@ -939,6 +961,9 @@ export function createLife(ctx) {
     meteors.length = 0;
     for (const f of flocks) for (const c of f.crows) scene.remove(c.rig.root);
     flocks.length = 0;
+    for (const b of bats) scene.remove(b.rig.root);
+    bats.length = 0;
+    makeBats(21.5, 27, -50.5, 6, 7); makeBats(-41, 25, 7, 5, 5);
     L.quests = {}; L.heardWolves = false; L.dead = false; L.tip = 0; chatCd = 3; sayQ = [];
     G0.wake = 0; G0.waking = false; G0.atk = -1; G0.throwT = 4; W.setRage(0);
     rift.scale.setScalar(1); rift.userData.closing = 0; rift.userData.light.intensity = 40; rift.visible = true; heartM.emissiveIntensity = 1.6;
@@ -1064,6 +1089,9 @@ export function createLife(ctx) {
     if (L.bro && L.bro.tag) L.bro.tag.material.opacity = clamp((dist(L.bro.pos, P.pos) - 4) / 4, 0, 1);
     L.threatN = threat;
     updateFlocks(dt);
+    updateBats(dt);
+    L.owlT = (L.owlT ?? 12) - dt;
+    if (L.owlT <= 0) { L.owlT = rand(18, 40); if (Math.max(Math.abs(P.pos.x), Math.abs(P.pos.z)) > 50 && G.state === 'play') sfx.owl(rand(0.2, 0.45)); }
     updateGods(dt);
     updateLady(dt);
     rift.userData.d1.rotation.z += dt * 1.6; rift.userData.d2.rotation.z -= dt * 2.4;

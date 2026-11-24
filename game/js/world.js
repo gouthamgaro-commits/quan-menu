@@ -240,7 +240,7 @@ export function buildWorld(scene) {
   const T = makeTextures();
   const batch = new Batch();
   const W = {
-    colliders: [], torches: [], hide: [], chests: [], banners: [], spawns: [], doors: [], chimneys: [], tex: T,
+    colliders: [], torches: [], hide: [], chests: [], banners: [], spawns: [], doors: [], chimneys: [], candles: [], tex: T,
     camp: CAMP, crown: { x: -4, y: 1.3, z: -50 }, grave: GRAVE, shrine: SHRINE, lair: LAIR, rift: RIFT, graves: [],
   };
 
@@ -497,6 +497,23 @@ export function buildWorld(scene) {
   roof(0, 7.25, -43, 28, 22, 5.5, 'x', M.roofSlate, M.stone);
   for (const x of [-9, 9]) pane(x, 3, -31.95, 0.9, 2.6, false, M.winLit);
   W.indoor = { x0: -13, x1: 13, z0: -53, z1: -33 };
+  // the great hall: a long carpet to the throne, tapestries, and two candle chandeliers
+  box(0, 0.04, -39.6, 2.2, 0.02, 13, M.clothRed, { col: false, uv: 1 });
+  for (const sx of [-1, 1]) for (const [z, m] of [[-36.6, M.clothRed], [-41.5, M.clothBlue], [-49.5, M.clothRed]]) {
+    box(sx * 12.93, 1.9, z, 0.05, 3.4, 1.7, m, { col: false, uv: 0.9 });
+    box(sx * 12.9, 5.3, z, 0.08, 0.08, 1.9, M.darkwood, { col: false });
+  }
+  for (const z of [-37.5, -44]) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.05, 6, 24), M.iron); ring.rotation.x = Math.PI / 2; ring.position.set(0, 5.1, z); scene.add(ring);
+    box(0, 5.1, z, 0.04, 2.1, 0.04, M.iron, { col: false });
+    const wax = std(null, 0xe8e0c8);
+    for (let k = 0; k < 6; k++) {
+      const a = k / 6 * Math.PI * 2;
+      box(Math.cos(a) * 1.0, 5.13, z + Math.sin(a), 0.07, 0.22, 0.07, wax, { col: false });
+      W.candles.push({ x: Math.cos(a) * 1.0, y: 5.45, z: z + Math.sin(a) });
+    }
+    W.torches.push({ x: 0, y: 5.2, z, s: 0.75, noSprite: true });
+  }
   // hall furniture
   for (const sx of [-1, 1]) {
     box(sx * 6, 0, -40, 1.3, 0.85, 7, M.wood);
@@ -855,12 +872,16 @@ export function buildWorld(scene) {
   const bracket = new THREE.BoxGeometry(0.07, 0.5, 0.07);
   const ghostMat = new THREE.SpriteMaterial({ map: T.flame, color: 0x7dff9a, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
   const moonMat = new THREE.SpriteMaterial({ map: T.flame, color: 0x8fb4ff, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+  for (const c of W.candles) {
+    const sp = new THREE.Sprite(flameMat); sp.position.set(c.x, c.y, c.z); sp.scale.set(0.22, 0.3, 1); scene.add(sp);
+  }
   for (const t of W.torches) {
     t.sprite = new THREE.Sprite(t.ghost ? ghostMat : t.moon ? moonMat : flameMat);
+    if (t.noSprite) t.sprite.visible = false;
     t.sprite.position.set(t.x, t.y, t.z);
     t.phase = rnd() * 10;
     scene.add(t.sprite);
-    if (!t.fire && !t.moon) { const b = new THREE.Mesh(bracket, M.iron); b.position.set(t.x, t.y - 0.35, t.z); scene.add(b); }
+    if (!t.fire && !t.moon && !t.noSprite) { const b = new THREE.Mesh(bracket, M.iron); b.position.set(t.x, t.y - 0.35, t.z); scene.add(b); }
   }
   const pool = [];
   for (let i = 0; i < 7; i++) { const l = new THREE.PointLight(0xff9c4a, 0, 22, 1.7); scene.add(l); pool.push(l); }
