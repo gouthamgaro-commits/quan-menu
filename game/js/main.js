@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { buildWorld, terrainHeight, WATER, CAMP, mergeGeos } from './world.js';
 import { Sfx } from './audio.js';
-import { makeHumanoid, poseHumanoid, hold, setShadow } from './actors.js';
+import { makeHumanoid, poseHumanoid, hold, setShadow, loadMixamo, setDetail } from './actors.js';
 import { createLife } from './life.js';
 import { createPost } from './post.js';
 import { addNature } from './nature.js';
@@ -44,11 +44,15 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, 1, 0.08, 2400);
 camera.rotation.order = 'YXZ';
 await loadStep(0.08, 'Raising the walls of Ravenmoor…');
+// the Mixamo people download while the town is built
+const mixLoad = loadMixamo();
 const W = buildWorld(scene);
 await loadStep(0.4, 'Growing the grass…');
 const nature = addNature(scene, W);
 await loadStep(0.5, 'Lighting the torches…');
 const post = createPost(renderer, scene, camera);
+await loadStep(0.55, 'Dressing the people of Ravenmoor…');
+await mixLoad;
 const C = W.colliders;
 const sfx = new Sfx();
 let life = null;
@@ -65,9 +69,9 @@ function resize() {
 
 // Quality tiers trade sharpness, bloom, soft shadows and grass for speed.
 const QUALITY = {
-  high: { pr: 1.5, msaa: true, shadowSize: 2048, soft: true, shadowDist: 26, grass: 1 },
-  medium: { pr: 1.25, msaa: false, shadowSize: 2048, soft: false, shadowDist: 16, grass: 0.6 },
-  low: { pr: 1, msaa: false, shadowSize: 1024, soft: false, shadowDist: 0, grass: 0.3 },
+  high: { pr: 1.5, msaa: true, shadowSize: 2048, soft: true, shadowDist: 26, grass: 1, mixDist: 70 },
+  medium: { pr: 1.25, msaa: false, shadowSize: 2048, soft: false, shadowDist: 16, grass: 0.6, mixDist: 40 },
+  low: { pr: 1, msaa: false, shadowSize: 1024, soft: false, shadowDist: 0, grass: 0.3, mixDist: 24 },
 };
 function applyQuality(q = settings.quality) {
   const Q = QUALITY[q] || QUALITY.high;
@@ -78,6 +82,7 @@ function applyQuality(q = settings.quality) {
     if (W.moon.shadow.map) { W.moon.shadow.map.dispose(); W.moon.shadow.map = null; }
   }
   G.shadowDist = Q.shadowDist;
+  G.mixDist = Q.mixDist;   // Mixamo bodies within this distance, the light classic bodies beyond
   if (W.setGrass) W.setGrass(Q.grass);
   post.setQuality(q);
   resize();
@@ -655,6 +660,9 @@ function makeModel(type, lantern) {
       ? { top: 0x2f5a34, pants: 0x3a3027, head: 'kettle', tabard: 0x2a4a2c, skin, gloves: 0x3d2b1e, tallBoots: true }
       : { armor: 'mail', tabard: 0x8e2222, head: 'helm', skin, gloves: 0x3d2b1e, tallBoots: true, beard: Math.random() < 0.4 ? 0x4a2c18 : undefined };
   o.gait = 'soldier';
+  // Mixamo's Soldier; archers in green, the Marshal in gold
+  o.mixamo = 'soldier';
+  o.tint = type === 'marshal' ? 0xffc27a : type === 'archer' ? 0x9fc79a : undefined;
   const rig = makeHumanoid(o);
   if (type === 'archer') hold(rig, 'L', 'bow');
   else if (type === 'marshal') hold(rig, 'R', 'greatsword');
@@ -1619,7 +1627,7 @@ function updateVM(dt) {
 }
 
 // ---------------------------------------------------------------- third person
-const pRig = makeHumanoid({ skin: 0xc49572, top: 0x1f2533, pants: 0x161a22, boots: 0x2a1d14, head: 'hood', hood: 0x1d2230, cape: 0x1a1e29, belt: 0x8e2222, gloves: 0x2a1d14, tallBoots: true });
+const pRig = makeHumanoid({ skin: 0xc49572, top: 0x1f2533, pants: 0x161a22, boots: 0x2a1d14, head: 'hood', hood: 0x1d2230, cape: 0x1a1e29, belt: 0x8e2222, gloves: 0x2a1d14, tallBoots: true, mixamo: 'alpha' });
 const pW = [hold(pRig, 'R', 'sword'), hold(pRig, 'L', 'bow'), hold(pRig, 'R', 'crossbow'), hold(pRig, 'R', 'knife')];
 pRig.root.visible = false;
 scene.add(pRig.root);
@@ -1993,7 +2001,7 @@ function logic(dt) {
   guardLodT -= dt;
   if (guardLodT <= 0) {
     guardLodT = 0.5;
-    for (const g of guards) { const d = Math.hypot(g.pos.x - P.pos.x, g.pos.z - P.pos.z); setShadow(g.m, d < G.shadowDist + 2); g.m.root.visible = d < 160; }
+    for (const g of guards) { const d = Math.hypot(g.pos.x - P.pos.x, g.pos.z - P.pos.z); setShadow(g.m, d < G.shadowDist + 2); setDetail(g.m, d < (G.mixDist ?? 40)); g.m.root.visible = d < 160; }
   }
   updateParts(dt);
   input.firePressed = false;

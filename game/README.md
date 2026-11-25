@@ -1,10 +1,10 @@
 # Crows of Ravenmoor
 
 A first-person medieval stealth and combat game that runs in the browser. It is
-self-contained: no build step, no assets to download. The town, textures,
-music and sound effects are all generated in code. People move with motion
-capture from Mixamo, baked into a small data file. The only dependency is
-three.js, which is copied into `vendor/`.
+self-contained: no build step. The town, textures, music and sound effects are
+all generated in code. The people are Mixamo characters moving with Mixamo
+motion capture. The only dependency is three.js, which is copied into
+`vendor/`.
 
 ## Run it
 
@@ -61,6 +61,18 @@ depends on how often you were hunted and how many people you killed.
   Glowing rings on the ground show where they'll land.
 
 Press **T** to switch between third person (the default) and first person.
+
+## The people
+
+Everyone in town is a Mixamo character. Guards wear Mixamo's armoured Soldier
+(archers in green, the Marshal in gold with his crown and cape). Men, Bro and you are
+Mixamo's Alpha mannequin, and women are Michelle or the X Bot mannequin, each
+repainted in their own colours and wearing the town's hats, hoods, hair,
+capes and dresses. They carry the game's swords, shields, bows, axes and
+lanterns in their hands. Monsters, beasts and gods are made in code.
+
+Far-off people switch to light stand-in bodies, which keeps the game smooth
+on phones; the distance depends on the graphics quality setting.
 
 ## Finding your way
 
@@ -153,6 +165,15 @@ they give up the hunt.
   locked to the ground so feet don't slide; sword swings, bow draws, blocking,
   climbing, sitting, flinching and falling are layered on top.
 - `js/mocap.js`: the motion capture, baked into the skeleton's joint angles.
+- `js/mixamo.js`: loads the Mixamo characters and drives each one's skeleton
+  from the game's joint rig, so they do everything the game's people do;
+  moves hats, capes and weapons onto their bones; and swaps distant people to
+  light stand-ins.
+- `models/`: the Mixamo characters. Their animations were stripped, their
+  T-pose made the default pose and the Soldier turned to face forward
+  (`tools/slim-glb.py`). The mannequins were simplified to 30% of their
+  triangles (`tools/simplify-glb.cjs`), and the Alpha mannequin was converted
+  from three.js's `Samba Dancing.fbx` with its FBX loader and glTF exporter.
 - `tools/bake-mocap.mjs`: the offline baker that made `mocap.js` (its header
   says how to run it).
 - `js/life.js`: Bro, the townsfolk and their animals, the monsters, the
@@ -165,8 +186,8 @@ they give up the hunt.
 
 ## Credits
 
-The idle, walk, run, sneak, nod, head-shake and samba animations are Mixamo
-motion capture (mixamo.com, Adobe), taken from the X Bot, Soldier and Michelle
-models that ship with the three.js examples. Guards move with the Soldier's
-walk, run and ready stance; everyone else with the X Bot's. Everything else is
-made in code.
+The characters (Soldier, Alpha, X Bot and Michelle) and the idle, walk, run,
+sneak, nod, head-shake and samba animations are from Mixamo (mixamo.com,
+Adobe), taken from the models that ship with the three.js examples. Guards
+move with the Soldier's walk, run and ready stance; everyone else with the X
+Bot's. Everything else is made in code.

@@ -1,7 +1,7 @@
 // Everything alive besides the player and the guards: Bro, the townsfolk and their animals,
 // the beasts and the dead outside the walls, the demons of the rift, and the gods.
 import * as THREE from 'three';
-import { makeHumanoid, poseHumanoid, hold, makeBeast, poseBeast, makeBird, poseBird, setShadow, ease } from './actors.js';
+import { makeHumanoid, poseHumanoid, hold, makeBeast, poseBeast, makeBird, poseBird, setShadow, setDetail, ease } from './actors.js';
 
 const V3 = THREE.Vector3;
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -220,7 +220,7 @@ export function createLife(ctx) {
 
   // ---------------------------------------------------------------- Bro
   function spawnBro() {
-    const rig = makeHumanoid({ skin: 0xb98a68, top: 0x6b4a2e, pants: 0x3a2f26, boots: 0x231810, head: 'hair', hair: 0x3a2412, beard: 0x3a2412, build: 1.25, bareArms: true, gloves: 0x2a1d14, belt: 0x7a2a1a, tallBoots: true });
+    const rig = makeHumanoid({ mixamo: 'alpha', skin: 0xb98a68, top: 0x6b4a2e, pants: 0x3a2f26, boots: 0x231810, head: 'hair', hair: 0x3a2412, beard: 0x3a2412, build: 1.25, bareArms: true, gloves: 0x2a1d14, belt: 0x7a2a1a, tallBoots: true });
     hold(rig, 'R', 'axe');
     const tag = textSprite('BRO', '#a6dc84'); tag.position.y = 2.3; tag.scale.set(0.9, 0.225, 1); rig.root.add(tag);
     const a = base('bro', 'player', rig, P.pos.x - 1.6, P.pos.z + 1.8, { hp: 160, R: 0.45, H: 1.85, canAssassinate: false, mode: 'follow', downed: false, barkCd: 6, tag, idleT: rand(35, 60), following: false, stuckFar: 0 });
@@ -337,6 +337,10 @@ export function createLife(ctx) {
     if (role === 'lamplighter') { o.head = 'hat'; o.hatColor = 0x1a1a1a; o.cape = 0x3a3a4a; }
     if (role === 'bard') { o.top = 0x8a3a6a; o.head = 'hat'; o.hatColor = 0x5a1a3a; o.cape = 0x3a5a8a; }
     if (role === 'dancer') { o.dress = 'long'; o.dressColor = pick([0xb03a3a, 0xc0802a, 0x3a7a5a]); o.top = 0xd8cfb8; o.head = 'long'; delete o.beard; }
+    // Mixamo bodies: the Alpha mannequin for men, Michelle or the X Bot mannequin for women. The dancer is
+    // Michelle as Mixamo made her, samba and all.
+    o.mixamo = role === 'dancer' ? 'michelle' : !fem ? 'alpha' : Math.random() < 0.5 ? 'michelle' : 'xbot';
+    if (role === 'dancer') delete o.dress;
     if (role === 'child') { o.scale = 0.66; delete o.beard; if (o.head === 'bald' || o.head === 'hat') o.head = 'hair'; }
     return o;
   }
@@ -1097,7 +1101,7 @@ export function createLife(ctx) {
       if (!a.fly && !a.noGround) a.pos.y = groundY(a);
       a.rig.root.position.copy(a.pos); a.rig.root.rotation.y = a.yaw;
       if (d < 150) a.pose(a);
-      if (doShadows && a.rig.legL || doShadows && a.rig.legs) setShadow(a.rig, d < (G.shadowDist ?? 22));
+      if (doShadows && a.rig.legL || doShadows && a.rig.legs) { setShadow(a.rig, d < (G.shadowDist ?? 22)); setDetail(a.rig, d < (G.mixDist ?? 40)); }
       if ((a.team === 'wild' || a.team === 'demon') && a.target === P && d < 35) threat++;
     }
     // keep bodies from stacking up

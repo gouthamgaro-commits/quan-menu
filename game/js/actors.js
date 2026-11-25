@@ -5,6 +5,8 @@
 // procedurally. All characters face +z in their own space.
 import * as THREE from 'three';
 import { MOCAP, N as MN, Q as MQ } from './mocap.js';
+import { dressMixamo, attachMixamo, syncMixamo } from './mixamo.js';
+export { loadMixamo, setDetail, hasMixamo } from './mixamo.js';
 
 const ease = (t) => t * t * (3 - 2 * t);
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -177,14 +179,15 @@ export function makeHumanoid(o = {}) {
   const hips = joint(root, 0, 0.95, 0);
   hips.rotation.order = 'YXZ';
   const rig = { root, hips, o, baseHip: 0.95, props: {}, seed: Math.random() * 10 };
-  mesh(hips, sphere(), pants, 0, 0, 0, 0.17 * b, 0.12, 0.12, 1, 1, sh);
+  const body = (m) => { m.userData.body = true; return m; };
+  body(mesh(hips, sphere(), pants, 0, 0, 0, 0.17 * b, 0.12, 0.12, 1, 1, sh));
 
   const leg = (side) => {
     const h = joint(hips, side * 0.095 * b, -0.03, 0);
-    mesh(h, capsule(0.075 * lr * Math.sqrt(b), 0.3), pants, 0, -0.22, 0, 1, 1, 1, sh);
+    body(mesh(h, capsule(0.075 * lr * Math.sqrt(b), 0.3), pants, 0, -0.22, 0, 1, 1, 1, sh));
     const k = joint(h, 0, -0.44, 0);
-    mesh(k, capsule(0.06 * lr * Math.sqrt(b), 0.32), o.tallBoots ? boots : pants, 0, -0.21, 0, 1, 1, 1, sh);
-    mesh(k, box(), boots, 0, -0.455, 0.04, 0.1 * Math.sqrt(b), 0.07, 0.22, false);
+    body(mesh(k, capsule(0.06 * lr * Math.sqrt(b), 0.32), o.tallBoots ? boots : pants, 0, -0.21, 0, 1, 1, 1, sh));
+    body(mesh(k, box(), boots, 0, -0.455, 0.04, 0.1 * Math.sqrt(b), 0.07, 0.22, false));
     return { h, k };
   };
   rig.legL = leg(1); rig.legR = leg(-1);
@@ -194,15 +197,15 @@ export function makeHumanoid(o = {}) {
     mesh(spine, capsule(0.03, 0.42), bone, 0, 0.27, -0.06);
     for (let i = 0; i < 3; i++) mesh(spine, ring(), bone, 0, 0.2 + i * 0.1, 0, 0.13 - i * 0.004, 0.1, 0.09).rotation.x = Math.PI / 2;
   } else {
-    mesh(spine, capsule(0.15, 0.24), armor || top, 0, 0.27, 0, 1.18 * b, 1, 0.78 * Math.sqrt(b), 1, 1, sh);
-    mesh(spine, cyl(14), M(o.belt ?? 0x2c1f16), 0, 0.06, 0, 0.18 * b, 0.06, 0.135 * Math.sqrt(b), 1, 1, false);
+    body(mesh(spine, capsule(0.15, 0.24), armor || top, 0, 0.27, 0, 1.18 * b, 1, 0.78 * Math.sqrt(b), 1, 1, sh));
+    body(mesh(spine, cyl(14), M(o.belt ?? 0x2c1f16), 0, 0.06, 0, 0.18 * b, 0.06, 0.135 * Math.sqrt(b), 1, 1, false));
   }
   if (o.tabard) {
     const t = M(o.tabard);
-    mesh(spine, box(), t, 0, 0.2, 0.118 * Math.sqrt(b), 0.27 * b, 0.6, 0.025, 1, 1, false);
-    mesh(spine, box(), t, 0, 0.2, -0.118 * Math.sqrt(b), 0.27 * b, 0.6, 0.025, 1, 1, false);
+    mesh(spine, box(), t, 0, 0.2, 0.118 * Math.sqrt(b), 0.27 * b, 0.6, 0.025, 1, 1, false).userData.acc = 'tabard';
+    mesh(spine, box(), t, 0, 0.2, -0.118 * Math.sqrt(b), 0.27 * b, 0.6, 0.025, 1, 1, false).userData.acc = 'tabard';
   }
-  if (o.apron) mesh(spine, box(), M(o.apron), 0, 0.02, 0.12 * Math.sqrt(b), 0.26 * b, 0.55, 0.02, 1, 1, false);
+  if (o.apron) mesh(spine, box(), M(o.apron), 0, 0.02, 0.12 * Math.sqrt(b), 0.26 * b, 0.55, 0.02, 1, 1, false).userData.acc = 'apron';
   if (o.dress) {
     const len = o.dress === 'long' ? 0.95 : 0.55;
     mesh(hips, skirt(), M(o.dressColor ?? o.top ?? 0x6a3a4a), 0, 0.08 - len / 2, 0, 0.24 * b, len, 0.2 * b, 1, 1, sh);
@@ -234,8 +237,8 @@ export function makeHumanoid(o = {}) {
     mesh(head, sphere(), bone || skin, 0, 0.12, 0, 0.1, 0.115, 0.11);
     mesh(head, box(), bone || skin, 0, 0.03, 0.04, 0.12, 0.05, 0.1);
   } else {
-    mesh(head, sphere(), skin, 0, 0.11, 0, 0.105, 0.125, 0.115, 1, 1, sh);
-    mesh(head, box(), skin, 0, 0.1, 0.11, 0.03, o.nose === 'big' ? 0.07 : 0.045, o.nose === 'big' ? 0.09 : 0.04, 1, 1, false);
+    body(mesh(head, sphere(), skin, 0, 0.11, 0, 0.105, 0.125, 0.115, 1, 1, sh));
+    body(mesh(head, box(), skin, 0, 0.1, 0.11, 0.03, o.nose === 'big' ? 0.07 : 0.045, o.nose === 'big' ? 0.09 : 0.04, 1, 1, false));
   }
   if (o.glowEyes) {
     const ge = mat(o.glowEyes, { basic: true, ...F });
@@ -272,8 +275,8 @@ export function makeHumanoid(o = {}) {
     case 'crown': {
       mesh(head, sphere(), M(hc), 0, 0.15, -0.012, 0.112, 0.1, 0.12, 1, 1, false);
       const gm = M(0xe0b040, { metalness: 0.9, roughness: 0.3 });
-      mesh(head, cyl(12), gm, 0, 0.215, 0, 0.115, 0.035, 0.115, 1, 1, false);
-      for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; mesh(head, cone(4), gm, Math.sin(a) * 0.11, 0.26, Math.cos(a) * 0.11, 0.025, 0.07, 0.025, 1, 1, false); }
+      mesh(head, cyl(12), gm, 0, 0.215, 0, 0.115, 0.035, 0.115, 1, 1, false).userData.acc = 'crown';
+      for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; mesh(head, cone(4), gm, Math.sin(a) * 0.11, 0.26, Math.cos(a) * 0.11, 0.025, 0.07, 0.025, 1, 1, false).userData.acc = 'crown'; }
       break;
     }
     case 'flame': {
@@ -302,16 +305,20 @@ export function makeHumanoid(o = {}) {
   const sleeve = armor || top, forearm = o.bareArms ? skin : sleeve;
   const arm = (side) => {
     const s = joint(spine, side * 0.215 * b, 0.47, 0);
-    if (o.armor === 'plate') mesh(s, sphere(), armor, side * 0.02, 0.02, 0, 0.1 * b, 0.07, 0.1, 1, 1, false);
-    mesh(s, capsule(0.055 * lr * Math.sqrt(b), 0.22), sleeve, 0, -0.15, 0, 1, 1, 1, sh);
+    if (o.armor === 'plate') mesh(s, sphere(), armor, side * 0.02, 0.02, 0, 0.1 * b, 0.07, 0.1, 1, 1, false).userData.acc = 'pad';
+    body(mesh(s, capsule(0.055 * lr * Math.sqrt(b), 0.22), sleeve, 0, -0.15, 0, 1, 1, 1, sh));
     const e = joint(s, 0, -0.3, 0);
-    mesh(e, capsule(0.047 * lr * Math.sqrt(b), 0.2), forearm, 0, -0.13, 0, 1, 1, 1, sh);
+    body(mesh(e, capsule(0.047 * lr * Math.sqrt(b), 0.2), forearm, 0, -0.13, 0, 1, 1, 1, sh));
     const hand = joint(e, 0, -0.28, 0);
-    mesh(hand, sphere(), o.gloves ? M(o.gloves) : skin, 0, 0, 0, 0.05 * Math.sqrt(b), 0.055, 0.045, 1, 1, false);
+    body(mesh(hand, sphere(), o.gloves ? M(o.gloves) : skin, 0, 0, 0, 0.05 * Math.sqrt(b), 0.055, 0.045, 1, 1, false));
     return { s, e, hand };
   };
   rig.armL = arm(1); rig.armR = arm(-1);
   if (o.scale) root.scale.setScalar(o.scale);
+  if (o.mixamo) {
+    const c = (v, d) => (v === 'skin' ? o.skin ?? 0xc79a78 : v ?? d);
+    dressMixamo(rig, o.mixamo, { top: c(o.top, 0x5a4632), pants: c(o.pants, 0x3a3027), tint: o.tint });
+  }
   return rig;
 }
 
@@ -322,6 +329,7 @@ export function hold(rig, hand, kind, o) {
   else if (kind === 'bow') { p.position.set(0, 0, 0.02); p.rotation.x = -1.4; h.add(p); }
   else if (kind === 'lantern') { p.position.set(0, -0.04, 0.02); h.add(p); }
   else { p.rotation.x = -0.25; h.add(p); }
+  if (rig.mix) attachMixamo(rig, p.parent, p);
   rig.props[kind] = p;
   return p;
 }
@@ -500,6 +508,7 @@ export function poseHumanoid(rig, p) {
   neck.rotation.set(V[16], V[17], V[18]);
   rig.root.rotation.x = V[19];
   rig.root.rotation.z = V[21];
+  syncMixamo(rig);
 
   if (rig.cape) {
     // a cape on a spring: it trails behind when running and swings back when you stop
