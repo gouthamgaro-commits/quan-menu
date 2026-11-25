@@ -16,7 +16,7 @@ import {
 } from "@/lib/types";
 import { bankName, vietQr } from "@/lib/vietqr";
 import {
-  Armchair, Coffee, CreditCard, Flame, Lock, MapPin, Minus, Play, Plus, ReceiptText, Search, Star, Trash2, TriangleAlert, Volume2, X,
+  Armchair, Check, Coffee, CreditCard, Flame, Lock, MapPin, Minus, Play, Plus, ReceiptText, Search, ShoppingBag, Star, Trash2, TriangleAlert, Volume2, X,
 } from "lucide-react";
 import QrImage from "./QrImage";
 
@@ -96,7 +96,10 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
   const [sent, setSent] = useState<Line[]>([]);
   // Requests for the vendor ("no chili", "take away"), shown in Vietnamese on the order screen.
   const [notes, setNotes] = useState<NoteKey[]>([]);
-  const [notesOpen, setNotesOpen] = useState(false);
+  // "Your order": the customer checks the order in their own language before showing the vendor.
+  const [yours, setYours] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
   // The drink whose options are being chosen, with the choices so far.
   const [pick, setPick] = useState<Line | null>(null);
   const [shown, setShown] = useState<Shown | null>(null);
@@ -300,6 +303,26 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
     // "No chili" and "a little chili" can't both be asked for.
     setNotes((n) => (n.includes(k) ? n.filter((x) => x !== k) : [...n.filter((x) => !(k === "nochili" && x === "mild") && !(k === "mild" && x === "nochili")), k]));
 
+  /** A dish's name in the customer's language (the Vietnamese one until it's translated). */
+  const titleOf = (d: Dish) => (isTranslated(d) ? d.name![lang] || d.name!.en : d.vi);
+  /** A drink's choices in the customer's language: "L · Sugar 50% · Less ice · + Black tapioca pearls". */
+  const optsText = (l: Line) => [
+    l.size ?? "",
+    l.sugar !== undefined && l.sugar !== 100 ? `${O.sugar} ${O.sugarLv(l.sugar)}` : "",
+    l.ice && l.ice !== "normal" ? O.iceLv[l.ice] : "",
+    ...(l.tops ?? []).map((k) => (toppings[k] ? `+ ${toppings[k].name?.[lang] || toppings[k].name?.en || toppings[k].vi}` : "")),
+  ].filter(Boolean).join(" · ");
+  /** "+" and "−" in "Your order": changes that exact line (same dish, same choices). */
+  const bump = (line: Line, by: 1 | -1) =>
+    setCart((c) => {
+      const k = c.findIndex((x) => sameLine(x, line));
+      if (k < 0) return c;
+      const q = c[k].q + by;
+      return q > 0 ? c.map((x, j) => (j === k ? { ...x, q } : x)) : c.filter((_, j) => j !== k);
+    });
+  /** The order bar opens "Your order", or goes straight to the bill when nothing new was added. */
+  const onBar = () => (sent.length && !freshCount ? openOrder() : setYours(true));
+
   /** Opens the order screen: the whole order the first time, then only what was added, or the bill. */
   function openOrder() {
     const mode: Shown["mode"] = !sent.length ? "first" : fresh.length ? "more" : "bill";
@@ -383,18 +406,31 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
   const visible = (i: number) => matches(dishes[i]) && safe(dishes[i]);
   const Title = groups ? "h3" : "h2";
   const blocked = closed && (freshCount > 0 || !sent.length);
+  // Nothing new left to show (the last dish taken off), or the stall closed: "Your order" closes.
+  useEffect(() => {
+    if (yours && (!freshCount || blocked)) setYours(false);
+  }, [yours, freshCount, blocked]);
+  // The language list closes on a tap anywhere else.
+  useEffect(() => {
+    if (!langOpen) return;
+    const off = (e: PointerEvent) => { if (!langRef.current?.contains(e.target as Node)) setLangOpen(false); };
+    document.addEventListener("pointerdown", off);
+    return () => document.removeEventListener("pointerdown", off);
+  }, [langOpen]);
 
   const dishRow = (i: number) => {
     const d = dishes[i];
     const done = isTranslated(d);
-    const title = done ? d.name![lang] || d.name!.en : d.vi;
+    const title = titleOf(d);
     const desc = d.desc ? d.desc[lang] || d.desc.en : "";
     const n = qtyOf(i);
     const gone = out.has(d.vi);
-    // The first photo or video sits on the card; tapping it opens all of them.
+    // The first photo or video sits on the card; tapping it opens all of them. A must-try dish
+    // with a photo gets the big card, photo across the top.
     const cover = d.media?.[0];
+    const feature = !!(cover && d.special && !gone);
     return (
-      <div key={i} className={"dish" + (cover ? " has-photo" : "") + (n ? " on" : "") + (gone ? " gone" : "")}>
+      <div key={i} className={"dish" + (cover ? " has-photo" : "") + (feature ? " feature" : "") + (n ? " on" : "") + (gone ? " gone" : "")}>
         <div className="d-body">
           {(d.special || gone) && (
             <div className="badges">
@@ -476,29 +512,43 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
   return (
     <div className={"menu" + (full ? " full" : "")} lang={lang}>
       <div className="m-head">
-        <div>
-          <div className="eyebrow">Thực đơn · <span lang={lang}>{MENU_WORD[lang]}</span></div>
-          <h1 className="stall">{name || "Your stall"}</h1>
-          {area && <div className="meta"><MapPin {...ic} /> {area}</div>}
-          {table && <div><div className="meta tbl"><Armchair {...ic} /> {L.table(table)}</div></div>}
-        </div>
-        <div className="bar">
-          <div className="langbar" role="group" aria-label="Language">
-            {LANG_KEYS.map((k) => (
-              <button key={k} aria-pressed={k === lang} onClick={() => setLang(k)} lang={k}>
-                {LANGS[k].label}
-              </button>
-            ))}
+        <div className="m-top">
+          {/* The stall's initial stands in for a logo. */}
+          <span className="m-avatar" aria-hidden>{Array.from((name || "Q").trim())[0]?.toUpperCase()}</span>
+          <div className="m-id">
+            <div className="eyebrow">Thực đơn · <span lang={lang}>{MENU_WORD[lang]}</span></div>
+            <h1 className="stall">{name || "Your stall"}</h1>
           </div>
-          {allergic && dishes.length < 10 && avoidBtn}
+          <div className="m-lang" ref={langRef}>
+            <button type="button" className="lang-btn" aria-label={`${L.language}: ${L.label}`} aria-expanded={langOpen} onClick={() => setLangOpen(!langOpen)}>
+              {lang.toUpperCase()}
+            </button>
+            {langOpen && (
+              <div className="lang-pop" role="group" aria-label={L.language}>
+                {LANG_KEYS.map((k) => (
+                  <button key={k} type="button" aria-pressed={k === lang} onClick={() => { setLang(k); setLangOpen(false); }} lang={k}>
+                    {LANGS[k].label} {k === lang && <Check {...ic} />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-        {dishes.length >= 10 && (
+        {(area || table) && (
+          <div className="m-meta">
+            {area && <span className="meta"><MapPin {...ic} /> {area}</span>}
+            {table && <span className="meta tbl"><Armchair {...ic} /> {L.table(table)}</span>}
+          </div>
+        )}
+        {(dishes.length >= 10 || allergic) && (
           <div className="tools">
-            <div className="search">
-              <Search {...ic} />
-              <input className="find" type="search" value={find} placeholder={L.search} aria-label={L.search}
-                onChange={(e) => setFind(e.target.value)} />
-            </div>
+            {dishes.length >= 10 && (
+              <div className="search">
+                <Search {...ic} />
+                <input className="find" type="search" value={find} placeholder={L.search} aria-label={L.search}
+                  onChange={(e) => setFind(e.target.value)} />
+              </div>
+            )}
             {allergic && avoidBtn}
           </div>
         )}
@@ -579,9 +629,9 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
               <small>{inCurrency(total, cur, rates[cur])}</small>
             </div>
           )}
-          <button className="btn primary" disabled={!count || blocked} onClick={openOrder}>
-            {blocked ? <Lock {...ic} /> : sent.length && !freshCount ? <ReceiptText {...ic} /> : null}
-            {blocked ? L.closed : !count ? L.show0 : !sent.length ? L.show(count) : freshCount ? L.showMore(freshCount) : L.bill}
+          <button className="btn primary" disabled={!count || blocked} onClick={onBar}>
+            {blocked ? <Lock {...ic} /> : sent.length && !freshCount ? <ReceiptText {...ic} /> : count ? <ShoppingBag {...ic} /> : null}
+            {blocked ? L.closed : !count ? L.show0 : !sent.length ? L.view(count) : freshCount ? L.view(freshCount) : L.bill}
           </button>
         </div>
       </div>
@@ -652,6 +702,71 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
         );
       })()}
 
+      {/* "Your order": the customer checks what's new in their language, adds requests, then shows the vendor. */}
+      {yours && (
+        <div className="sheet yours" role="dialog" aria-modal="true" aria-label={L.yourOrder} onClick={() => setYours(false)}>
+          <div className="sheet-card yours-card" onClick={(e) => e.stopPropagation()}>
+            <div className="sheet-h"><h3>{L.yourOrder}</h3><button className="icon" aria-label={L.close} onClick={() => setYours(false)}><X {...ic} /></button></div>
+            {table && <div className="y-table"><Armchair {...ic} /> {L.table(table)}</div>}
+            {sent.length > 0 && (
+              <div className="y-before">
+                <span className="y-label">{L.before}</span>
+                <ul>
+                  {sent.map((l, k) => (dishes[l.i] ? <li key={k}>{l.q} × {titleOf(dishes[l.i])}{optsText(l) && <small> · {optsText(l)}</small>}</li> : null))}
+                </ul>
+              </div>
+            )}
+            {sent.length > 0 && <span className="y-label">{L.adding}</span>}
+            <ul className="y-lines">
+              {fresh.map((l, k) => {
+                const d = dishes[l.i];
+                if (!d) return null;
+                const photo = d.media?.find((m) => m.type === "image");
+                const opts = optsText(l);
+                return (
+                  <li key={k} className="y-line">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {photo && <img className="y-thumb" src={photo.url} alt="" loading="lazy" />}
+                    <div className="y-name">
+                      <b>{titleOf(d)}</b>
+                      <small><span lang="vi">{d.vi}</span>{opts && ` · ${opts}`}</small>
+                      <span className="y-price">{vnd(unitPrice(d, l, toppings) * l.q)}</span>
+                    </div>
+                    <div className="qty has">
+                      <button className="sub" aria-label="Remove one" onClick={() => bump(l, -1)}>{l.q === 1 ? <Trash2 {...ic} /> : <Minus {...ic} />}</button>
+                      <span className="n" aria-live="polite">{l.q}</span>
+                      <button className="add" aria-label="Add one" disabled={out.has(d.vi) || closed} onClick={() => bump(l, 1)}><Plus {...ic} /></button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            <button type="button" className="btn y-more" onClick={() => setYours(false)}><Plus {...ic} /> {L.addMore}</button>
+            <div className="y-notes">
+              <span className="y-label">{L.notes}</span>
+              <div className="chips">
+                {NOTE_KEYS.map((k) => (
+                  <button key={k} type="button" className="chip" aria-pressed={notes.includes(k)} onClick={() => toggleNote(k)}>
+                    {NOTES[k].icon} {NOTES[k][lang]}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {avoid.length > 0 && (
+              <p className="y-allergy"><TriangleAlert {...ic} /> {L.allergyShown}: {avoid.map((a) => ALLERGENS[a][lang]).join(", ")}</p>
+            )}
+            <div className="y-total">
+              <span>{L.total}</span>
+              <b>{vnd(total)}</b>
+              <small>{inCurrency(total, cur, rates[cur])}</small>
+            </div>
+            <button className="btn primary y-go" onClick={() => { setYours(false); openOrder(); }}>
+              {!sent.length ? L.show0 : L.showMore(freshCount)}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* The order screen: a paper receipt over the dimmed menu, big enough for the vendor to read at arm's length. */}
       {shown && (
         <div className="order-wrap">
@@ -667,22 +782,6 @@ export default function MenuView({ name, area, dishes, full, slug, toppings = []
             <div className="allergy" role="note">
               {allergyVi.map((x) => <b key={x}>⚠️ {x}</b>)}
               <small lang={lang}>{L.allergyShown}</small>
-            </div>
-          )}
-          {shown.mode !== "bill" && (
-            <div className="notes" lang={lang}>
-              <button type="button" className="btn addnote" aria-expanded={notesOpen} onClick={() => setNotesOpen(!notesOpen)}>
-                {notesOpen ? "−" : "+"} {L.notes}
-              </button>
-              {notesOpen && (
-                <div className="chips">
-                  {NOTE_KEYS.map((k) => (
-                    <button key={k} type="button" className="chip" aria-pressed={notes.includes(k)} onClick={() => toggleNote(k)}>
-                      {NOTES[k].icon} {NOTES[k][lang]}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           )}
           {shown.mode === "more" && shown.before.length > 0 && (
