@@ -658,12 +658,12 @@ export function createLife(ctx) {
   // ---------------------------------------------------------------- the risen dead
   const SKEL = { reach: 1.7, wind: 0.55, rec: 0.55, dmg: 11, cd: 1.0, style: 'slash' };
   function spawnSkeleton(gr) {
-    const rig = makeHumanoid({ bone: true, glowEyes: 0x7dff9a, boots: 0xd8d0bb, head: Math.random() < 0.35 ? 'helm' : 'none' });
+    const rig = makeHumanoid({ bone: true, glowEyes: 0x7dff9a, boots: 0xd8d0bb, head: Math.random() < 0.35 ? 'helm' : 'none', gait: 'soldier' });
     hold(rig, 'R', 'sword'); if (Math.random() < 0.5) hold(rig, 'L', 'shield', { color: 0x4a3a2a });
     const a = base('skeleton', 'wild', rig, gr.x, gr.z, { hp: 45, R: 0.38, H: 1.8, missileMul: 0.5, bleed: 'bone', gone: true, state: 'grave', stride: 3.6, riseT: 0, grave: gr, yaw: Math.PI });
     rig.root.visible = false;
     a.ai = skelAI;
-    a.pose = (a) => humanPose(a, { lean: 0.12, look: Math.sin(a.t * 0.7) * 0.3 });
+    a.pose = (a) => humanPose(a, { lean: 0.12, look: Math.sin(a.t * 0.7) * 0.3, ready: 1 });
     a.onHurt = (h) => { if (h.from && h.from !== 'god') { a.target = h.from; a.seenT = 0; } sfx.rattle(ctx.volAt(a.pos)); };
     a.onDeath = () => {
       sfx.rattle(ctx.volAt(a.pos)); ctx.burst('bone', a.pos.x, a.pos.y + 1, a.pos.z, 14, 2.6, 0.12, 1.2);
@@ -835,12 +835,12 @@ export function createLife(ctx) {
   const novaRing = new THREE.Mesh(new THREE.RingGeometry(0.9, 1, 48), new THREE.MeshBasicMaterial({ color: 0xff5a20, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
   novaRing.rotation.x = -Math.PI / 2; scene.add(novaRing);
   function spawnDemon() {
-    const rig = makeHumanoid({ skin: 0x3a0d08, skinEmissive: 0x5a1500, top: 'skin', pants: 0x1a0a08, boots: 'skin', head: 'bald', horns: 0x1a0a08, hornSize: 1.7, glowEyes: 0xff8a20, tail: 0x3a0d08, wings: 0x2a0806, build: 1.4, limb: 1.25, scale: 1.5, bareArms: true, belt: 0x1a0a08 });
+    const rig = makeHumanoid({ skin: 0x3a0d08, skinEmissive: 0x5a1500, top: 'skin', pants: 0x1a0a08, boots: 'skin', head: 'bald', horns: 0x1a0a08, hornSize: 1.7, glowEyes: 0xff8a20, tail: 0x3a0d08, wings: 0x2a0806, build: 1.4, limb: 1.25, scale: 1.5, bareArms: true, belt: 0x1a0a08, gait: 'soldier' });
     hold(rig, 'R', 'greatsword', { flame: true });
     const fl = new THREE.Sprite(new THREE.SpriteMaterial({ map: W.tex.flame, color: 0xff7a30, blending: THREE.AdditiveBlending, depthWrite: false })); fl.scale.set(0.7, 1.6, 1); fl.position.z = 0.8; rig.props.greatsword.add(fl);
     const a = base('demon', 'demon', rig, W.rift.x + 3, W.rift.z - 4, { hp: 420, R: 0.75, H: 2.75, canAssassinate: false, stride: 2.8, novaT: rand(5, 8), nova: null, wait: 2 });
     a.ai = demonAI;
-    a.pose = (a) => humanPose(a, a.nova ? { atk: 0.3, style: 'slam', lean: -0.2 } : { lean: 0.1 });
+    a.pose = (a) => humanPose(a, a.nova ? { atk: 0.3, style: 'slam', lean: -0.2, ready: 1 } : { lean: 0.1, ready: 1 });
     a.onHurt = (h) => { if (h.from && h.from !== 'god') a.target = h.from; sfx.grunt(ctx.volAt(a.pos) * 1.4); };
     a.onDeath = () => { L.quests.demon = true; G.gold += 250; sfx.roar(ctx.volAt(a.pos), 1.4); ctx.toast('The hellspawn is banished. +250 gold', 'gold'); ctx.banner('The Hellspawn Is Banished', '+250 gold'); };
     return a;

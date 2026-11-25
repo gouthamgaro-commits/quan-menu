@@ -166,5 +166,7 @@ they give up the hunt.
 ## Credits
 
 The idle, walk, run, sneak, nod, head-shake and samba animations are Mixamo
-motion capture (mixamo.com, Adobe), taken from the X Bot and Michelle models
-that ship with the three.js examples. Everything else is made in code.
+motion capture (mixamo.com, Adobe), taken from the X Bot, Soldier and Michelle
+models that ship with the three.js examples. Guards move with the Soldier's
+walk, run and ready stance; everyone else with the X Bot's. Everything else is
+made in code.

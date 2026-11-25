@@ -43,6 +43,8 @@ function lowFoot(v, baseHip) {
   }
   return v[4] + low;
 }
+// two gaits: townsfolk (Mixamo's X Bot) and soldiers (Mixamo's Soldier), chosen with makeHumanoid's gait option
+const GAITS = { town: { idle: MC.idle, walk: MC.walk, run: MC.run }, soldier: { idle: MC.idleS, walk: MC.walkS, run: MC.runS } };
 export const GESTURES = { agree: MC.agree.dur, shake: MC.shake.dur };
 export const DANCE_LEN = MC.dance.dur;
 
@@ -328,7 +330,7 @@ export function hold(rig, hand, kind, o) {
 //    climb, atk (0..1 or <0), style, block, aim, draw, xbow, cower, talk, lute, lantern, drunk, fly, kneel, look,
 //    nod, lean, hit (0..1 flinch), land (0..1 dip), bank (lean into a turn), dead (0..1), deadDir (1 falls back,
 //    -1 falls forward), gesture ('agree' or 'shake'), gT (seconds into it), sad (0..1), dance (seconds), danceW,
-//    t, dt
+//    ready (0..1, soldiers' combat stance), t, dt
 // The motion-capture base comes first, then the procedural layers, then each joint eases toward its target,
 // so moves blend into one another.
 const J = 30;
@@ -346,7 +348,7 @@ export function poseHumanoid(rig, p) {
   B.fill(0);
   // layer weights ease, so the captured motion itself never needs smoothing
   const kw = dt ? 1 - Math.exp(-9 * dt) : 1;
-  const W = rig.W || (rig.W = { m: clamp(mv, 0, 1), r: clamp(mv - 1, 0, 1), c: cr, sad: 0, dance: 0 });
+  const W = rig.W || (rig.W = { m: clamp(mv, 0, 1), r: clamp(mv - 1, 0, 1), c: cr, sad: 0, dance: 0, rd: p.ready || 0 });
   W.m += (clamp(mv, 0, 1) - W.m) * kw; W.r += (clamp(mv - 1, 0, 1) - W.r) * kw;
   W.c += (cr - W.c) * kw; W.sad += ((p.sad || 0) - W.sad) * kw * 0.5; W.dance += ((p.danceW || 0) - W.dance) * kw * 0.5;
   const wm = W.m, wr = W.r;
@@ -354,11 +356,15 @@ export function poseHumanoid(rig, p) {
   let step = rig.lastDist === undefined ? 0 : dist - rig.lastDist;
   rig.lastDist = dist;
   if (Math.abs(step) > 3) step = 0;
-  const stride = lerp(MC.walk.stride, MC.run.stride, wr) * (rig.o.scale || 1) * (rig.o.stride || 1);
+  const G = GAITS[rig.o.gait] || GAITS.town;
+  const stride = lerp(G.walk.stride, G.run.stride, wr) * (rig.o.scale || 1) * (rig.o.stride || 1);
   rig.u = (rig.u || 0) + step / stride;
-  addClip(B, MC.idle, (t + rig.seed) / MC.idle.dur, 1 - wm, true);
-  addClip(B, MC.walk, rig.u, wm * (1 - wr), true);
-  addClip(B, MC.run, rig.u, wm * wr, true);
+  // soldiers stand easy until something is up, then drop into their ready stance
+  const rd = G === GAITS.town ? 0 : (W.rd += ((p.ready || 0) - W.rd) * kw * 0.6);
+  addClip(B, GAITS.town.idle, (t + rig.seed) / GAITS.town.idle.dur, (1 - wm) * (1 - rd), true);
+  addClip(B, G.idle, (t + rig.seed) / G.idle.dur, (1 - wm) * rd, true);
+  addClip(B, G.walk, rig.u, wm * (1 - wr), true);
+  addClip(B, G.run, rig.u, wm * wr, true);
   if (W.dance > 0.001) {
     tmp.fill(0); addClip(tmp, MC.dance, (p.dance || 0) / MC.dance.dur, 1, true);
     for (let j = 0; j < MN; j++) B[j] = lerp(B[j], tmp[j], W.dance);

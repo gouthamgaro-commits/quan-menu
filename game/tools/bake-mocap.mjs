@@ -1,13 +1,15 @@
 // Bakes Mixamo motion capture into the joint angles of Ravenmoor's humanoid rig (js/actors.js).
 //
-// The clips come from two Mixamo models that ship with the three.js examples:
+// The clips come from three Mixamo models that ship with the three.js examples:
 //   https://raw.githubusercontent.com/mrdoob/three.js/r160/examples/models/gltf/Xbot.glb
+//   https://raw.githubusercontent.com/mrdoob/three.js/r160/examples/models/gltf/Soldier.glb
 //   https://raw.githubusercontent.com/mrdoob/three.js/r160/examples/models/gltf/Michelle.glb
-// Download both into one folder, then from this folder run:
+// Download them into one folder, then from this folder run:
 //   node bake-mocap.mjs <that folder> ../js/mocap.js [--dump]
-// --dump prints the range of every channel of every clip.
+// --dump prints the range of every channel of every clip; --debug keeps each loop's cycle shift in the output.
 //
-// For each frame it plays the clip on the source skeleton and converts it to the rig: hips and chest
+// Each source is first turned to face +z like the rig (the Soldier faces -z). For each frame it plays
+// the clip on the source skeleton and converts it to the rig: hips and chest
 // turn by how far they moved from the T-pose, arms and legs point the same way as the source's limbs
 // (with the elbow and knee bend planes setting their twist), and the hips are raised or lowered so the
 // rig's own feet are as high off the ground as the source's.
@@ -101,9 +103,15 @@ function makeRetargeter(sc, restClip) {
   };
   const bones = {};
   for (const n of ['Hips', 'Spine2', 'Head', 'LeftArm', 'LeftForeArm', 'LeftHand', 'RightArm', 'RightForeArm', 'RightHand', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase', 'RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase']) bones[n] = B(n);
-  applyFrame(sc, restClip || null, restClip ? restClip.times[0] : 0);
   const wq = (b) => b.getWorldQuaternion(new THREE.Quaternion());
   const wp = (b) => b.getWorldPosition(new V3());
+  // which way a pair of left/right bones faces, as a yaw from +z
+  const faceOf = (l, r) => { const d = wp(bones[l]).sub(wp(bones[r])); return Math.atan2(-d.z, d.x); };
+  // turn the whole source so its rest pose faces +z, as the rig does (the Soldier faces -z)
+  applyFrame(sc, restClip || null, restClip ? restClip.times[0] : 0);
+  sc.root.rotation.y = -faceOf('LeftUpLeg', 'RightUpLeg');
+  const baseYaw = sc.root.rotation.y;
+  applyFrame(sc, restClip || null, restClip ? restClip.times[0] : 0);
   const rest = {};
   for (const k in bones) rest[k] = { q: wq(bones[k]), p: wp(bones[k]) };
   const footRest = { L: Math.min(rest.LeftFoot.p.y, rest.LeftToeBase.p.y), R: Math.min(rest.RightFoot.p.y, rest.RightToeBase.p.y) };
@@ -194,7 +202,7 @@ function makeRetargeter(sc, restClip) {
     v[4] = Math.max(-0.6, lift - low - 0.0);
     return v;
   }
-  return { frame, feet, S, rest };
+  return { frame, feet, S, rest, baseYaw, chestYaw: () => faceOf('LeftArm', 'RightArm') };
 }
 
 function bakeClip(sc, rt, clip, o = {}) {
@@ -203,7 +211,15 @@ function bakeClip(sc, rt, clip, o = {}) {
   const n = Math.max(1, Math.round(dur * fps));
   const frames = [];
   const count = o.loop ? n : n + 1;
-  for (let i = 0; i < count; i++) { applyFrame(sc, clip, clip.times[0] + (i / n) * dur); frames.push(rt.frame()); }
+  const at = (i) => clip.times[0] + (i / n) * dur;
+  if (o.faceForward) {
+    // an idle that stands turned away: turn it so the chest faces forward on average
+    let sx = 0, sz = 0;
+    for (let i = 0; i < count; i++) { applyFrame(sc, clip, at(i)); const y = rt.chestYaw(); sx += Math.sin(y); sz += Math.cos(y); }
+    sc.root.rotation.y = rt.baseYaw - Math.atan2(sx, sz);
+  }
+  for (let i = 0; i < count; i++) { applyFrame(sc, clip, at(i)); frames.push(rt.frame()); }
+  sc.root.rotation.y = rt.baseYaw;
   return { dur, fps, frames };
 }
 
@@ -267,13 +283,17 @@ function load(name) {
   return { sc, clips, rt: makeRetargeter(sc, clips.find((c) => /tpose/i.test(c.name))) };
 }
 
-const X = load('Xbot'), Mi = load('Michelle');
+const X = load('Xbot'), Mi = load('Michelle'), Sd = load('Soldier');
 const clip = (src, name) => { const c = src.clips.find((c) => c.name === name); if (!c) throw new Error('no clip ' + name); return c; };
 
 const out = {};
 out.idle = pack(bakeClip(X.sc, X.rt, clip(X, 'idle'), { loop: true }));
 out.walk = pack(locomotion(X.rt, bakeClip(X.sc, X.rt, clip(X, 'walk'), { loop: true })));
 out.run = pack(locomotion(X.rt, bakeClip(X.sc, X.rt, clip(X, 'run'), { loop: true })));
+// a second gait, for soldiers
+out.idleS = pack(bakeClip(Sd.sc, Sd.rt, clip(Sd, 'Idle'), { loop: true, faceForward: true }));
+out.walkS = pack(locomotion(Sd.rt, bakeClip(Sd.sc, Sd.rt, clip(Sd, 'Walk'), { loop: true })));
+out.runS = pack(locomotion(Sd.rt, bakeClip(Sd.sc, Sd.rt, clip(Sd, 'Run'), { loop: true })));
 // additive poses and gestures, relative to their own first frame (as three.js's makeClipAdditive does)
 for (const [k, name] of [['sneak', 'sneak_pose'], ['sad', 'sad_pose']]) {
   const b = bakeClip(X.sc, X.rt, clip(X, name));
@@ -306,13 +326,16 @@ if (DUMP) {
 if (OUT) {
   const body = Object.entries(out).map(([k, c]) => {
     const { _flat, sh, ...rest } = c;
-    return `  ${k}: ${JSON.stringify(rest)}`;
+    // --debug keeps each loop's cycle shift, for lining frames up with the source when checking
+    return `  ${k}: ${JSON.stringify(flags.includes('--debug') ? { ...rest, sh } : rest)}`;
   }).join(',\n');
-  fs.writeFileSync(OUT, `// Motion capture from Mixamo (mixamo.com), taken from the X Bot and Michelle models that ship with the
-// three.js examples, and baked offline into the joint angles of the rig in actors.js.
+  fs.writeFileSync(OUT, `// Motion capture from Mixamo (mixamo.com), taken from the X Bot, Soldier and Michelle models that ship
+// with the three.js examples, and baked offline into the joint angles of the rig in actors.js
+// by tools/bake-mocap.mjs.
 // Each clip is n frames of ${N} channels in poseHumanoid's layout, stored as little-endian int16 / ${Q}
 // in base64. Walk and run loops are lined up so a quarter of the way in, the left thigh is furthest forward;\n// stride is metres per loop.
-// idle, walk, run: absolute poses. sneak, sad: one-frame offsets. agree, shake: offsets from frame 0.
+// idle, walk, run (X Bot) and idleS, walkS, runS (Soldier): absolute poses. sneak, sad: one-frame
+// offsets. agree, shake: offsets from frame 0.
 // dance: absolute, 15 fps.
 export const N = ${N}, Q = ${Q};
 export const MOCAP = {\n${body}\n};\n`);

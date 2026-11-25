@@ -654,6 +654,7 @@ function makeModel(type, lantern) {
     : type === 'archer'
       ? { top: 0x2f5a34, pants: 0x3a3027, head: 'kettle', tabard: 0x2a4a2c, skin, gloves: 0x3d2b1e, tallBoots: true }
       : { armor: 'mail', tabard: 0x8e2222, head: 'helm', skin, gloves: 0x3d2b1e, tallBoots: true, beard: Math.random() < 0.4 ? 0x4a2c18 : undefined };
+  o.gait = 'soldier';
   const rig = makeHumanoid(o);
   if (type === 'archer') hold(rig, 'L', 'bow');
   else if (type === 'marshal') hold(rig, 'R', 'greatsword');
@@ -751,7 +752,8 @@ function poseGuard(g, moving) {
   // a guard who gives up the hunt shakes his head
   g.gestT = (g.gestT ?? 9) + (g.pdt || 0);
   const p = { t: G.t + g.seed, dt: g.pdt, phase: g.walk, move: g.mv, look: g.hy, lean: g.stun > 0 ? 0.35 : 0, atk: -1, hit: g.hitT || 0, dead: g.dead ? g.deathT : 0, deadDir: g.deadDir,
-    gesture: g.gestT < 2.6 && !fighting && !g.dead ? 'shake' : null, gT: g.gestT };
+    gesture: g.gestT < 2.6 && !fighting && !g.dead ? 'shake' : null, gT: g.gestT,
+    ready: fighting || g.state === 'search' || g.state === 'sus' ? 1 : 0 };
   if (g.atk) { p.atk = g.atk.t < g.atk.wind ? g.atk.t / g.atk.wind * 0.42 : 0.42 + (g.atk.t - g.atk.wind) / 0.45 * 0.58; p.style = g.type === 'marshal' ? 'overhead' : 'slash'; }
   if (g.lantern && !g.atk) p.lantern = 1;
   if (g.type === 'archer') { p.aim = fighting ? 1 : 0; p.draw = clamp(1 - g.shootCd / 1.5, 0, 1); }
