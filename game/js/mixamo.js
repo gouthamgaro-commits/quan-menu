@@ -24,9 +24,18 @@ export async function loadMixamo(onProgress) {
   const loader = new GLTFLoader();
   const keys = Object.keys(MODELS);
   let done = 0;
+  // Published copies of the game (where .glb files can't be served) carry each model as a module of base64
+  // text, models/<name>.glb.js, and say so with window.RAVENMOOR_EMBEDDED_MODELS.
+  const fetchModel = async (file) => {
+    if (!globalThis.RAVENMOOR_EMBEDDED_MODELS) return loader.loadAsync(file);
+    const { default: b64 } = await import(`../${file}.js`);
+    const s = atob(b64), u = new Uint8Array(s.length);
+    for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
+    return loader.parseAsync(u.buffer, '');
+  };
   await Promise.all(keys.map(async (k) => {
     try {
-      const g = await loader.loadAsync(MODELS[k].file);
+      const g = await fetchModel(MODELS[k].file);
       PROTO[k] = prepare(k, g.scene);
     } catch (e) {
       console.warn('Mixamo model failed to load, using the classic body:', k, e);
