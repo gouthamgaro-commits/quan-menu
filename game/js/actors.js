@@ -246,8 +246,11 @@ export function makeHumanoid(o = {}) {
   }
   const hc = o.hair ?? 0x3b2a1c;
   switch (o.head) {
-    case 'hair': mesh(head, sphere(), M(hc), 0, 0.15, -0.012, 0.112, 0.1, 0.12, 1, 1, false); break;
-    case 'long': mesh(head, sphere(), M(hc), 0, 0.14, -0.02, 0.115, 0.11, 0.125, 1, 1, false); mesh(head, capsule(0.09, 0.3), M(hc), 0, -0.05, -0.08, 1, 1, 0.6, 1, 1, false); break;
+    case 'hair': mesh(head, sphere(), M(hc), 0, 0.15, -0.012, 0.112, 0.1, 0.12, 1, 1, false).userData.acc = 'hair'; break;
+    case 'long':
+      mesh(head, sphere(), M(hc), 0, 0.14, -0.02, 0.115, 0.11, 0.125, 1, 1, false).userData.acc = 'hair';
+      mesh(head, capsule(0.09, 0.3), M(hc), 0, -0.05, -0.08, 1, 1, 0.6, 1, 1, false).userData.acc = 'hair';
+      break;
     case 'hood': {
       const hm = M(o.hood ?? 0x232838);
       mesh(head, sphere(), hm, 0, 0.125, -0.02, 0.135, 0.15, 0.14, 1, 1, sh);
@@ -291,7 +294,7 @@ export function makeHumanoid(o = {}) {
       break;
     }
   }
-  if (o.beard) mesh(head, sphere(), M(o.beard), 0, 0.04, 0.075, 0.085, 0.09, 0.06, 1, 1, false);
+  if (o.beard) mesh(head, sphere(), M(o.beard), 0, 0.04, 0.075, 0.085, 0.09, 0.06, 1, 1, false).userData.acc = 'beard';
   if (o.horns) {
     const hm = M(o.horns);
     for (const s of [1, -1]) {
@@ -317,7 +320,11 @@ export function makeHumanoid(o = {}) {
   if (o.scale) root.scale.setScalar(o.scale);
   if (o.mixamo) {
     const c = (v, d) => (v === 'skin' ? o.skin ?? 0xc79a78 : v ?? d);
-    dressMixamo(rig, o.mixamo, { top: c(o.top, 0x5a4632), pants: c(o.pants, 0x3a3027), tint: o.tint });
+    dressMixamo(rig, o.mixamo, {
+      skin: o.skin ?? 0xc79a78, top: c(o.top, 0x5a4632), pants: c(o.pants, 0x3a3027), boots: c(o.boots, 0x2a1d14),
+      belt: o.belt ?? 0x2c1f16, hands: o.gloves ?? o.skin ?? 0xc79a78, bare: !!o.bareArms, tint: o.tint,
+      hair: o.hair ?? 0x3b2a1c, beard: o.beard, hairMode: { hair: 1, hat: 1, crown: 1, long: 2, halo: 2 }[o.head] || 0,
+    });
   }
   return rig;
 }

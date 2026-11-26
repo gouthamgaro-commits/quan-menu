@@ -66,9 +66,10 @@ Press **T** to switch between third person (the default) and first person.
 
 Everyone in town is a Mixamo character. Guards wear Mixamo's armoured Soldier
 (archers in green, the Marshal in gold with his crown and cape). Men, Bro and you are
-Mixamo's Alpha mannequin, and women are Michelle or the X Bot mannequin, each
-repainted in their own colours and wearing the town's hats, hoods, hair,
-capes and dresses. They carry the game's swords, shields, bows, axes and
+Mixamo's Alpha mannequin, and women are Michelle or the X Bot mannequin. The
+mannequins are painted with each person's clothes (tunic, belt, trousers,
+boots), skin, hair and beard, and wear the town's hats, hoods, capes and
+dresses. They carry the game's swords, shields, bows, axes and
 lanterns in their hands. Monsters, beasts and gods are made in code.
 
 Far-off people switch to light stand-in bodies, which keeps the game smooth

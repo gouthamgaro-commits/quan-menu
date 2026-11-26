@@ -8,15 +8,16 @@ import { GLTFLoader } from '../vendor/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from '../vendor/jsm/utils/SkeletonUtils.js';
 
 const MODELS = {
-  // Mixamo's two mannequins, repainted per person: body in their top's colour, joints in their trousers'.
-  // Alpha is the man (from three.js's "Samba Dancing" example), X Bot the woman.
+  // Mixamo's two mannequins, painted with each person's clothes (see painted): Alpha is the man (from
+  // three.js's "Samba Dancing" example), X Bot the woman. The numbers darken the joints' seams.
   // Their chests are deeper than the rig's, so aprons would sink in.
-  alpha: { file: 'models/alpha.glb', tint: { Alpha_Body_MAT: 'top', Alpha_Joints_MAT: 'pants' }, hide: ['apron'] },
-  xbot: { file: 'models/xbot.glb', tint: { 'asdf1:Beta_HighLimbsGeoSG2': 'top', Beta_Joints_MAT: 'pants' }, hide: ['apron'] },
+  // Hair and beards are painted on too, so those shapes from the rig are left off.
+  alpha: { file: 'models/alpha.glb', tint: {}, paint: { Alpha_Body_MAT: 1, Alpha_Joints_MAT: 0.6 }, hide: ['apron', 'beard', 'hair'] },
+  xbot: { file: 'models/xbot.glb', tint: {}, paint: { 'asdf1:Beta_HighLimbsGeoSG2': 1, Beta_Joints_MAT: 0.6 }, hide: ['apron', 'beard', 'hair'] },
   // the Soldier: armour and a helmet of his own, so no hats, hair or tabards
-  soldier: { file: 'models/soldier.glb', tint: { VanguardBodyMat: 'tint' }, hide: ['head', 'tabard', 'pad', 'apron'] },
+  soldier: { file: 'models/soldier.glb', tint: { VanguardBodyMat: 'tint' }, hide: ['head', 'hair', 'beard', 'tabard', 'pad', 'apron'] },
   // Michelle has her own hair
-  michelle: { file: 'models/michelle.glb', tint: {}, hide: ['head'] },
+  michelle: { file: 'models/michelle.glb', tint: {}, hide: ['head', 'hair', 'beard'] },
 };
 const PROTO = {};
 
@@ -69,6 +70,22 @@ function prepare(kind, scene) {
     o.castShadow = true; o.userData.cs = true;
     for (const m of [o.material].flat()) { m.metalness = Math.min(m.metalness ?? 0, 0.15); m.roughness = Math.max(m.roughness ?? 1, 0.6); }
   });
+  // where the clothes go, measured on the skeleton in the T-pose. A skinned glTF mesh's vertices sit in the
+  // scene's own space (the mesh node's transform plays no part), so the bones are measured there too.
+  if (MODELS[kind].paint) for (const o of meshes) {
+    const at = (n) => find(scene, n).getWorldPosition(new THREE.Vector3());
+    const H = at('Hips'), up = at('Head').sub(H).normalize(), side = at('LeftHand').sub(at('LeftArm')).normalize();
+    const h = (n) => at(n).sub(H).dot(up), sd = (n) => Math.abs(at(n).sub(H).dot(side));
+    const neck = h('Neck'), head = h('Head'), knee = h('LeftLeg'), foot = h('LeftFoot');
+    const fwd = new THREE.Vector3().crossVectors(side, up).normalize();
+    const top = find(scene, 'HeadTop_End') ? h('HeadTop_End') : head + (head - neck) * 1.6, size = top - head;
+    o.userData.paint = {
+      hips: H.toArray(), up: up.toArray(), side: side.toArray(), fwd: fwd.toArray(),
+      headF: at('Head').sub(H).dot(fwd), hairline: head + size * 0.62, jaw: head + size * 0.3,
+      neck: neck + (head - neck) * 0.35, wrist: sd('LeftHand') - neck * 0.02, shoulder: sd('LeftArm') * 1.05,
+      belt1: neck * 0.16, belt0: neck * 0.07, hem: knee * 0.45, boot: foot + (knee - foot) * 0.45,
+    };
+  }
   // curl the fingers a little, so hands look like they hold something
   scene.traverse((o) => {
     const m = /(Left|Right)Hand(Index|Middle|Ring|Pinky)[123]$/.exec(o.name.replace(':', ''));
@@ -77,18 +94,64 @@ function prepare(kind, scene) {
   return { kind, scene, scale: 0.95 / hipY };
 }
 
-// X Bot mannequins are repainted in the person's colours; the Soldier's painted armour is tinted over
+// the Soldier's painted armour is tinted over (green for archers, gold for the Marshal)
 const tints = new Map();
-function tinted(m, color, repaint) {
+function tinted(m, color) {
   if (color == null) return m;
-  const key = m.uuid + ':' + color + ':' + repaint;
+  const key = m.uuid + ':' + color;
   let t = tints.get(key);
-  if (!t) {
-    t = m.clone();
-    if (repaint) t.color.set(color).multiplyScalar(1.35); else t.color.multiply(new THREE.Color(color));
-    tints.set(key, t);
-  }
+  if (!t) { t = m.clone(); t.color.multiply(new THREE.Color(color)); tints.set(key, t); }
   return t;
+}
+
+// A mannequin painted with clothes: the shader sorts each point of the T-posed mesh into head, hands, sleeves,
+// tunic, belt, trousers or boots by its height above the hips and its reach along the arms.
+const paints = new Map();
+function painted(base, cal, c, dim) {
+  const key = base.uuid + JSON.stringify(c);
+  let m = paints.get(key);
+  if (m) return m;
+  m = base.clone();
+  m.color.set(0xffffff); m.metalness = 0; m.roughness = 0.86;
+  const col = (v) => ({ value: new THREE.Color(v) });
+  const u = {
+    pHips: { value: new THREE.Vector3().fromArray(cal.hips) }, pUp: { value: new THREE.Vector3().fromArray(cal.up) },
+    pSide: { value: new THREE.Vector3().fromArray(cal.side) },
+    pCut: { value: new THREE.Vector4(cal.neck, cal.wrist, cal.shoulder, cal.belt1) },
+    pCut2: { value: new THREE.Vector4(cal.belt0, cal.hem, cal.boot, c.bare ? 1 : 0) },
+    cHead: col(c.skin), cTop: col(c.top), cPants: col(c.pants), cBoots: col(c.boots), cBelt: col(c.belt), cHands: col(c.hands),
+    pDim: { value: dim }, pFwd: { value: new THREE.Vector3().fromArray(cal.fwd) },
+    pHead: { value: new THREE.Vector4(cal.headF, cal.hairline, cal.jaw, c.hairMode || 0) },
+    cHair: col(c.hair), cBeard: col(c.beard ?? 0), pBeard: { value: c.beard == null ? 0 : 1 },
+  };
+  m.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, u);
+    sh.vertexShader = 'varying vec3 vBind;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n\tvBind = position;');
+    sh.fragmentShader = 'varying vec3 vBind;\nuniform vec3 pHips, pUp, pSide, pFwd, cHead, cTop, cPants, cBoots, cBelt, cHands, cHair, cBeard;\nuniform vec4 pCut, pCut2, pHead;\nuniform float pDim, pBeard;\n' +
+      sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+	vec3 rmD = vBind - pHips;
+	float rmH = dot(rmD, pUp), rmS = abs(dot(rmD, pSide));
+	vec3 rmC = cTop;
+	if (rmH > pCut.x) {
+		// the head: skin, with hair on top (and down the back when long) and a beard on the lower front
+		float rmF = dot(rmD, pFwd) - pHead.x;
+		rmC = cHead;
+		if (pHead.w > 0.5 && rmH > pHead.y - max(0.0, -rmF) * 1.2) rmC = cHair;
+		if (pHead.w > 1.5 && rmF < 0.0) rmC = cHair;
+		if (pBeard > 0.5 && rmH < pHead.z && rmF > 0.0) rmC = cBeard;
+	}
+	else if (rmS > pCut.y) rmC = cHands;
+	else if (rmS > pCut.z && pCut2.w > 0.5) rmC = cHead;
+	else if (rmH > pCut.w) rmC = cTop;
+	else if (rmH > pCut2.x) rmC = cBelt;
+	else if (rmH > pCut2.y) rmC = cTop;
+	else if (rmH > pCut2.z) rmC = cPants;
+	else rmC = cBoots;
+	diffuseColor.rgb *= rmC * pDim;`);
+  };
+  m.customProgramCacheKey = () => 'ravenmoor-paint';
+  paints.set(key, m);
+  return m;
 }
 
 // Give a rig built by makeHumanoid a Mixamo body. Returns false if that model isn't loaded.
@@ -104,9 +167,9 @@ export function dressMixamo(rig, kind, colors = {}) {
   model.traverse((o) => {
     if (!o.isSkinnedMesh) return;
     o.castShadow = true; o.userData.cs = true;
+    if (def.paint && o.userData.paint && def.paint[o.material.name]) { o.material = painted(o.material, o.userData.paint, colors, def.paint[o.material.name]); return; }
     const want = def.tint[o.material.name];
-    const c = want === 'tint' ? colors.tint : want ? colors[want] : null;
-    o.material = tinted(o.material, c, kind === 'xbot' || kind === 'alpha');
+    o.material = tinted(o.material, want === 'tint' ? colors.tint : want ? colors[want] : null);
   });
   rig.root.add(box);
 
